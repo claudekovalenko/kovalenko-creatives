@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Security: only this site's own files and Google Fonts may load; nothing can be framed, posted or injected. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Kovalenko Creatives</title>
   <meta name="description" content="Kovalenko Creatives designs and builds custom apps and websites for companies and organisations.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -66,6 +69,10 @@
           <h3>Websites and launch pages</h3>
           <p>Fast, mobile-ready sites that explain what you do and turn visitors into leads, sign-ups or customers.</p>
         </div>
+        <div class="service">
+          <h3>AI features and agents</h3>
+          <p>Assistants and automations inside your product or workflow that sort, summarise, draft and answer, with a person kept in control.</p>
+        </div>
       </div>
     </section>
 
@@ -88,15 +95,54 @@
           <p>We adjust it with your team until it fits how people actually use it.</p>
         </li>
         <li>
-          <h3>Launch and support</h3>
-          <p>I put it live, make sure it works on every device, and stay on hand as you grow.</p>
+          <h3>Launch, document and support</h3>
+          <p>I put it live, test it on every device, hand over clear documentation, and stay on hand as you grow.</p>
         </li>
       </ol>
     </section>
 
+    <section id="toolkit" class="toolkit">
+      <div class="toolkit-intro">
+        <h2>Technical toolkit</h2>
+        <p>The technologies behind the work on this page, and behind years of building software for a business.</p>
+      </div>
+      <dl class="toolkit-groups">
+        <div>
+          <dt>Front end</dt>
+          <dd><span>HTML &amp; CSS</span><span>JavaScript</span><span>TypeScript</span><span>React</span><span>Vite</span><span>SVG &amp; Canvas graphics</span></dd>
+        </div>
+        <div>
+          <dt>Apps</dt>
+          <dd><span>Installable web apps (PWA)</span><span>Offline support</span><span>IndexedDB</span><span>Notifications</span><span>Speech</span><span>Web Crypto encryption</span></dd>
+        </div>
+        <div>
+          <dt>Back end &amp; data</dt>
+          <dd><span>Node.js</span><span>PostgreSQL</span><span>Supabase</span><span>Cloudflare Workers</span><span>REST APIs</span></dd>
+        </div>
+        <div>
+          <dt>Data &amp; automation</dt>
+          <dd><span>Python</span><span>SQL (MySQL)</span><span>PHP</span><span>API integrations</span><span>Scheduled jobs (cron)</span><span>Excel &amp; VBA</span><span>R</span></dd>
+        </div>
+        <div>
+          <dt>Delivery &amp; quality</dt>
+          <dd><span>Git &amp; GitHub</span><span>GitHub Actions</span><span>Automated testing (Playwright)</span><span>Static hosting</span></dd>
+        </div>
+      </dl>
+      <p class="safety">Every project ships with documentation, sensible security defaults and only the data it needs. Several of the apps here keep everything on the user's device, so there is no account and nothing to leak.</p>
+    </section>
+
     <section id="about" class="about">
       <h2>About</h2>
-      <p>Kovalenko Creatives is a one-person studio. I handle design and development together, so you work with the person building your app from start to finish. The projects on this page went from idea to something people use, and client work gets the same approach: understand the real problem first, ship something useful quickly, then refine it.</p>
+      <div class="about-cols">
+        <p>Kovalenko Creatives is a one-person studio. I handle design and development together, so you work with the person building your app from start to finish. The projects on this page went from idea to something people use, and client work gets the same approach: understand the real problem first, ship something useful quickly, then refine it.</p>
+        <p>Before the studio, I spent over five years at a performance-marketing company in Los Angeles, first as a senior analyst and then as a software developer. I built internal tools and reporting from scratch, set up more than 30 partner API integrations, and automated work that used to be done by hand. I studied business administration at USC Marshall, so I build with the business result in mind, not just the code.</p>
+      </div>
+      <ul class="facts">
+        <li><b>USC Marshall</b><span>B.S. Business Administration</span></li>
+        <li><b>5+ years</b><span>analyst and developer in industry</span></li>
+        <li><b>30+</b><span>API integrations built</span></li>
+        <li><b>4 languages</b><span>English, Russian, German, Spanish</span></li>
+      </ul>
     </section>
 
     <section id="contact" class="contact">
