@@ -72,6 +72,18 @@
       .catch(() => { getSelection().selectAllChildren(email); });
   });
 
+  const f = FEATURED;
+  const featuredArt = el('div', { class: 'featured-art', style: `--tint: ${f.color}` });
+  featuredArt.innerHTML = f.preview;
+  document.getElementById('featured').append(
+    el('div', { class: 'featured-body' }, [
+      el('span', { class: 'card-meta', text: 'Featured' }, [el('em', { class: 'badge', text: f.status })]),
+      el('h2', { text: f.title }),
+      el('p', { text: f.description }),
+    ]),
+    featuredArt,
+  );
+
   document.getElementById('year').textContent = new Date().getFullYear();
   render();
 })();

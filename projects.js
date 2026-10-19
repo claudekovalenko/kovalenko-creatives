@@ -1,6 +1,22 @@
 // Portfolio entries. Add, remove or reorder projects here — the page renders from this list.
 // Fields: title, category, description, features[], tags[], color (card backdrop),
 // preview (HTML for a mock screen, filled with sample data only), status (optional badge), url (optional).
+// The featured project is shown large above the grid. Keep its details deliberately light.
+const FEATURED = {
+  title: 'Next Steps',
+  status: 'In development',
+  description: 'The main project: a platform that helps content creators turn an audience into real next steps. More to share soon.',
+  color: '#0f6b62',
+  preview: `
+    <div class="mock mock-dark" style="--a:#4fc2b3">
+      <div class="mock-top"><span>Next steps</span><span class="mock-pill">Soon</span></div>
+      <div class="mock-steps"><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="mock-bar"></div><div class="mock-bar short"></div>
+      <div class="mock-blocks"><i></i><i></i><i></i></div>
+      <div class="mock-btn">Take the next step</div>
+    </div>`,
+};
+
 const PROJECTS = [
   {
     title: 'N&N Reading Plan',
@@ -89,20 +105,6 @@ const PROJECTS = [
           <div><b>Side quests</b><span>18%</span></div>
         </div>
         <div class="mock-mic"></div>
-      </div>`,
-  },
-  {
-    title: 'Next Steps',
-    category: 'Web',
-    status: 'In development',
-    description: 'A website project currently in the works. More to share soon.',
-    tags: ['Coming soon'],
-    color: '#5b5750',
-    preview: `
-      <div class="mock mock-soon">
-        <div class="mock-bar"></div><div class="mock-bar short"></div>
-        <div class="mock-blocks"><i></i><i></i><i></i></div>
-        <span class="mock-soon-label">Coming soon</span>
       </div>`,
   },
 ];

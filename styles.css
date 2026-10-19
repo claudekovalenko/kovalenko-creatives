@@ -140,6 +140,30 @@ main {
 
 .stat span { color: var(--muted); font-size: 14px; }
 
+/* Featured project */
+.featured {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  margin-bottom: 56px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 6px);
+  overflow: hidden;
+}
+.featured-body { display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 40px; min-width: 0; }
+.featured-body h2 { font-size: clamp(32px, 4vw, 48px); }
+.featured-body p { margin: 0; max-width: 42ch; color: var(--muted); font-size: 18px; }
+.featured-art { position: relative; min-height: 340px; background: var(--tint); display: grid; place-items: center; overflow: hidden; }
+.featured-art .mock { width: 46%; max-width: 230px; height: 88%; }
+.featured-art::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 80% 10%, rgb(255 255 255 / .22), transparent 55%); pointer-events: none; }
+.mock-steps { display: flex; gap: 5px; }
+.mock-steps i { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .18); }
+.mock-steps i.on { background: var(--a); }
+.mock-dark .mock-bar { background: rgb(255 255 255 / .16); }
+.mock-dark .mock-blocks i { background: rgb(255 255 255 / .08); }
+.mock-dark .mock-btn { color: #0c1513; }
+
 /* Work */
 .work { padding: 32px 0 64px; border-top: 1px solid var(--line); }
 
@@ -364,4 +388,7 @@ main {
   .hero { padding: 48px 0 40px; }
   .stats { gap: 28px; }
   .grid { grid-template-columns: 1fr; }
+  .featured { grid-template-columns: 1fr; }
+  .featured-body { padding: 24px; }
+  .featured-art { min-height: 260px; }
 }
