@@ -23,7 +23,7 @@
     const track = el('div', { class: 'slides' }, slides.map((src, i) => {
       const slide = el('div', { class: 'slide', 'aria-roledescription': 'slide', 'aria-label': `${i + 1} of ${slides.length}` });
       if (!src) slide.append(el('span', { class: 'monogram', text: p.monogram || p.title[0] }));
-      else if (/\.(png|jpe?g|webp|gif|svg)$/i.test(src)) slide.append(el('img', { src, alt: `${p.title} screen ${i + 1}`, loading: 'lazy' }));
+      else if (/^data:image\/|\.(png|jpe?g|webp|gif|svg)$/i.test(src)) slide.append(el('img', { src, alt: `${p.title} screen ${i + 1}`, loading: 'lazy' }));
       else slide.innerHTML = src;
       return slide;
     }));
