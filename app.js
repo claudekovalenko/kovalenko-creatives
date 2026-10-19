@@ -17,10 +17,52 @@
     return node;
   }
 
+  // A strip of pictures (mock screens or image files) with arrows, dots and swipe.
+  function carousel(p, className) {
+    const slides = p.slides?.length ? p.slides : [null];
+    const track = el('div', { class: 'slides' }, slides.map((src, i) => {
+      const slide = el('div', { class: 'slide', 'aria-roledescription': 'slide', 'aria-label': `${i + 1} of ${slides.length}` });
+      if (!src) slide.append(el('span', { class: 'monogram', text: p.monogram || p.title[0] }));
+      else if (/\.(png|jpe?g|webp|gif|svg)$/i.test(src)) slide.append(el('img', { src, alt: `${p.title} screen ${i + 1}`, loading: 'lazy' }));
+      else slide.innerHTML = src;
+      return slide;
+    }));
+    const art = el('div', { class: className, style: `--tint: ${p.color}`, 'aria-roledescription': 'carousel', 'aria-label': `${p.title} screens` }, [track]);
+    if (slides.length < 2) return art;
+
+    let index = 0;
+    const dots = el('div', { class: 'dots' }, slides.map((_, i) => {
+      const dot = el('button', { type: 'button', 'aria-label': `Show screen ${i + 1}` });
+      dot.addEventListener('click', () => go(i));
+      return dot;
+    }));
+    const prev = el('button', { type: 'button', class: 'nav prev', 'aria-label': 'Previous screen', text: '‹' });
+    const next = el('button', { type: 'button', class: 'nav next', 'aria-label': 'Next screen', text: '›' });
+    prev.addEventListener('click', () => go(index - 1));
+    next.addEventListener('click', () => go(index + 1));
+
+    function go(i) {
+      index = (i + slides.length) % slides.length;
+      track.style.transform = `translateX(-${index * 100}%)`;
+      [...dots.children].forEach((d, n) => d.setAttribute('aria-current', n === index));
+    }
+
+    let startX = null;
+    art.addEventListener('pointerdown', e => { startX = e.clientX; });
+    art.addEventListener('pointerup', e => {
+      if (startX === null) return;
+      const dx = e.clientX - startX;
+      startX = null;
+      if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
+    });
+
+    art.append(prev, next, dots);
+    go(0);
+    return art;
+  }
+
   function card(p) {
-    const art = el('div', { class: 'card-art', style: `--tint: ${p.color}` });
-    if (p.preview) art.innerHTML = p.preview;
-    else art.append(el('span', { class: 'monogram', text: p.monogram || p.title[0] }));
+    const art = carousel(p, 'card-art');
 
     const meta = el('span', { class: 'card-meta', text: p.category });
     if (p.status) meta.append(el('em', { class: 'badge', text: p.status }));
@@ -73,8 +115,7 @@
   });
 
   const f = FEATURED;
-  const featuredArt = el('div', { class: 'featured-art', style: `--tint: ${f.color}` });
-  featuredArt.innerHTML = f.preview;
+  const featuredArt = carousel(f, 'featured-art');
   document.getElementById('featured').append(
     el('div', { class: 'featured-body' }, [
       el('span', { class: 'card-meta', text: 'Featured' }, [el('em', { class: 'badge', text: f.status })]),
