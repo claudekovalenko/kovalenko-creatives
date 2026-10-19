@@ -18,13 +18,15 @@
   }
 
   function card(p) {
-    const art = el('div', { class: 'card-art', style: `--tint: ${p.color}` },
-      p.image
-        ? [el('img', { src: p.image, alt: `${p.title} screenshot`, loading: 'lazy' })]
-        : [el('span', { class: 'monogram', text: p.monogram || p.title[0] })]);
+    const art = el('div', { class: 'card-art', style: `--tint: ${p.color}` });
+    if (p.preview) art.innerHTML = p.preview;
+    else art.append(el('span', { class: 'monogram', text: p.monogram || p.title[0] }));
+
+    const meta = el('span', { class: 'card-meta', text: p.category });
+    if (p.status) meta.append(el('em', { class: 'badge', text: p.status }));
 
     const body = el('div', { class: 'card-body' }, [
-      el('span', { class: 'card-meta', text: p.category }),
+      meta,
       el('h3', { text: p.title }),
       el('p', { text: p.description }),
     ]);
