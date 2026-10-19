@@ -64,6 +64,14 @@
     el('div', { class: 'stat' }, [el('strong', { text: categories.length - 1 }), el('span', { text: 'categories' })]),
   );
 
+  const copyBtn = document.getElementById('copy-email');
+  copyBtn.addEventListener('click', () => {
+    const email = document.getElementById('email');
+    navigator.clipboard.writeText(email.textContent)
+      .then(() => { copyBtn.textContent = 'Copied'; })
+      .catch(() => { getSelection().selectAllChildren(email); });
+  });
+
   document.getElementById('year').textContent = new Date().getFullYear();
   render();
 })();
