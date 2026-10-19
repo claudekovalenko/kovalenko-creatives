@@ -101,10 +101,21 @@
     return btn;
   }));
 
+  const total = BODY_OF_WORK.reduce((n, c) => n + c.count, 0);
+  const top = [...BODY_OF_WORK].sort((a, b) => b.count - a.count);
   stats.append(
-    el('div', { class: 'stat' }, [el('strong', { text: PROJECTS.length }), el('span', { text: 'apps shipped' })]),
-    el('div', { class: 'stat' }, [el('strong', { text: categories.length - 1 }), el('span', { text: 'categories' })]),
+    el('div', { class: 'stat' }, [el('strong', { text: total }), el('span', { text: 'projects built' })]),
+    el('div', { class: 'stat' }, [el('strong', { text: top[0].count }), el('span', { text: `for ${top[0].label.toLowerCase()}` })]),
+    el('div', { class: 'stat' }, [el('strong', { text: BODY_OF_WORK.length }), el('span', { text: 'kinds of work' })]),
   );
+
+  document.getElementById('volume-total').textContent = total;
+  const mosaic = document.getElementById('mosaic');
+  mosaic.setAttribute('aria-label', `${total} projects: ` + BODY_OF_WORK.map(c => `${c.count} ${c.label}`).join(', '));
+  mosaic.append(...BODY_OF_WORK.flatMap(c =>
+    Array.from({ length: c.count }, () => el('i', { style: `--c: ${c.color}`, title: c.label }))));
+  document.getElementById('volume-key').append(...BODY_OF_WORK.map(c =>
+    el('li', { style: `--c: ${c.color}` }, [el('b', { text: c.count }), el('span', { text: c.label })])));
 
   const copyBtn = document.getElementById('copy-email');
   copyBtn.addEventListener('click', () => {

@@ -164,6 +164,18 @@ main {
 .mock-dark .mock-blocks i { background: rgb(255 255 255 / .08); }
 .mock-dark .mock-btn { color: #0c1513; }
 
+/* Body of work: one square per project, grouped by kind */
+.volume { padding-block: 8px 56px; }
+.volume-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 40px; margin-bottom: 24px; }
+.volume-head h2 { font-size: 30px; }
+.volume-head p { margin: 0; max-width: 52ch; color: var(--muted); }
+.mosaic { display: grid; grid-template-columns: repeat(auto-fill, minmax(26px, 1fr)); gap: 6px; }
+.mosaic i { aspect-ratio: 1; border-radius: 6px; background: var(--c); }
+.volume-key { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 20px 0 0; padding: 0; list-style: none; }
+.volume-key li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.volume-key li::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.volume-key b { color: var(--text); font-variant-numeric: tabular-nums; }
+
 /* Work */
 .work { padding: 32px 0 64px; border-top: 1px solid var(--line); }
 

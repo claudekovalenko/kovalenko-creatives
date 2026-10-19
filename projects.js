@@ -2,6 +2,17 @@
 // Fields: title, category, description, features[], tags[], color (card backdrop),
 // slides[] (pictures to cycle through: an image path like 'images/app-1.png', or HTML for a mock screen
 // filled with sample data only), status (optional badge), url (optional).
+// Everything built so far, counted by kind. Only totals are shown on the page, never project names.
+const BODY_OF_WORK = [
+  { label: 'Church & ministry', count: 27, color: '#c08a2e' },
+  { label: 'Productivity & planning', count: 13, color: '#2f7fd1' },
+  { label: 'Study & learning', count: 10, color: '#5b63c7' },
+  { label: 'Health & fitness', count: 5, color: '#2ea37a' },
+  { label: 'Finance', count: 4, color: '#8a6bd1' },
+  { label: 'Websites & business', count: 4, color: '#d06a3a' },
+  { label: 'Personal projects', count: 5, color: '#8b938e' },
+];
+
 // The featured project is shown large above the grid. Keep its details deliberately light.
 const FEATURED = {
   title: 'Next Steps',
