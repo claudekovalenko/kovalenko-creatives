@@ -140,23 +140,6 @@ main {
 
 .stat span { color: var(--muted); font-size: 14px; }
 
-/* Featured project */
-.featured {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: stretch;
-  margin-bottom: 56px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: calc(var(--radius) + 6px);
-  overflow: hidden;
-}
-.featured-body { display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 40px; min-width: 0; }
-.featured-body h2 { font-size: clamp(32px, 4vw, 48px); }
-.featured-body p { margin: 0; max-width: 42ch; color: var(--muted); font-size: 18px; }
-.featured-art { position: relative; min-height: 420px; background: var(--tint); display: grid; place-items: center; overflow: hidden; }
-.featured-art .mock { width: 46%; max-width: 230px; height: 88%; }
-.featured-art::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 80% 10%, rgb(255 255 255 / .22), transparent 55%); pointer-events: none; }
 .mock-steps { display: flex; gap: 5px; }
 .mock-steps i { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .18); }
 .mock-steps i.on { background: var(--a); }
@@ -300,9 +283,10 @@ main {
 }
 
 /* Carousel: each card's pictures sit side by side in a sliding track */
-.card-art, .featured-art { display: block; touch-action: pan-y; }
+.card-art { display: block; touch-action: pan-y; }
 .slides { position: absolute; inset: 0; display: flex; transition: transform .35s ease; }
 .slide { flex: 0 0 100%; height: 100%; padding: 20px 0 30px; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
+.slide .mock { height: 100%; }
 .slide img { display: block; height: 100%; width: auto; max-width: none; border-radius: 16px; box-shadow: 0 18px 40px rgb(0 0 0 / .3); }
 .nav {
   position: absolute;
@@ -322,7 +306,7 @@ main {
 }
 .nav.prev { left: 10px; }
 .nav.next { right: 10px; }
-.card-art:hover .nav, .featured-art:hover .nav, .nav:focus-visible { opacity: 1; }
+.card-art:hover .nav, .nav:focus-visible { opacity: 1; }
 @media (hover: none) { .nav { opacity: .85; } }
 .dots { position: absolute; left: 0; right: 0; bottom: 10px; z-index: 2; display: flex; justify-content: center; gap: 6px; }
 .dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: rgb(255 255 255 / .45); cursor: pointer; }
@@ -382,6 +366,21 @@ main {
 .mock-cols i { flex: 1; height: var(--h); border-radius: 3px 3px 0 0; background: linear-gradient(to top, var(--a) 60%, #eb6834 60% 80%, #1baf7a 80%); }
 .mock-quote { font-style: italic; opacity: .75; }
 .mock-soon-label { margin-top: auto; text-align: center; color: #fff; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 9px; }
+
+/* Hero actions */
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.hero-actions .button { margin-top: 0; }
+.button.button-quiet { background: transparent; color: var(--text); border: 1px solid var(--line); }
+
+/* Process: a real sequence, so the steps are numbered */
+.process { padding-block: 56px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; }
+.process-intro h2 { font-size: 30px; }
+.process-intro p { color: var(--muted); font-size: 17px; max-width: 48ch; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 22px; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 14px; }
+.steps li::before { content: counter(step); grid-row: span 2; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font: 700 15px var(--display); }
+.steps h3 { font-size: 19px; }
+.steps p { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
 
 /* Services */
 .services { padding-block: 56px; border-top: 1px solid var(--line); }
@@ -449,7 +448,5 @@ main {
   .hero { padding: 48px 0 40px; }
   .stats { gap: 28px; }
   .grid { grid-template-columns: 1fr; }
-  .featured { grid-template-columns: 1fr; }
-  .featured-body { padding: 24px; }
-  .featured-art { min-height: 260px; }
+  .process { grid-template-columns: 1fr; gap: 24px; }
 }

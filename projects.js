@@ -2,41 +2,38 @@
 // Fields: title, category, description, features[], tags[], color (card backdrop),
 // slides[] (pictures to cycle through: an image path like 'images/app-1.png', or HTML for a mock screen
 // filled with sample data only), status (optional badge), url (optional).
+
 // Everything built so far, counted by kind. Only totals are shown on the page, never project names.
 const BODY_OF_WORK = [
-  { label: 'Church & ministry', count: 27, color: '#c08a2e' },
-  { label: 'Productivity & planning', count: 13, color: '#2f7fd1' },
-  { label: 'Study & learning', count: 10, color: '#5b63c7' },
-  { label: 'Health & fitness', count: 5, color: '#2ea37a' },
-  { label: 'Finance', count: 4, color: '#8a6bd1' },
-  { label: 'Websites & business', count: 4, color: '#d06a3a' },
-  { label: 'Personal projects', count: 5, color: '#8b938e' },
+  { label: 'Apps & tools', count: 44, color: '#0f8f80' },
+  { label: 'Plans, guides & research', count: 18, color: '#c08a2e' },
+  { label: 'Websites', count: 6, color: '#5b63c7' },
 ];
 
-// The featured project is shown large above the grid. Keep its details deliberately light.
-const FEATURED = {
-  title: 'Next Steps',
-  status: 'In development',
-  description: 'The main project: a platform that helps content creators turn an audience into real next steps. More to share soon.',
-  color: '#0f6b62',
-  slides: [`
-    <div class="mock mock-dark" style="--a:#4fc2b3">
-      <div class="mock-top"><span>Next steps</span><span class="mock-pill">Soon</span></div>
-      <div class="mock-steps"><i class="on"></i><i class="on"></i><i></i></div>
-      <div class="mock-bar"></div><div class="mock-bar short"></div>
-      <div class="mock-blocks"><i></i><i></i><i></i></div>
-      <div class="mock-btn">Take the next step</div>
-    </div>`,
-    `<div class="mock mock-dark" style="--a:#4fc2b3">
-      <div class="mock-top"><span>Step 2 of 3</span><span class="mock-pill">Soon</span></div>
-      <div class="mock-steps"><i class="on"></i><i class="on"></i><i></i></div>
-      <div class="mock-video"></div>
-      <div class="mock-bar"></div><div class="mock-bar short"></div>
-      <div class="mock-btn">Continue</div>
-    </div>`],
-};
-
 const PROJECTS = [
+  // Kept deliberately light: no screenshots or details until launch.
+  {
+    title: 'Next Steps',
+    category: 'Platforms',
+    status: 'In development',
+    description: 'A platform in development that helps content creators turn an audience into real next steps. More to share at launch.',
+    color: '#0f6b62',
+    slides: [`
+      <div class="mock mock-dark" style="--a:#4fc2b3">
+        <div class="mock-top"><span>Next steps</span><span class="mock-pill">Soon</span></div>
+        <div class="mock-steps"><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="mock-bar"></div><div class="mock-bar short"></div>
+        <div class="mock-blocks"><i></i><i></i><i></i></div>
+        <div class="mock-btn">Take the next step</div>
+      </div>`,
+      `<div class="mock mock-dark" style="--a:#4fc2b3">
+        <div class="mock-top"><span>Step 2 of 3</span><span class="mock-pill">Soon</span></div>
+        <div class="mock-steps"><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="mock-video"></div>
+        <div class="mock-bar"></div><div class="mock-bar short"></div>
+        <div class="mock-btn">Continue</div>
+      </div>`],
+  },
   {
     title: 'N&N Reading Plan',
     category: 'Church',

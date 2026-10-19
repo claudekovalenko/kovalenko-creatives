@@ -102,11 +102,9 @@
   }));
 
   const total = BODY_OF_WORK.reduce((n, c) => n + c.count, 0);
-  const top = [...BODY_OF_WORK].sort((a, b) => b.count - a.count);
   stats.append(
     el('div', { class: 'stat' }, [el('strong', { text: total }), el('span', { text: 'projects built' })]),
-    el('div', { class: 'stat' }, [el('strong', { text: top[0].count }), el('span', { text: `for ${top[0].label.toLowerCase()}` })]),
-    el('div', { class: 'stat' }, [el('strong', { text: BODY_OF_WORK.length }), el('span', { text: 'kinds of work' })]),
+    ...BODY_OF_WORK.map(c => el('div', { class: 'stat' }, [el('strong', { text: c.count }), el('span', { text: c.label.toLowerCase() })])),
   );
 
   document.getElementById('volume-total').textContent = total;
@@ -124,17 +122,6 @@
       .then(() => { copyBtn.textContent = 'Copied'; })
       .catch(() => { getSelection().selectAllChildren(email); });
   });
-
-  const f = FEATURED;
-  const featuredArt = carousel(f, 'featured-art');
-  document.getElementById('featured').append(
-    el('div', { class: 'featured-body' }, [
-      el('span', { class: 'card-meta', text: 'Featured' }, [el('em', { class: 'badge', text: f.status })]),
-      el('h2', { text: f.title }),
-      el('p', { text: f.description }),
-    ]),
-    featuredArt,
-  );
 
   document.getElementById('year').textContent = new Date().getFullYear();
   render();
