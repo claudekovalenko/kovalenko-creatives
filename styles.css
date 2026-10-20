@@ -391,6 +391,18 @@ main {
 .custom-terms b { font: 700 17px var(--display); }
 .custom-terms span { color: var(--muted); font-size: 15px; }
 
+/* Retainers: bounded monthly plans */
+.retainers { padding-block: 8px 56px; }
+.retainers-intro h2 { font-size: 30px; }
+.retainers-intro p { max-width: 62ch; color: var(--muted); font-size: 17px; }
+.plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
+.plan { padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.plan:nth-child(2) { border-color: var(--accent); }
+.plan h3 { font-size: 22px; }
+.plan-line { margin: 2px 0 12px; color: var(--accent); font-weight: 600; font-size: 14px; }
+.plan ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; display: grid; gap: 4px; }
+.plans-note { margin: 16px 0 0; color: var(--muted); font-size: 14px; }
+
 /* Services */
 .services { padding-block: 56px; border-top: 1px solid var(--line); }
 .services h2 { font-size: 30px; margin-bottom: 24px; }
