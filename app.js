@@ -129,6 +129,34 @@
       .catch(() => { getSelection().selectAllChildren(email); });
   });
 
+  // Split the hero headline into words so they can rise in one after another.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const h1 = document.querySelector('.hero h1');
+    let i = 0;
+    const wrap = node => {
+      for (const child of [...node.childNodes]) {
+        if (child.nodeType === Node.TEXT_NODE) {
+          const parts = child.textContent.split(/(\s+)/);
+          const frag = document.createDocumentFragment();
+          for (const part of parts) {
+            if (!part) continue;
+            if (/^\s+$/.test(part)) { frag.append(part); continue; }
+            const w = document.createElement('span');
+            w.className = 'w';
+            w.style.setProperty('--i', i++);
+            w.textContent = part;
+            frag.append(w);
+          }
+          child.replaceWith(frag);
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+          wrap(child);
+        }
+      }
+    };
+    wrap(h1);
+    h1.classList.add('split');
+  }
+
   // Desktop-only pointer effects: tilt the hero screens and light up cards under the cursor.
   if (matchMedia('(hover: hover) and (pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     const hero = document.querySelector('.hero');
@@ -148,13 +176,25 @@
       const target = e.target.closest?.('.card, .plan');
       if (!target) return;
       const r = target.getBoundingClientRect();
-      target.style.setProperty('--mx', `${e.clientX - r.left}px`);
-      target.style.setProperty('--my', `${e.clientY - r.top}px`);
+      const x = e.clientX - r.left, y = e.clientY - r.top;
+      target.style.setProperty('--mx', `${x}px`);
+      target.style.setProperty('--my', `${y}px`);
+      if (target.classList.contains('card')) {
+        target.style.setProperty('--ty', `${(x / r.width - 0.5) * 6}deg`);
+        target.style.setProperty('--tx', `${(y / r.height - 0.5) * -6}deg`);
+      }
     }, { passive: true });
   }
 
   const header = document.querySelector('.site-header');
-  const onScroll = () => header.classList.toggle('scrolled', scrollY > 8);
+  const progress = document.createElement('div');
+  progress.className = 'progress';
+  header.append(progress);
+  const onScroll = () => {
+    header.classList.toggle('scrolled', scrollY > 8);
+    const max = document.documentElement.scrollHeight - innerHeight;
+    progress.style.setProperty('--p', max > 0 ? Math.min(scrollY / max, 1) : 0);
+  };
   addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
