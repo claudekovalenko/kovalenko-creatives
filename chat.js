@@ -6,8 +6,8 @@
 
   const TOPICS = {
     start: {
-      answer: 'Hi! I can answer quick questions about Kovalenko Creatives and the apps. What would you like to know?',
-      next: ['apps', 'custom', 'church', 'privacy', 'email'],
+      answer: 'Hi! I can answer quick questions about Kovalenko Creatives. What would you like to know?',
+      next: ['custom', 'leads', 'apps', 'retainer', 'email'],
     },
     apps: {
       label: 'What apps do you have?',
@@ -15,9 +15,14 @@
       next: ['custom', 'privacy', 'email'],
     },
     custom: {
-      label: 'Can you build a custom app?',
-      answer: 'Yes, a limited number each season. Each one has a clear scope agreed up front and is handed over tested and documented. A monthly maintenance retainer keeps it secure and up to date, and upgrades can be requested any time. Email with what you need, who will use it and your timeline.',
-      next: ['retainer', 'cost', 'email'],
+      label: 'Can you build something custom for us?',
+      answer: 'Yes: apps, websites and lead-generation funnels, a limited number each season. Each one has a clear scope agreed up front and is handed over tested and documented. An optional monthly maintenance retainer is available, and upgrades can be requested any time. Email with what you need, who will use it and your timeline.',
+      next: ['leads', 'retainer', 'email'],
+    },
+    leads: {
+      label: 'Can you build a site that brings in leads?',
+      answer: 'Yes. Lead generation is my background: over five years in performance marketing, including more than 30 buyer integrations that matched leads to buyers. A lead-generation funnel is a set of pages and forms that turns visitors into sign-ups or enquiries and routes each lead to the right place. Email with who you want to reach and what a lead is worth to you.',
+      next: ['custom', 'cost', 'email'],
     },
     retainer: {
       label: 'Do you offer ongoing support?',

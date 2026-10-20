@@ -464,6 +464,10 @@ main {
 .custom { padding-block: 56px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; align-items: start; }
 .custom-intro h2 { font-size: 30px; }
 .custom-intro p:not(.eyebrow) { color: var(--muted); font-size: 17px; max-width: 46ch; }
+.kinds { margin: 18px 0 22px; padding: 0; list-style: none; display: grid; gap: 12px; }
+.kinds li { display: grid; gap: 2px; padding-left: 14px; border-left: 2px solid var(--accent); }
+.kinds b { font: 700 17px var(--display); }
+.kinds span { color: var(--muted); font-size: 15px; }
 .custom-terms { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .custom-terms li { display: flex; flex-direction: column; gap: 6px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .custom-terms b { font: 700 17px var(--display); }
