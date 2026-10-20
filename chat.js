@@ -16,7 +16,7 @@
     },
     custom: {
       label: 'Can you build a custom app?',
-      answer: 'Yes, a limited number each season. Each one has a clear scope agreed up front and is built to run on its own once it’s handed over. A monthly maintenance retainer is available, and upgrades can be requested any time. Email with what you need, who will use it and your timeline.',
+      answer: 'Yes, a limited number each season. Each one has a clear scope agreed up front and is handed over tested and documented. A monthly maintenance retainer keeps it secure and up to date, and upgrades can be requested any time. Email with what you need, who will use it and your timeline.',
       next: ['retainer', 'cost', 'email'],
     },
     retainer: {
