@@ -173,6 +173,8 @@ main {
 
 .work-head h2, .about h2, .contact h2 { font-size: 30px; }
 
+.work-note { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
+
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .filters button {

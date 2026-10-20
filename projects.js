@@ -1,7 +1,7 @@
 // Portfolio entries. Add, remove or reorder projects here — the page renders from this list.
 // Fields: title, category, description, features[], tags[], color (card backdrop),
 // slides[] (pictures to cycle through: an image path like 'images/app-1.png', or HTML for a mock screen
-// filled with sample data only), status (optional badge), url (optional).
+// filled with sample data only), status (optional badge, e.g. 'Custom · private' until an app is public), url (optional).
 
 // Everything built so far, counted by kind. Only totals are shown on the page, never project names.
 const BODY_OF_WORK = [
@@ -36,6 +36,7 @@ const PROJECTS = [
   },
   {
     title: 'N&N Reading Plan',
+    status: 'Custom · private',
     category: 'Church',
     description: 'A sermon companion app for a local church: read each Sunday’s passage through the week, catch up on past messages and follow along as a series unfolds.',
     features: [
@@ -49,6 +50,7 @@ const PROJECTS = [
   },
   {
     title: 'Seminary Homework',
+    status: 'Custom · private',
     category: 'Study',
     description: 'Turns a term’s syllabi into a daily plan: what’s due, how much reading that is, and exactly how much to do today.',
     features: [
@@ -62,6 +64,7 @@ const PROJECTS = [
   },
   {
     title: 'Greek Vocab',
+    status: 'Custom · private',
     category: 'Study',
     description: 'A flashcard app for Biblical Greek with spaced repetition, quizzes, memory hooks and offline pronunciation.',
     features: [
@@ -75,6 +78,7 @@ const PROJECTS = [
   },
   {
     title: 'Time Cup',
+    status: 'Custom · private',
     category: 'Productivity',
     description: 'A week drawn as a cup: non-negotiables settle first, the big things you want the week to be about go in next, and everything else fills the gaps. It shows how many of those big things actually fit.',
     features: [

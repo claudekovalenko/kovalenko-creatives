@@ -6,13 +6,13 @@
 
   const TOPICS = {
     start: {
-      answer: 'Hi! I can answer quick questions about the Kovalenko Creatives apps. What would you like to know?',
+      answer: 'Hi! I can answer quick questions about Kovalenko Creatives and the apps. What would you like to know?',
       next: ['apps', 'custom', 'church', 'privacy', 'email'],
     },
     apps: {
       label: 'What apps do you have?',
-      answer: 'There’s a sermon reading plan for churches, a seminary homework planner, a Biblical Greek flashcard app, and Time Cup for planning your week. A platform for content creators, Next Steps, is in development. You can flip through screenshots of each in the Apps section.',
-      next: ['church', 'privacy', 'install', 'email'],
+      answer: 'There’s a sermon reading plan for churches, a seminary homework planner, a Biblical Greek flashcard app, and Time Cup for planning your week. They’re custom builds in private use and aren’t available to the public yet, but you can flip through screenshots of each in the Apps section. More projects are in progress, including Next Steps, a platform for content creators.',
+      next: ['custom', 'privacy', 'email'],
     },
     custom: {
       label: 'Can you build a custom app?',
@@ -26,22 +26,17 @@
     },
     church: {
       label: 'Can my church use the reading plan?',
-      answer: 'The reading plan is built so it can be set up for a new sermon series. If you’d like it for your church, send an email with your church’s name and the series you’re planning.',
+      answer: 'Not yet. It’s in private use and isn’t available to other churches at the moment. If you’re interested, send an email and you’ll hear when that changes. A custom app for your church is another option.',
       next: ['privacy', 'cost', 'email'],
     },
     privacy: {
       label: 'Is my information private?',
       answer: 'Yes. Most of the apps keep everything on your own device: no account, no tracking, and nothing stored on a server unless you choose to sync.',
-      next: ['install', 'custom', 'email'],
-    },
-    install: {
-      label: 'How do I install one?',
-      answer: 'Open the app in your phone’s browser, then use “Add to Home Screen” (Safari’s Share menu on iPhone, or the ⋮ menu in Chrome on Android). It then works like a normal app, even offline.',
-      next: ['apps', 'email'],
+      next: ['custom', 'email'],
     },
     cost: {
       label: 'How much does it cost?',
-      answer: 'It depends on the app, or for a custom build, on the scope. Send an email with what you have in mind and you’ll get a straight answer.',
+      answer: 'The apps aren’t available to the public yet. For a custom build or a retainer, it depends on the scope. Send an email with what you have in mind and you’ll get a straight answer.',
       next: ['email', 'apps'],
     },
     email: {
