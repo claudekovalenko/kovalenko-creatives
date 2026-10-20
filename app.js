@@ -129,6 +129,30 @@
       .catch(() => { getSelection().selectAllChildren(email); });
   });
 
+  // Desktop-only pointer effects: tilt the hero screens and light up cards under the cursor.
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const hero = document.querySelector('.hero');
+    const phones = document.querySelector('.hero-phones');
+    hero.addEventListener('pointermove', e => {
+      const r = hero.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      phones.style.setProperty('--ry', `${x * 10}deg`);
+      phones.style.setProperty('--rx', `${y * -8}deg`);
+    });
+    hero.addEventListener('pointerleave', () => {
+      phones.style.setProperty('--ry', '0deg');
+      phones.style.setProperty('--rx', '0deg');
+    });
+    document.addEventListener('pointermove', e => {
+      const target = e.target.closest?.('.card, .plan');
+      if (!target) return;
+      const r = target.getBoundingClientRect();
+      target.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      target.style.setProperty('--my', `${e.clientY - r.top}px`);
+    }, { passive: true });
+  }
+
   const header = document.querySelector('.site-header');
   const onScroll = () => header.classList.toggle('scrolled', scrollY > 8);
   addEventListener('scroll', onScroll, { passive: true });
