@@ -31,7 +31,7 @@
     },
     background: {
       label: 'What’s your background?',
-      answer: 'Over five years inside a lead-generation and performance-marketing company, as a senior analyst and then a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and direct mail campaigns of over a million pieces in a month. Plus a business degree from USC Marshall.',
+      answer: 'Over five years inside a lead-generation and performance-marketing company, as a senior analyst and then a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and a direct mail campaign that generated over $1M. Plus a business degree from USC Marshall.',
       next: ['what', 'other', 'email'],
     },
     other: {
