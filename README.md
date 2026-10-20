@@ -1,6 +1,6 @@
 # Kovalenko Creatives
 
-The studio website for Kovalenko Creatives: what the studio builds, a few projects in detail, the technologies behind them, and how to start a project.
+The website for Kovalenko Creatives, an app studio. It shows the ready-made apps, how much has been built, how the apps are made, the technology behind them, and how to get in touch. It presents apps people can use, not custom client work.
 
 It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
 
@@ -8,10 +8,11 @@ It is a plain static site. There is no build step, no framework, no server and n
 
 | File | What it holds |
 |---|---|
-| `index.html` | Page structure and all fixed copy: hero, services, process, toolkit, about, contact |
+| `index.html` | Page structure and all fixed copy: hero, project totals, apps, features, how they're made, toolkit, about, contact |
 | `styles.css` | All styling. Colours and fonts are tokens at the top, with light and dark versions |
 | `projects.js` | The data the page renders: project totals (`BODY_OF_WORK`) and the project cards (`PROJECTS`) |
 | `app.js` | Renders the stats, project-count grid, project cards, picture carousels, filters and the copy-email button |
+| `chat.js` | The "Questions?" assistant: answers common questions from a fixed list and leads visitors to email. Runs entirely in the browser |
 | `images/` | Screenshots used in the project carousels |
 | `.github/workflows/pages.yml` | Publishes the site to GitHub Pages |
 
@@ -42,6 +43,8 @@ The category filters are built from the categories in use, so a new category get
 
 **Add screenshots.** Put them in `images/` and list them in the project's `slides`. Portrait phone screenshots cropped to about 9:13 fit the cards best; WebP keeps them small.
 
+**Change what the assistant says.** Edit `TOPICS` in `chat.js`. Each topic has a button label, an answer, and the follow-up topics offered after it. The `email` topic shows the email buttons. Nothing visitors click is sent anywhere.
+
 **Change the copy.** Everything else lives in `index.html`.
 
 ## Privacy checklist for new content
@@ -58,7 +61,7 @@ This site is public. Before adding a project or screenshot, check that it shows 
 
 - **Content Security Policy.** `index.html` only allows the site's own scripts, styles and images, plus Google Fonts. Inline and third-party scripts are blocked, the page cannot be used to post forms anywhere, and plugins are disabled.
 - **No secrets.** The site has no API keys, tokens or backend. Nothing here needs to be kept secret, and nothing secret should ever be added.
-- **No visitor data.** There are no forms, cookies, analytics or trackers. The contact section is an email address.
+- **No visitor data.** There are no forms, cookies, analytics or trackers. The contact section and the assistant both lead to an email address; the assistant runs in the browser and sends nothing.
 - **Trusted content only.** `app.js` renders slide HTML from `projects.js` as markup. That file is written by the site owner only; never paste content from visitors or other sites into it.
 - **External links** open in a new tab with `rel="noopener"`.
 
