@@ -1,6 +1,6 @@
 # Kovalenko Creatives
 
-The website for Kovalenko Creatives, an app studio. It shows the ready-made apps, how much has been built, how the apps are made, the technology behind them, and how to get in touch. It presents apps people can use, not custom client work.
+The website for Kovalenko Creatives, a one-person app and web studio. It shows how much has been built, a few projects in detail, the custom builds on offer (apps, websites and lead-generation funnels), optional maintenance and upgrades, how the work is made, the technology behind it, and how to get in touch.
 
 It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
 
@@ -8,7 +8,7 @@ It is a plain static site. There is no build step, no framework, no server and n
 
 | File | What it holds |
 |---|---|
-| `index.html` | Page structure and all fixed copy: hero, project totals, apps, features, how they're made, toolkit, about, contact |
+| `index.html` | Page structure and all fixed copy: hero, project totals, work, custom builds, maintenance, features, how it's made, toolkit, about, contact |
 | `styles.css` | All styling. Colours and fonts are tokens at the top, with light and dark versions |
 | `projects.js` | The data the page renders: project totals (`BODY_OF_WORK`) and the project cards (`PROJECTS`) |
 | `app.js` | Renders the stats, project-count grid, project cards, picture carousels, filters and the copy-email button |
