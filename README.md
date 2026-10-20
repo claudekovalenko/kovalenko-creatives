@@ -1,6 +1,6 @@
 # Kovalenko Creatives
 
-The website for Kovalenko Creatives, a one-person app and web studio. It shows how much has been built, a few projects in detail, the custom builds on offer (apps, websites and lead-generation funnels), optional maintenance and upgrades, how the work is made, the technology behind it, and how to get in touch.
+The website for Kovalenko Creatives, a one-person studio that builds lead-generation funnels for businesses. It explains how a funnel works, what a build includes (with optional maintenance and upgrades), the owner's lead-gen track record, other projects built, the AI-assisted way the work is made, and how to get in touch. Custom apps and websites are offered as a secondary service.
 
 It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
 
@@ -8,11 +8,11 @@ It is a plain static site. There is no build step, no framework, no server and n
 
 | File | What it holds |
 |---|---|
-| `index.html` | Page structure and all fixed copy: hero, project totals, work, custom builds, maintenance, features, how it's made, toolkit, about, contact |
+| `index.html` | Page structure and all fixed copy: hero with example funnel, how it works, what you get, track record, other work, AI and toolkit, contact |
 | `styles.css` | All styling. Colours and fonts are tokens at the top, with light and dark versions |
 | `projects.js` | The data the page renders: project totals (`BODY_OF_WORK`) and the project cards (`PROJECTS`) |
-| `app.js` | Renders the stats, project-count grid, project cards, picture carousels, filters and the copy-email button |
-| `chat.js` | The "Questions?" assistant: answers common questions from a fixed list and leads visitors to email. Runs entirely in the browser |
+| `app.js` | Renders the project totals and grid of squares, project cards, picture carousels, filters and the copy-email button |
+| `chat.js` | The "Questions?" assistant: answers common questions about funnels from a fixed list and leads visitors to email. Runs entirely in the browser |
 | `images/` | Screenshots used in the project carousels |
 | `tools/check.mjs` | Site check: data loads, screenshots and links exist, no private details. Run `node tools/check.mjs` |
 | `CLAUDE.md` | Rules for AI agents that update the site |
@@ -31,7 +31,9 @@ Opening `index.html` straight from disk also works.
 
 ## Common edits
 
-**Change the project totals.** Edit `BODY_OF_WORK` at the top of `projects.js`. The hero stats, the grid of squares and its key all update from it. Only totals are shown, never project names.
+**Change the project totals.** Edit `BODY_OF_WORK` at the top of `projects.js`. The hero's project count, the grid of squares and its key all update from it. Only totals are shown, never project names.
+
+**Change the example funnel.** The hero's funnel numbers are in `index.html`. Each stage's `--w` is its share of visitors (220 of 1,000 is `22%`), so the bars stay to scale; update both together. The numbers are labelled as illustrative, so keep that label unless they are replaced with a real client's results that the client has agreed to share.
 
 **Add, remove or reorder a project.** Edit the `PROJECTS` list in `projects.js`. Each entry has:
 

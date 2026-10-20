@@ -1,7 +1,6 @@
 (function () {
   const grid = document.getElementById('grid');
   const filters = document.getElementById('filters');
-  const stats = document.getElementById('stats');
 
   const categories = ['All', ...new Set(PROJECTS.map(p => p.category))];
   let active = 'All';
@@ -102,12 +101,8 @@
   }));
 
   const total = BODY_OF_WORK.reduce((n, c) => n + c.count, 0);
-  stats.append(
-    el('div', { class: 'stat' }, [el('strong', { text: total }), el('span', { text: 'projects built' })]),
-    ...BODY_OF_WORK.map(c => el('div', { class: 'stat' }, [el('strong', { text: c.count }), el('span', { text: c.label.toLowerCase() })])),
-  );
-
   document.getElementById('volume-total').textContent = total;
+  document.getElementById('volume-total-hero').textContent = total;
   const mosaic = document.getElementById('mosaic');
   mosaic.setAttribute('aria-label', `${total} projects: ` + BODY_OF_WORK.map(c => `${c.count} ${c.label}`).join(', '));
   mosaic.append(...BODY_OF_WORK.flatMap(c =>

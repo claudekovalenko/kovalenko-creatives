@@ -1,6 +1,6 @@
 # Instructions for AI agents updating this site
 
-This is the public website for Kovalenko Creatives, a one-person app studio. Read `README.md` for how the files fit together. These rules apply to every automated change.
+This is the public website for Kovalenko Creatives, a one-person studio whose main offer is lead-generation funnels for businesses, with custom apps and websites as a secondary service. Read `README.md` for how the files fit together. These rules apply to every automated change.
 
 ## What you may change
 
@@ -20,6 +20,8 @@ Keep edits as small as the request needs. Do not restructure files, rename secti
 - Screenshots containing someone's own saved data. Take screenshots from a fresh copy of an app with its built-in example data.
 - Details of Next Steps beyond its current one-line description and placeholder screens.
 - Claims that apps are available to the public while they are marked private, or offers of custom build time on retainer. Retainers are maintenance only; upgrades are requested and quoted one at a time.
+- Results presented as real client numbers unless the client agreed to share them. The hero funnel is labelled illustrative; keep it that way.
+- Promises of specific lead volumes, conversion rates or turnaround times.
 
 ## Before you finish
 

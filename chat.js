@@ -6,48 +6,48 @@
 
   const TOPICS = {
     start: {
-      answer: 'Hi! I can answer quick questions about Kovalenko Creatives. What would you like to know?',
-      next: ['custom', 'leads', 'apps', 'retainer', 'email'],
+      answer: 'Hi! I can answer quick questions about lead-generation funnels and how Kovalenko Creatives builds them. What would you like to know?',
+      next: ['what', 'fit', 'background', 'cost', 'email'],
     },
-    apps: {
-      label: 'What apps do you have?',
-      answer: 'There’s a sermon reading plan for churches, a seminary homework planner, a Biblical Greek flashcard app, and Time Cup for planning your week. They’re custom builds in private use and aren’t available to the public yet, but you can flip through screenshots of each in the Apps section. More projects are in progress, including Next Steps, a platform for content creators.',
-      next: ['custom', 'privacy', 'email'],
+    what: {
+      label: 'What is a lead-gen funnel?',
+      answer: 'It’s a short path that turns a stranger into a lead: a page made for one audience, a short form that qualifies them, and instant routing so the lead reaches you (or your CRM or a partner) within seconds. Automatic follow-up and a simple dashboard round it out.',
+      next: ['fit', 'included', 'email'],
     },
-    custom: {
-      label: 'Can you build something custom for us?',
-      answer: 'Yes: apps, websites and lead-generation funnels, a limited number each season. Each one has a clear scope agreed up front and is handed over tested and documented. An optional monthly maintenance retainer is available, and upgrades can be requested any time. Email with what you need, who will use it and your timeline.',
-      next: ['leads', 'retainer', 'email'],
+    fit: {
+      label: 'Is it right for my business?',
+      answer: 'It usually is if a single customer is worth a meaningful amount, people search or scroll before they buy, and you can follow up quickly. Service businesses, local trades, coaches, consultants, schools and nonprofits are good fits. Email what you sell and where customers come from today, and you’ll get an honest answer.',
+      next: ['included', 'cost', 'email'],
     },
-    leads: {
-      label: 'Can you build a site that brings in leads?',
-      answer: 'Yes. Lead generation is my background: over five years in performance marketing, including more than 30 buyer integrations that matched leads to buyers. A lead-generation funnel is a set of pages and forms that turns visitors into sign-ups or enquiries and routes each lead to the right place. Email with who you want to reach and what a lead is worth to you.',
-      next: ['custom', 'cost', 'email'],
+    included: {
+      label: 'What’s included in a build?',
+      answer: 'A landing page written to convert, a mobile-first qualifying form, instant lead routing to email, text, CRM or partners, automatic follow-up, tracking with a simple results dashboard, and consent wording with secure lead storage. It’s a fixed scope, handed over tested and documented.',
+      next: ['after', 'cost', 'email'],
     },
-    retainer: {
-      label: 'Do you offer ongoing support?',
-      answer: 'Yes. A monthly maintenance retainer keeps an app hosted, updated and fixed. If you want something new, you can request an upgrade any time and it’s quoted on its own, with no ongoing commitment. Work is done on a regular schedule, not on call. Email for current pricing.',
-      next: ['custom', 'email'],
+    after: {
+      label: 'What happens after launch?',
+      answer: 'The funnel is yours. If you want ongoing care, an optional monthly maintenance retainer covers hosting, form and integration checks, security updates and small fixes. New pages, tests or integrations can be requested any time and are quoted one by one, with no ongoing commitment.',
+      next: ['cost', 'email'],
     },
-    church: {
-      label: 'Can my church use the reading plan?',
-      answer: 'Not yet. It’s in private use and isn’t available to other churches at the moment. If you’re interested, send an email and you’ll hear when that changes. A custom app for your church is another option.',
-      next: ['privacy', 'cost', 'email'],
+    background: {
+      label: 'What’s your background?',
+      answer: 'Over five years inside a lead-generation and performance-marketing company, as a senior analyst and then a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and direct mail campaigns of over a million pieces in a month. Plus a business degree from USC Marshall.',
+      next: ['what', 'other', 'email'],
     },
-    privacy: {
-      label: 'Is my information private?',
-      answer: 'Yes. Depending on what an app needs, data is kept on your own device or in a secure cloud database, and only what the app needs is collected. There’s no tracking.',
-      next: ['custom', 'email'],
+    other: {
+      label: 'Do you build apps or websites too?',
+      answer: 'Yes, custom apps and websites as well, a limited number each season. The apps on this page are custom builds in private use, so they aren’t available to the public yet.',
+      next: ['cost', 'email'],
     },
     cost: {
       label: 'How much does it cost?',
-      answer: 'The apps aren’t available to the public yet. For a custom build, maintenance or an upgrade, it depends on the scope. Send an email with what you have in mind and you’ll get a straight answer.',
-      next: ['email', 'apps'],
+      answer: 'It depends on the scope: how many pages, where leads should go and what follow-up you need. Send an email with what you have in mind and you’ll get a clear quote.',
+      next: ['email', 'included'],
     },
     email: {
       label: 'I’d like to get in touch',
       answer: `The best way is email: ${EMAIL}. Tap the button below to start one, or copy the address.`,
-      next: ['apps'],
+      next: ['what'],
       cta: true,
     },
   };
@@ -83,7 +83,7 @@
     say(topic.answer, 'bot');
     choices.replaceChildren();
     if (topic.cta) {
-      const subject = encodeURIComponent('Question about your apps');
+      const subject = encodeURIComponent('Funnel enquiry');
       choices.append(el('a', { class: 'button chat-cta', href: `mailto:${EMAIL}?subject=${subject}`, text: 'Write an email' }));
       const copy = el('button', { type: 'button', class: 'copy', text: 'Copy address' });
       copy.addEventListener('click', () => {
