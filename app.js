@@ -16,7 +16,8 @@
     return node;
   }
 
-  // A strip of pictures (mock screens or image files) with arrows, dots and swipe.
+  // A strip of pictures (mock screens or image files) that scrolls natively, so swiping
+  // follows the finger with momentum and snaps to each picture. Arrows and dots scroll it too.
   function carousel(p, className) {
     const slides = p.slides?.length ? p.slides : [null];
     const track = el('div', { class: 'slides' }, slides.map((src, i) => {
@@ -40,23 +41,29 @@
     prev.addEventListener('click', () => go(index - 1));
     next.addEventListener('click', () => go(index + 1));
 
-    function go(i) {
-      index = (i + slides.length) % slides.length;
-      track.style.transform = `translateX(-${index * 100}%)`;
+    function mark(i) {
+      index = i;
       [...dots.children].forEach((d, n) => d.setAttribute('aria-current', n === index));
     }
+    function go(i) {
+      const target = (i + slides.length) % slides.length;
+      track.scrollTo({ left: target * track.clientWidth });
+      mark(target);
+    }
 
-    let startX = null;
-    art.addEventListener('pointerdown', e => { startX = e.clientX; });
-    art.addEventListener('pointerup', e => {
-      if (startX === null) return;
-      const dx = e.clientX - startX;
-      startX = null;
-      if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
-    });
+    // Keep the dots in step with swipes.
+    let ticking = false;
+    track.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        mark(Math.round(track.scrollLeft / track.clientWidth));
+        ticking = false;
+      });
+    }, { passive: true });
 
     art.append(prev, next, dots);
-    go(0);
+    mark(0);
     return art;
   }
 
@@ -121,6 +128,28 @@
       .then(() => { copyBtn.textContent = 'Copied'; })
       .catch(() => { getSelection().selectAllChildren(email); });
   });
+
+  const header = document.querySelector('.site-header');
+  const onScroll = () => header.classList.toggle('scrolled', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Sections ease up into place as they scroll into view. They are fully visible at rest;
+  // only their position moves, so nothing is hidden if this never runs.
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const targets = document.querySelectorAll('.section-head, .plan, .card, .facts li, .volume, .process-intro, .process-tools, .contact-copy, .contact-card, .work-head');
+    const io = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) { entry.target.classList.add('in'); io.unobserve(entry.target); }
+      }
+    }, { rootMargin: '0px 0px -8% 0px' });
+    targets.forEach((t, i) => {
+      if (t.getBoundingClientRect().top < innerHeight) return;
+      t.classList.add('reveal');
+      t.style.setProperty('--d', `${(i % 4) * 60}ms`);
+      io.observe(t);
+    });
+  }
 
   document.getElementById('year').textContent = new Date().getFullYear();
   render();

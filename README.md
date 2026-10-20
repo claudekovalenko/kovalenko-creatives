@@ -1,6 +1,6 @@
 # Kovalenko Creatives
 
-The website for Kovalenko Creatives, a one-person studio that builds custom websites and apps for businesses, with lead-generation funnels as an additional service. It shows recent work, what the studio builds (with optional maintenance and upgrades), the lead-gen thinking behind every build, the owner's track record, the AI-assisted way the work is made, and how to get in touch.
+The website for Kovalenko Creatives, a one-person studio that builds custom websites and apps for businesses. It shows recent work, what the studio builds (with optional maintenance and upgrades), the owner's background, the AI-assisted way the work is made, and how to get in touch.
 
 It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
 
@@ -8,7 +8,7 @@ It is a plain static site. There is no build step, no framework, no server and n
 
 | File | What it holds |
 |---|---|
-| `index.html` | Page structure and all fixed copy: hero, recent work, what I build, built to convert (illustrative funnel), track record, AI and toolkit, contact |
+| `index.html` | Page structure and all fixed copy: hero, recent work, what I build, background, AI and toolkit, contact |
 | `styles.css` | All styling. Colours and fonts are tokens at the top, with light and dark versions |
 | `projects.js` | The data the page renders: project totals (`BODY_OF_WORK`) and the project cards (`PROJECTS`) |
 | `app.js` | Renders the project totals and grid of squares, project cards, picture carousels, filters and the copy-email button |
@@ -32,8 +32,6 @@ Opening `index.html` straight from disk also works.
 ## Common edits
 
 **Change the project totals.** Edit `BODY_OF_WORK` at the top of `projects.js`. The hero's project count, the grid of squares and its key all update from it. Only totals are shown, never project names.
-
-**Change the illustrative funnel.** The funnel numbers in the "Built to convert" section are in `index.html`. Each stage's `--w` is its share of visitors (220 of 1,000 is `22%`), so the bars stay to scale; update both together. The numbers are labelled as illustrative, so keep that label unless they are replaced with a real client's results that the client has agreed to share.
 
 **Add, remove or reorder a project.** Edit the `PROJECTS` list in `projects.js`. Each entry has:
 

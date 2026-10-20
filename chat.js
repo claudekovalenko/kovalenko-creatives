@@ -7,17 +7,12 @@
   const TOPICS = {
     start: {
       answer: 'Hi! I can answer quick questions about Kovalenko Creatives. What would you like to know?',
-      next: ['build', 'leads', 'background', 'cost', 'email'],
+      next: ['build', 'background', 'after', 'cost', 'email'],
     },
     build: {
       label: 'What do you build?',
-      answer: 'Custom websites and apps for businesses, plus lead-gen funnels. A limited number each season, each with a clear scope agreed up front, handed over tested and documented. You can flip through some recent work in the Work section.',
-      next: ['leads', 'after', 'cost', 'email'],
-    },
-    leads: {
-      label: 'Will my site bring in customers?',
-      answer: 'That’s the goal of every build. Each page is planned around the path from stranger to customer: one clear offer, an easy form, enquiries that reach you in seconds, and automatic replies. Funnels are offered too, drawing on over five years in the lead-generation industry. No one can promise a number of leads, but every build is designed to convert.',
-      next: ['background', 'build', 'email'],
+      answer: 'Custom websites and apps for businesses, a limited number each season, each with a clear scope agreed up front, handed over tested and documented. You can flip through some recent work in the Work section.',
+      next: ['after', 'background', 'cost', 'email'],
     },
     after: {
       label: 'What happens after launch?',
@@ -26,7 +21,7 @@
     },
     background: {
       label: 'What’s your background?',
-      answer: 'Over five years inside a lead-generation and performance-marketing company, as a senior analyst and then a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and a direct mail campaign that generated over $1M in one year. Plus a business degree from USC Marshall.',
+      answer: 'Six years inside a lead-generation and performance-marketing company, four years as a data analyst and then two as a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and a direct mail campaign that generated over $1M in one year. Plus a business degree from USC Marshall.',
       next: ['build', 'apps', 'email'],
     },
     apps: {
@@ -36,7 +31,7 @@
     },
     cost: {
       label: 'How much does it cost?',
-      answer: 'It depends on the scope: what you need built, how many pages or features, and where enquiries should go. Send an email with what you have in mind and you’ll get a clear quote.',
+      answer: 'It depends on the scope: what you need built and how many pages or features it has. Send an email with what you have in mind and you’ll get a clear quote.',
       next: ['email', 'build'],
     },
     email: {

@@ -1,4 +1,4 @@
-/* Layout: one centred column between two full-bleed dark bands (hero and contact); a lead-gen funnel story, then proof and work. */
+/* Layout: one centred column between two full-bleed dark bands (hero and contact): work, offer, background, AI and toolkit. */
 :root {
   --bg: #f3f4f1;
   --surface: #ffffff;
@@ -44,7 +44,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
 
 /* The full-bleed bands reach past the column; never let them scroll the page sideways. */
 html, body { overflow-x: clip; }
@@ -58,6 +58,8 @@ body {
 }
 
 a { color: inherit; }
+
+p, li { text-wrap: pretty; }
 
 h1, h2, h3 {
   font-family: var(--display);
@@ -86,7 +88,11 @@ h1, h2, h3 {
   clip-path: inset(0 -100vmax);
   backdrop-filter: blur(10px);
   color: var(--ink-text);
+  transition: padding .25s ease;
 }
+.site-header::after { content: ""; position: absolute; left: -100vmax; right: -100vmax; bottom: 0; height: 1px; background: rgb(255 255 255 / .08); opacity: 0; transition: opacity .25s ease; }
+.site-header.scrolled::after { opacity: 1; }
+.site-header.scrolled { padding-block: 12px; }
 
 body::before {
   content: "";
@@ -207,8 +213,10 @@ main {
   border: 6px solid #1c2624;
   box-shadow: 0 30px 60px rgb(0 0 0 / .5);
   transform: translateX(var(--x)) rotate(var(--r));
-  animation: fan .9s cubic-bezier(.2, .8, .2, 1) both;
+  animation: fan .9s cubic-bezier(.2, .8, .2, 1) both, float 7s ease-in-out .9s infinite alternate;
 }
+.phone.p2 { animation-delay: 0s, 1.6s; }
+.phone.p3 { animation-delay: 0s, 2.4s; }
 .phone.p1 { --x: -58%; --r: -9deg; z-index: 1; }
 .phone.p2 { --x: 0%; --r: 0deg; top: 2%; z-index: 2; }
 .phone.p3 { --x: 58%; --r: 9deg; z-index: 1; }
@@ -216,51 +224,11 @@ main {
   from { transform: translateX(0) rotate(0deg) translateY(24px); }
   to { transform: translateX(var(--x)) rotate(var(--r)); }
 }
+@keyframes float {
+  from { transform: translateX(var(--x)) rotate(var(--r)) translateY(0); }
+  to { transform: translateX(var(--x)) rotate(var(--r)) translateY(-10px); }
+}
 
-/* Illustrative funnel: sits on a dark card inside the light "Built to convert" section */
-.funnel {
-  position: relative;
-  margin: 0;
-  color: var(--ink-text);
-  background: var(--ink);
-  padding: 24px;
-  border: 1px solid rgb(255 255 255 / .12);
-  border-radius: 20px;
-  min-width: 0;
-}
-.funnel figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 18px; }
-.chip { padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--glow) 18%, transparent); color: var(--glow); font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-.funnel-sub { color: var(--ink-muted); font-size: 13px; }
-.funnel ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-.funnel li {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgb(255 255 255 / .05);
-  font-size: 15px;
-}
-/* Each bar is drawn to scale: its width is that stage's share of visitors (minimum sliver so small stages stay visible). */
-.funnel li::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: max(var(--w), 2.5%);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--glow) 55%, transparent), color-mix(in srgb, var(--glow) 25%, transparent));
-  transform-origin: left;
-  animation: grow 1s cubic-bezier(.2, .8, .2, 1) both;
-}
-.funnel li:nth-child(2)::before { animation-delay: .1s; }
-.funnel li:nth-child(3)::before { animation-delay: .2s; }
-.funnel li:nth-child(4)::before { animation-delay: .3s; }
-.funnel li:nth-child(5)::before { animation-delay: .4s; }
-.funnel li > * { position: relative; }
-.funnel b { font: 700 18px var(--display); font-variant-numeric: tabular-nums; }
-@keyframes grow { from { transform: scaleX(.3); } to { transform: scaleX(1); } }
 
 .mock-steps { display: flex; gap: 5px; }
 .mock-steps i { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .18); }
@@ -329,13 +297,22 @@ main {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: transform .15s ease, box-shadow .15s ease;
+  transition: transform .3s cubic-bezier(.2, .8, .2, 1), box-shadow .3s ease;
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgb(0 0 0 / .08);
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px rgb(0 0 0 / .1);
+  }
+  .card:hover .slide img { transform: scale(1.02); }
 }
+.slide img { transition: transform .5s cubic-bezier(.2, .8, .2, 1); }
+
+/* Gentle entrance: content is visible at rest and only rises into place. */
+.reveal { transform: translateY(22px); transition: transform .7s cubic-bezier(.2, .8, .2, 1) var(--d, 0ms); }
+.reveal.in { transform: none; }
+.card.reveal { transition: transform .7s cubic-bezier(.2, .8, .2, 1) var(--d, 0ms), box-shadow .3s ease; }
 
 .card-art {
   position: relative;
@@ -411,9 +388,10 @@ main {
 }
 
 /* Carousel: each card's pictures sit side by side in a sliding track */
-.card-art { display: block; touch-action: pan-y; }
-.slides { position: absolute; inset: 0; display: flex; transition: transform .35s ease; }
-.slide { flex: 0 0 100%; height: 100%; padding: 20px 0 30px; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
+.card-art { display: block; }
+.slides { position: absolute; inset: 0; display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
+.slides::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 100%; height: 100%; scroll-snap-align: center; scroll-snap-stop: always; padding: 20px 0 30px; display: flex; justify-content: center; align-items: flex-end; overflow: hidden; }
 .slide .mock { height: 100%; }
 .slide img { display: block; height: 100%; width: auto; max-width: none; border-radius: 16px; box-shadow: 0 18px 40px rgb(0 0 0 / .3); }
 .nav {
@@ -503,7 +481,7 @@ main {
 .button.button-quiet { background: transparent; color: var(--text); border: 1px solid var(--line); }
 
 /* Process: a real sequence, so the steps are numbered */
-.process { padding-block: 56px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; }
+.process { padding-block: 72px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 40px; }
 .process-intro h2 { font-size: 30px; }
 .process-intro p { color: var(--muted); font-size: 17px; max-width: 48ch; }
 .steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 22px; }
@@ -517,20 +495,8 @@ main {
 .section-head h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.025em; }
 .section-head p:not(.eyebrow) { max-width: 62ch; color: var(--muted); font-size: 17px; }
 
-/* How it works: a real sequence, so the steps are numbered */
-.how { padding-block: 56px; border-top: 1px solid var(--line); }
-.how-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; margin-bottom: 28px; }
-.how-top .section-head { margin-bottom: 0; }
-.plans-after { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
-.plans-after .plan { background: transparent; }
-.flow { margin: 0; padding: 0; list-style: none; counter-reset: flow; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
-.flow li { counter-increment: flow; position: relative; padding: 20px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
-.flow li::before { content: counter(flow); display: grid; place-items: center; width: 32px; height: 32px; margin-bottom: 12px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); font: 700 15px var(--display); }
-.flow h3 { font-size: 19px; }
-.flow p { margin: 6px 0 0; color: var(--muted); font-size: 15px; }
-
 /* What you get: the build is the main offer; maintenance and upgrades are optional and bounded */
-.offer { padding-block: 56px; border-top: 1px solid var(--line); }
+.offer { padding-block: 72px; border-top: 1px solid var(--line); }
 .work { border-top: 0; }
 .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 20px; }
 .plan { padding: 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
@@ -550,6 +516,7 @@ main {
 .safety { margin: 20px 0 0; padding: 16px 18px; max-width: 72ch; border-radius: 12px; background: color-mix(in srgb, var(--accent) 9%, transparent); color: var(--text); font-size: 15px; }
 
 /* Guided questions assistant */
+@keyframes panel-in { from { transform: translateY(12px) scale(.97); } to { transform: none; } }
 .chat-toggle {
   position: fixed;
   right: max(16px, env(safe-area-inset-right, 0px));
@@ -565,6 +532,8 @@ main {
   cursor: pointer;
 }
 .chat-panel {
+  animation: panel-in .25s cubic-bezier(.2, .8, .2, 1);
+  transform-origin: bottom right;
   position: fixed;
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: calc(76px + env(safe-area-inset-bottom, 0px));
@@ -592,7 +561,7 @@ main {
 .chat-cta { margin-top: 0; padding: 9px 16px; font-size: 14px; }
 
 /* Track record */
-.proof { padding-block: 56px; border-top: 1px solid var(--line); }
+.proof { padding-block: 72px; border-top: 1px solid var(--line); }
 .proof .volume { margin-top: 48px; padding-block: 0; }
 .volume-head h3 { font-size: 24px; }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 8px 0 0; padding: 0; list-style: none; }
@@ -609,7 +578,12 @@ main {
   color: var(--on-accent);
   font-weight: 600;
   text-decoration: none;
+  transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
 }
+.button:hover { transform: translateY(-1px); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 30%, transparent); }
+.hero .button:hover, .contact .button:hover { box-shadow: 0 8px 26px color-mix(in srgb, var(--glow) 40%, transparent); }
+.button.button-quiet:hover { box-shadow: none; border-color: currentColor; }
+.button:active { transform: translateY(0); }
 
 /* Contact: a closing dark band that mirrors the hero */
 .contact {
@@ -660,9 +634,12 @@ main {
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .phone, .funnel li::before, .mosaic i { animation: none; }
+  .phone, .mosaic i { animation: none; }
   .card { transition: none; }
-  .slides { transition: none; }
+  .slides { scroll-behavior: auto; }
+  .reveal { transform: none; transition: none; }
+  .chat-panel { animation: none; }
+  .button, .card, .card-art img, .slide img { transition: none; }
   .card:hover { transform: none; }
 }
 
@@ -681,7 +658,6 @@ main {
 }
 
 @media (max-width: 960px) {
-  .flow { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
   .site-header nav a:not(.nav-cta) { display: none; }
 }
 
@@ -689,7 +665,6 @@ main {
   .hero { grid-template-columns: 1fr; padding-block: 40px 48px; gap: 32px; }
   .hero-phones { aspect-ratio: 4 / 3; }
   .phone { width: 38%; margin-left: -19%; }
-  .how-top { grid-template-columns: 1fr; gap: 24px; }
   .process { grid-template-columns: 1fr; gap: 24px; }
   .contact { grid-template-columns: 1fr; gap: 24px; padding-block: 48px; }
 }
@@ -703,9 +678,11 @@ main {
   .stats { gap: 16px 24px; }
   .stat strong { font-size: 28px; }
   .phone { border-width: 4px; border-radius: 16px; }
-  .funnel { padding: 18px; }
-  .funnel li { padding: 10px 12px; font-size: 14px; }
-  .flow { grid-template-columns: 1fr; }
+  .offer, .proof, .process { padding-block: 48px; }
+  .section-head { margin-bottom: 20px; }
+  .nav { width: 40px; height: 40px; margin-top: -20px; }
+  .filters button { padding: 9px 14px; }
+  .chat-toggle { padding: 12px 18px; }
   .grid { grid-template-columns: 1fr; }
   .contact-card { padding: 20px; }
 }
