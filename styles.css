@@ -11,6 +11,11 @@
   --body: "Figtree", "Helvetica Neue", Arial, sans-serif;
   --radius: 14px;
   --max: 1120px;
+  /* The header and hero sit on a fixed dark band in both themes. */
+  --ink: #0b1312;
+  --ink-text: #eef4f2;
+  --ink-muted: #9db3ae;
+  --glow: #4fc2b3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,6 +45,9 @@
 * { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
+
+/* The full-bleed bands and fanned phones reach past the column; never let them scroll the page sideways. */
+html, body { overflow-x: clip; }
 
 body {
   margin: 0;
@@ -73,28 +81,40 @@ h1, h2, h3 {
   padding-block: 18px;
   padding-left: max(24px, env(safe-area-inset-left, 0px));
   padding-right: max(24px, env(safe-area-inset-right, 0px));
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--ink) 92%, transparent);
+  clip-path: inset(0 -100vmax);
   backdrop-filter: blur(10px);
+  color: var(--ink-text);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--ink);
 }
 
 .wordmark {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 20px;
   text-decoration: none;
 }
 
-.wordmark span { color: var(--accent); margin-left: 4px; }
+.wordmark span { color: var(--glow); margin-left: 4px; }
 
 .site-header nav { display: flex; gap: 22px; }
 
 .site-header nav a {
   text-decoration: none;
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 15px;
 }
 
-.site-header nav a:hover { color: var(--text); }
+.site-header nav a:hover { color: var(--ink-text); }
 
 main {
   max-width: var(--max);
@@ -103,8 +123,31 @@ main {
   padding-right: max(24px, env(safe-area-inset-right, 0px));
 }
 
-/* Hero */
-.hero { padding: 72px 0 56px; }
+/* Hero: the one bold moment. Full-bleed dark band with a fan of real app screens. */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 40px;
+  padding-block: 64px 80px;
+  margin-bottom: 56px;
+  background: var(--ink);
+  box-shadow: 0 0 0 100vmax var(--ink);
+  clip-path: inset(0 -100vmax);
+  color: var(--ink-text);
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  right: -10%;
+  top: -20%;
+  width: 70%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, color-mix(in srgb, var(--glow) 35%, transparent), transparent 65%);
+  pointer-events: none;
+}
+.hero-copy { position: relative; min-width: 0; }
 
 .eyebrow {
   margin: 0 0 14px;
@@ -114,31 +157,60 @@ main {
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+.hero .eyebrow { color: var(--glow); }
 
-.hero h1 { font-size: clamp(36px, 6vw, 64px); max-width: 16ch; }
+.hero h1 { font-size: clamp(40px, 6.4vw, 76px); line-height: 1.02; letter-spacing: -0.035em; max-width: 13ch; }
+.hero h1 em { font-style: normal; color: var(--glow); }
 
 .lede {
-  max-width: 56ch;
-  margin: 20px 0 0;
+  max-width: 52ch;
+  margin: 22px 0 0;
   font-size: 18px;
-  color: var(--muted);
+  color: var(--ink-muted);
 }
+
+.hero .button { background: var(--glow); color: var(--ink); }
+.hero .button.button-quiet { background: transparent; color: var(--ink-text); border-color: rgb(255 255 255 / .25); }
 
 .stats {
   display: flex;
   flex-wrap: wrap;
-  gap: 40px;
+  gap: 18px 36px;
   margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgb(255 255 255 / .12);
 }
 
 .stat strong {
   display: block;
   font-family: var(--display);
   font-size: 34px;
-  font-weight: 600;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.stat span { color: var(--muted); font-size: 14px; }
+.stat span { color: var(--ink-muted); font-size: 14px; }
+
+.hero-phones { position: relative; aspect-ratio: 1 / 1; max-width: 100%; }
+.phone {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  width: 46%;
+  margin-left: -23%;
+  border-radius: 22px;
+  border: 6px solid #1c2624;
+  box-shadow: 0 30px 60px rgb(0 0 0 / .5);
+  animation: fan .9s cubic-bezier(.2, .8, .2, 1) both;
+}
+.phone.p1 { --x: -58%; --r: -9deg; z-index: 1; }
+.phone.p2 { --x: 0%; --r: 0deg; top: 2%; z-index: 2; }
+.phone.p3 { --x: 58%; --r: 9deg; z-index: 1; }
+.phone { transform: translateX(var(--x)) rotate(var(--r)); }
+@keyframes fan {
+  from { transform: translateX(0) rotate(0deg) translateY(24px); }
+  to { transform: translateX(var(--x)) rotate(var(--r)); }
+}
 
 .mock-steps { display: flex; gap: 5px; }
 .mock-steps i { flex: 1; height: 4px; border-radius: 2px; background: rgb(255 255 255 / .18); }
@@ -153,7 +225,8 @@ main {
 .volume-head h2 { font-size: 30px; }
 .volume-head p { margin: 0; max-width: 52ch; color: var(--muted); }
 .mosaic { display: grid; grid-template-columns: repeat(auto-fill, minmax(26px, 1fr)); gap: 6px; }
-.mosaic i { aspect-ratio: 1; border-radius: 6px; background: var(--c); }
+.mosaic i { aspect-ratio: 1; border-radius: 6px; background: var(--c); animation: pop .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(var(--i) * 14ms); }
+@keyframes pop { from { transform: scale(.55); } to { transform: scale(1); } }
 .volume-key { display: flex; flex-wrap: wrap; gap: 10px 24px; margin: 20px 0 0; padding: 0; list-style: none; }
 .volume-key li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
 .volume-key li::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
@@ -217,7 +290,10 @@ main {
 .card-art {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: var(--tint);
+  /* Every card sits on the same dark ground as the hero; the app's own colour is only a soft glow. */
+  background:
+    radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--tint) 45%, transparent), transparent 70%),
+    var(--ink);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -237,7 +313,7 @@ main {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 80% 10%, rgb(255 255 255 / .25), transparent 55%);
+  background: radial-gradient(circle at 80% 10%, rgb(255 255 255 / .08), transparent 55%);
   pointer-events: none;
 }
 
@@ -506,6 +582,7 @@ main {
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .phone, .mosaic i { animation: none; }
   .card { transition: none; }
   .slides { transition: none; }
   .card:hover { transform: none; }
@@ -530,8 +607,10 @@ main {
   .site-header nav a { font-size: 14px; }
   .site-header nav a:not(:last-child) { display: none; }
   main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-  .hero { padding: 48px 0 40px; }
-  .stats { gap: 28px; }
+  .hero { grid-template-columns: 1fr; padding-block: 40px 48px; gap: 24px; }
+  .hero-phones { aspect-ratio: 4 / 3; }
+  .phone { width: 40%; margin-left: -20%; border-width: 4px; border-radius: 16px; }
+  .stats { gap: 16px 28px; }
   .grid { grid-template-columns: 1fr; }
   .process { grid-template-columns: 1fr; gap: 24px; }
   .custom { grid-template-columns: 1fr; gap: 24px; }

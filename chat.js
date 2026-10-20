@@ -16,12 +16,12 @@
     },
     custom: {
       label: 'Can you build a custom app?',
-      answer: 'Yes, a limited number each season. Each one has a clear scope agreed up front and is built to run on its own once it’s handed over. Monthly retainers are available if you want ongoing care. Email with what you need, who will use it and your timeline.',
+      answer: 'Yes, a limited number each season. Each one has a clear scope agreed up front and is built to run on its own once it’s handed over. A monthly maintenance retainer is available, and upgrades can be requested any time. Email with what you need, who will use it and your timeline.',
       next: ['retainer', 'cost', 'email'],
     },
     retainer: {
       label: 'Do you offer ongoing support?',
-      answer: 'Yes, through monthly retainers. Care keeps an app hosted, updated and fixed; Growth adds a set block of build time each month for new features. Work is done on a regular schedule, not on call. Email for current pricing.',
+      answer: 'Yes. A monthly maintenance retainer keeps an app hosted, updated and fixed. If you want something new, you can request an upgrade any time and it’s quoted on its own, with no ongoing commitment. Work is done on a regular schedule, not on call. Email for current pricing.',
       next: ['custom', 'email'],
     },
     church: {
@@ -31,12 +31,12 @@
     },
     privacy: {
       label: 'Is my information private?',
-      answer: 'Yes. Most of the apps keep everything on your own device: no account, no tracking, and nothing stored on a server unless you choose to sync.',
+      answer: 'Yes. Depending on what an app needs, data is kept on your own device or in a secure cloud database, and only what the app needs is collected. There’s no tracking.',
       next: ['custom', 'email'],
     },
     cost: {
       label: 'How much does it cost?',
-      answer: 'The apps aren’t available to the public yet. For a custom build or a retainer, it depends on the scope. Send an email with what you have in mind and you’ll get a straight answer.',
+      answer: 'The apps aren’t available to the public yet. For a custom build, maintenance or an upgrade, it depends on the scope. Send an email with what you have in mind and you’ll get a straight answer.',
       next: ['email', 'apps'],
     },
     email: {

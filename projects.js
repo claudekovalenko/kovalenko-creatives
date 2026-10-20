@@ -6,8 +6,8 @@
 // Everything built so far, counted by kind. Only totals are shown on the page, never project names.
 const BODY_OF_WORK = [
   { label: 'Apps & tools', count: 44, color: '#0f8f80' },
-  { label: 'Plans, guides & research', count: 18, color: '#c08a2e' },
-  { label: 'Websites', count: 6, color: '#5b63c7' },
+  { label: 'Plans, guides & research', count: 18, color: '#4fc2b3' },
+  { label: 'Websites', count: 6, color: '#0b4d46' },
 ];
 
 const PROJECTS = [

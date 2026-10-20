@@ -111,7 +111,11 @@
   const mosaic = document.getElementById('mosaic');
   mosaic.setAttribute('aria-label', `${total} projects: ` + BODY_OF_WORK.map(c => `${c.count} ${c.label}`).join(', '));
   mosaic.append(...BODY_OF_WORK.flatMap(c =>
-    Array.from({ length: c.count }, () => el('i', { style: `--c: ${c.color}`, title: c.label }))));
+    Array.from({ length: c.count }, () => el('i', { title: c.label }))));
+  [...mosaic.children].forEach((sq, i) => {
+    const c = BODY_OF_WORK.find(g => g.label === sq.title);
+    sq.style.cssText = `--c: ${c.color}; --i: ${i}`;
+  });
   document.getElementById('volume-key').append(...BODY_OF_WORK.map(c =>
     el('li', { style: `--c: ${c.color}` }, [el('b', { text: c.count }), el('span', { text: c.label })])));
 

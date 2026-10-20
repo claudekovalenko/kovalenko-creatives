@@ -14,7 +14,9 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `app.js` | Renders the stats, project-count grid, project cards, picture carousels, filters and the copy-email button |
 | `chat.js` | The "Questions?" assistant: answers common questions from a fixed list and leads visitors to email. Runs entirely in the browser |
 | `images/` | Screenshots used in the project carousels |
-| `.github/workflows/pages.yml` | Publishes the site to GitHub Pages |
+| `tools/check.mjs` | Site check: data loads, screenshots and links exist, no private details. Run `node tools/check.mjs` |
+| `CLAUDE.md` | Rules for AI agents that update the site |
+| `.github/workflows/pages.yml` | Runs the site check on every change and publishes to GitHub Pages from `main` |
 
 ## Previewing locally
 
@@ -47,6 +49,10 @@ The category filters are built from the categories in use, so a new category get
 
 **Change the copy.** Everything else lives in `index.html`.
 
+## Automated updates
+
+The site is set up so AI agents can make routine updates safely. `CLAUDE.md` tells them what they may change and what must never be published. `tools/check.mjs` enforces the mechanical parts: it fails on broken project data, missing screenshots, broken links, private claude.ai links, unknown email addresses and phone numbers. The publish workflow runs the check on every pull request and before every deploy, so a failing change never goes live.
+
 ## Privacy checklist for new content
 
 This site is public. Before adding a project or screenshot, check that it shows none of the following:
@@ -67,7 +73,7 @@ This site is public. Before adding a project or screenshot, check that it shows 
 
 ## Deploying
 
-The included workflow publishes the site to GitHub Pages on every push to `main`.
+The included workflow runs the site check on every pull request, and on every push to `main` it runs the check and then publishes the site to GitHub Pages.
 
 1. Merge the work into `main`.
 2. In the repository, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. This only has to be done once.
