@@ -6,48 +6,43 @@
 
   const TOPICS = {
     start: {
-      answer: 'Hi! I can answer quick questions about lead-generation funnels and how Kovalenko Creatives builds them. What would you like to know?',
-      next: ['what', 'fit', 'background', 'cost', 'email'],
+      answer: 'Hi! I can answer quick questions about Kovalenko Creatives. What would you like to know?',
+      next: ['build', 'leads', 'background', 'cost', 'email'],
     },
-    what: {
-      label: 'What is a lead-gen funnel?',
-      answer: 'It’s a short path that turns a stranger into a lead: a page made for one audience, a short form that qualifies them, and instant routing so the lead reaches you (or your CRM or a partner) within seconds. Automatic follow-up and a simple dashboard round it out.',
-      next: ['fit', 'included', 'email'],
+    build: {
+      label: 'What do you build?',
+      answer: 'Custom websites and apps for businesses, plus lead-gen funnels. A limited number each season, each with a clear scope agreed up front, handed over tested and documented. You can flip through some recent work in the Work section.',
+      next: ['leads', 'after', 'cost', 'email'],
     },
-    fit: {
-      label: 'Is it right for my business?',
-      answer: 'It usually is if a single customer is worth a meaningful amount, people search or scroll before they buy, and you can follow up quickly. Service businesses, local trades, coaches, consultants, schools and nonprofits are good fits. Email what you sell and where customers come from today, and you’ll get an honest answer.',
-      next: ['included', 'cost', 'email'],
-    },
-    included: {
-      label: 'What’s included in a build?',
-      answer: 'A landing page written to convert, a mobile-first qualifying form, instant lead routing to email, text, CRM or partners, automatic follow-up, tracking with a simple results dashboard, and consent wording with secure lead storage. It’s a fixed scope, handed over tested and documented.',
-      next: ['after', 'cost', 'email'],
+    leads: {
+      label: 'Will my site bring in customers?',
+      answer: 'That’s the goal of every build. Each page is planned around the path from stranger to customer: one clear offer, an easy form, enquiries that reach you in seconds, and automatic replies. Funnels are offered too, drawing on over five years in the lead-generation industry. No one can promise a number of leads, but every build is designed to convert.',
+      next: ['background', 'build', 'email'],
     },
     after: {
       label: 'What happens after launch?',
-      answer: 'The funnel is yours. If you want ongoing care, an optional monthly maintenance retainer covers hosting, form and integration checks, security updates and small fixes. New pages, tests or integrations can be requested any time and are quoted one by one, with no ongoing commitment.',
+      answer: 'The site or app is yours. If you want ongoing care, an optional monthly maintenance retainer covers hosting, updates and small fixes. New pages or features can be requested any time and are quoted one by one, with no ongoing commitment.',
       next: ['cost', 'email'],
     },
     background: {
       label: 'What’s your background?',
       answer: 'Over five years inside a lead-generation and performance-marketing company, as a senior analyst and then a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and a direct mail campaign that generated over $1M in one year. Plus a business degree from USC Marshall.',
-      next: ['what', 'other', 'email'],
+      next: ['build', 'apps', 'email'],
     },
-    other: {
-      label: 'Do you build apps or websites too?',
-      answer: 'Yes, custom apps and websites as well, a limited number each season. The apps on this page are custom builds in private use, so they aren’t available to the public yet.',
-      next: ['cost', 'email'],
+    apps: {
+      label: 'Can I use the apps on this site?',
+      answer: 'Not yet. They’re custom builds in private use and aren’t available to the public. If you’d like something similar for your business, a custom build is the way to go.',
+      next: ['build', 'email'],
     },
     cost: {
       label: 'How much does it cost?',
-      answer: 'It depends on the scope: how many pages, where leads should go and what follow-up you need. Send an email with what you have in mind and you’ll get a clear quote.',
-      next: ['email', 'included'],
+      answer: 'It depends on the scope: what you need built, how many pages or features, and where enquiries should go. Send an email with what you have in mind and you’ll get a clear quote.',
+      next: ['email', 'build'],
     },
     email: {
       label: 'I’d like to get in touch',
       answer: `The best way is email: ${EMAIL}. Tap the button below to start one, or copy the address.`,
-      next: ['what'],
+      next: ['build'],
       cta: true,
     },
   };
@@ -83,7 +78,7 @@
     say(topic.answer, 'bot');
     choices.replaceChildren();
     if (topic.cta) {
-      const subject = encodeURIComponent('Funnel enquiry');
+      const subject = encodeURIComponent('Project enquiry');
       choices.append(el('a', { class: 'button chat-cta', href: `mailto:${EMAIL}?subject=${subject}`, text: 'Write an email' }));
       const copy = el('button', { type: 'button', class: 'copy', text: 'Copy address' });
       copy.addEventListener('click', () => {

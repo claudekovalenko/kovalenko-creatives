@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Kovalenko Creatives</title>
-  <meta name="description" content="Kovalenko Creatives builds lead-generation funnels for businesses: landing pages, qualifying forms, instant lead routing and follow-up, built by a lead-gen industry veteran.">
+  <meta name="description" content="Kovalenko Creatives builds custom websites and apps for businesses, shaped by over five years in lead generation.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1312'/%3E%3Cpath d='M7 9h18l-7 8v6l-4 2v-8z' fill='%234fc2b3'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,83 +18,90 @@
   <header class="site-header">
     <a class="wordmark" href="#top">Kovalenko<span>Creatives</span></a>
     <nav>
-      <a href="#how">How it works</a>
-      <a href="#offer">What you get</a>
-      <a href="#proof">Track record</a>
       <a href="#work">Work</a>
-      <a class="nav-cta" href="#contact">Plan your funnel</a>
+      <a href="#offer">What I build</a>
+      <a href="#how">Built to convert</a>
+      <a href="#proof">Track record</a>
+      <a class="nav-cta" href="#contact">Start a project</a>
     </nav>
   </header>
 
   <main id="top">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Lead-generation studio</p>
-        <h1>Lead-gen funnels that turn clicks into <em>customers.</em></h1>
-        <p class="lede">Kovalenko Creatives builds lead-generation funnels for businesses: landing pages that convert, forms that qualify, and every lead routed to the right place in seconds. Built by someone with over five years inside the lead-generation industry.</p>
+        <p class="eyebrow">App &amp; web studio</p>
+        <h1>Websites and apps that <em>bring in business.</em></h1>
+        <p class="lede">Kovalenko Creatives builds custom websites and apps for businesses. Over five years in lead generation shapes every build, so each page is designed to turn visitors into customers.</p>
         <div class="hero-actions">
-          <a class="button" href="#contact">Plan your funnel</a>
-          <a class="button button-quiet" href="#how">See how it works</a>
+          <a class="button" href="#contact">Start a project</a>
+          <a class="button button-quiet" href="#work">See the work</a>
         </div>
         <ul class="stats">
+          <li class="stat"><strong><span id="volume-total-hero">68</span></strong><span>projects built</span></li>
           <li class="stat"><strong>5+ yrs</strong><span>in lead generation</span></li>
           <li class="stat"><strong>30+</strong><span>buyer integrations built</span></li>
-          <li class="stat"><strong><span id="volume-total-hero">68</span></strong><span>projects built</span></li>
         </ul>
       </div>
-      <figure class="funnel" aria-label="Example funnel: 1,000 visitors become 220 form starts, 140 qualified leads routed instantly, and 38 booked calls.">
-        <figcaption><span class="chip">Example funnel</span><span class="funnel-sub">One month, illustrative numbers</span></figcaption>
-        <ol>
-          <li style="--w: 100%"><span class="f-label">Visitors</span><b>1,000</b></li>
-          <li style="--w: 22%"><span class="f-label">Started the form</span><b>220</b></li>
-          <li style="--w: 14%"><span class="f-label">Qualified leads</span><b>140</b></li>
-          <li style="--w: 14%"><span class="f-label">Routed in under a minute</span><b>140</b></li>
-          <li style="--w: 3.8%"><span class="f-label">Booked calls</span><b>38</b></li>
-        </ol>
-      </figure>
+      <div class="hero-phones" aria-hidden="true">
+        <img class="phone p1" src="images/nn-1.webp" alt="">
+        <img class="phone p2" src="images/greek-1.webp" alt="">
+        <img class="phone p3" src="images/timecup-1.webp" alt="">
+      </div>
     </section>
 
-    <section id="how" class="how">
-      <div class="section-head">
-        <p class="eyebrow">How it works</p>
-        <h2>Five steps from stranger to customer</h2>
-        <p>A funnel is a short path that takes someone from seeing your business to raising their hand. Each step is built, connected and measured.</p>
+    <section id="work" class="work">
+      <div class="work-head">
+        <div>
+          <h2>Recent work</h2>
+          <p class="work-note">Custom builds in private use. They are not available to the public yet, and more projects are in progress.</p>
+        </div>
+        <div class="filters" id="filters" role="tablist" aria-label="Filter by category"></div>
       </div>
-      <ol class="flow">
-        <li><h3>Attract</h3><p>Ads, social posts, search or email send the right people to a page made for them.</p></li>
-        <li><h3>Capture</h3><p>A focused landing page with one clear offer and a short form that is easy to finish on a phone.</p></li>
-        <li><h3>Qualify</h3><p>A few smart questions sort serious buyers from browsers, so you spend time on the right leads.</p></li>
-        <li><h3>Route</h3><p>Each lead lands where it should within seconds: your inbox, phone, CRM, spreadsheet or a partner.</p></li>
-        <li><h3>Follow up</h3><p>Automatic emails or texts go out right away, and a simple dashboard shows what is working.</p></li>
-      </ol>
+      <div class="grid" id="grid"></div>
     </section>
 
     <section id="offer" class="offer">
       <div class="section-head">
-        <p class="eyebrow">What you get</p>
-        <h2>Built once, measured from day one</h2>
-        <p>I take on a limited number of funnel builds each season, so each one gets full attention. Every build has a clear scope agreed up front, works on any phone, and is handed over tested and documented.</p>
+        <p class="eyebrow">What I build</p>
+        <h2>Custom builds, a few each season</h2>
+        <p>I take on a limited number of projects at a time, so each one gets full attention. Every build has a clear scope agreed up front, works on any phone, and is handed over tested and documented.</p>
       </div>
       <div class="plans">
         <div class="plan plan-main">
-          <h3>Funnel build</h3>
-          <p class="plan-line">A fixed scope, finished and handed over</p>
+          <h3>Websites</h3>
+          <p class="plan-line">Fast, mobile-first, built to convert</p>
           <ul>
-            <li>Landing page written and designed to convert</li>
-            <li>Qualifying form, mobile-first</li>
-            <li>Instant lead routing to email, text, CRM or partners</li>
-            <li>Automatic follow-up</li>
-            <li>Tracking and a simple results dashboard</li>
-            <li>Consent wording and secure lead storage</li>
+            <li>Clear pages that explain what you do</li>
+            <li>A clear next step on every page</li>
+            <li>Contact and enquiry forms that reach you right away</li>
+            <li>Simple to update</li>
           </ul>
         </div>
+        <div class="plan">
+          <h3>Apps</h3>
+          <p class="plan-line">Tools your customers or team use every day</p>
+          <ul>
+            <li>Install on any phone from the browser</li>
+            <li>On the device or in the cloud, with accounts and sync as needed</li>
+            <li>Offline support where it helps</li>
+          </ul>
+        </div>
+        <div class="plan">
+          <h3>Lead-gen funnels</h3>
+          <p class="plan-line">Drawing on 5+ years in the industry</p>
+          <ul>
+            <li>A focused landing page and qualifying form</li>
+            <li>Leads routed to your inbox, phone or CRM in seconds</li>
+            <li>Automatic follow-up and simple tracking</li>
+          </ul>
+        </div>
+      </div>
+      <div class="plans plans-after">
         <div class="plan">
           <h3>Maintenance retainer</h3>
           <p class="plan-line">Optional, monthly</p>
           <ul>
-            <li>Hosting and uptime checks</li>
-            <li>Form and integration checks</li>
-            <li>Security updates and small fixes</li>
+            <li>Hosting and uptime checks, security updates and small fixes</li>
             <li>Routine updates automated with AI agents, checked before they go live</li>
           </ul>
         </div>
@@ -102,13 +109,39 @@
           <h3>Upgrades on request</h3>
           <p class="plan-line">When you want more</p>
           <ul>
-            <li>New pages, offers or page variations to test</li>
-            <li>New integrations</li>
+            <li>New pages, features or integrations, any time</li>
             <li>Each request quoted on its own, no ongoing commitment</li>
           </ul>
         </div>
       </div>
-      <p class="plans-note">Also available: custom apps and websites. Ask by email for current pricing.</p>
+      <p class="plans-note">Ask by email for current pricing.</p>
+    </section>
+
+    <section id="how" class="how">
+      <div class="how-top">
+        <div class="section-head">
+          <p class="eyebrow">Built to convert</p>
+          <h2>Lead-gen thinking in every build</h2>
+          <p>Years inside the lead-generation industry taught one lesson: a good-looking page is not enough. Every site and app is planned around the path from stranger to customer.</p>
+        </div>
+        <figure class="funnel" aria-label="Illustrative funnel: 1,000 visitors become 220 form starts, 140 qualified leads routed instantly, and 38 booked calls.">
+          <figcaption><span class="chip">How a funnel narrows</span><span class="funnel-sub">Illustrative numbers</span></figcaption>
+          <ol>
+            <li style="--w: 100%"><span class="f-label">Visitors</span><b>1,000</b></li>
+            <li style="--w: 22%"><span class="f-label">Started the form</span><b>220</b></li>
+            <li style="--w: 14%"><span class="f-label">Qualified leads</span><b>140</b></li>
+            <li style="--w: 14%"><span class="f-label">Routed in under a minute</span><b>140</b></li>
+            <li style="--w: 3.8%"><span class="f-label">Booked calls</span><b>38</b></li>
+          </ol>
+        </figure>
+      </div>
+      <ol class="flow">
+        <li><h3>Attract</h3><p>Ads, social posts, search or email bring the right people to a page made for them.</p></li>
+        <li><h3>Capture</h3><p>One clear offer and a short form that is easy to finish on a phone.</p></li>
+        <li><h3>Qualify</h3><p>A few smart questions sort serious buyers from browsers.</p></li>
+        <li><h3>Route</h3><p>Each enquiry reaches the right inbox, phone or CRM within seconds.</p></li>
+        <li><h3>Follow up</h3><p>Automatic replies go out right away, and simple tracking shows what works.</p></li>
+      </ol>
     </section>
 
     <section id="proof" class="proof">
@@ -133,21 +166,10 @@
       </div>
     </section>
 
-    <section id="work" class="work">
-      <div class="work-head">
-        <div>
-          <h2>Other things I've built</h2>
-          <p class="work-note">Custom apps in private use. They are not available to the public yet, and more projects are in progress.</p>
-        </div>
-        <div class="filters" id="filters" role="tablist" aria-label="Filter by category"></div>
-      </div>
-      <div class="grid" id="grid"></div>
-    </section>
-
     <section id="process" class="process">
       <div class="process-intro">
         <h2>Frontier AI, hands-on engineering</h2>
-        <p>Every funnel and app is built with the most capable AI models available, including Claude, as a core part of the process. They speed up design, code and testing. I make the decisions, review every change and stand behind the result.</p>
+        <p>Every site and app is built with the most capable AI models available, including Claude, as a core part of the process. They speed up design, code and testing. I make the decisions, review every change and stand behind the result.</p>
         <p class="safety">Every build ships with documentation, sensible security defaults and only the data it needs.</p>
       </div>
       <div class="process-tools">
@@ -180,19 +202,19 @@
     <section id="contact" class="contact">
       <div class="contact-copy">
         <p class="eyebrow">Get in touch</p>
-        <h2>Ready for more leads?</h2>
-        <p>Send an email and you'll get a reply with how I'd approach your funnel. It helps to include:</p>
+        <h2>Have a project in mind?</h2>
+        <p>Send an email and you'll get a reply with how I'd approach it. It helps to include:</p>
         <ul class="contact-list">
-          <li>What you sell and who buys it</li>
-          <li>Where your customers come from today</li>
-          <li>Where new leads should go</li>
+          <li>What you need built</li>
+          <li>Who it is for</li>
+          <li>Your timeline</li>
         </ul>
       </div>
       <div class="contact-card">
         <span class="contact-label">Email</span>
         <span class="email" id="email">kovalenkocreatives@gmail.com</span>
         <div class="email-row">
-          <a class="button" href="mailto:kovalenkocreatives@gmail.com?subject=Funnel%20enquiry">Email me</a>
+          <a class="button" href="mailto:kovalenkocreatives@gmail.com?subject=Project%20enquiry">Email me</a>
           <button class="copy" id="copy-email" type="button">Copy address</button>
         </div>
       </div>
