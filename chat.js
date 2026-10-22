@@ -16,7 +16,7 @@
     },
     how: {
       label: 'How does a project work?',
-      answer: 'You send an email with what you need, who it’s for and your timeline. You get a reply with how we’d approach it and what’s included. Then it’s built, tested on every device, and handed over with documentation.',
+      answer: 'You send an email with what you need, who it’s for and your timeline. You get a reply with how we’d approach it and what’s included. Then it’s built, tested on every device, and you get a simple guide to running and updating it.',
       next: ['after', 'cost', 'email'],
     },
     after: {
