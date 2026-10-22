@@ -17,9 +17,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # Refuse broken data, missing screenshots or private details.
+      # Refuse broken data, missing screenshots, private details or risky claims.
       - name: Check the site
         run: node tools/check.mjs
+      # Load the page in a real browser at phone, tablet and desktop sizes: layout, accessibility,
+      # keyboard use, screenshots, assistant, security policy and what search engines read.
+      - name: Install test tools
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: node tools/browser-test.mjs
 
   deploy:
     needs: check

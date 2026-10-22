@@ -15,7 +15,9 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `chat.js` | The "Questions?" assistant: answers common questions from a fixed list and leads visitors to email. Runs entirely in the browser |
 | `images/` | Screenshots used in the project carousels |
 | `fonts/` | The two typefaces (Inter Tight, JetBrains Mono), self-hosted, with their SIL Open Font License files |
-| `tools/check.mjs` | Site check: data loads, screenshots and links exist, no private details. Run `node tools/check.mjs` |
+| `tools/check.mjs` | Site check: data loads, screenshots and links exist, no private details, no risky claims. Run `npm run check` |
+| `tools/browser-test.mjs` | Browser tests: loads the page at five screen sizes and checks layout, accessibility, keyboard use, screenshots, assistant, security and search basics. Run `npm test` |
+| `package.json` | Test tools only (Playwright and axe). The site itself needs nothing installed |
 | `CLAUDE.md` | Rules for AI agents that update the site |
 | `.github/workflows/pages.yml` | Runs the site check on every change and publishes to GitHub Pages from `main` |
 
@@ -49,9 +51,39 @@ Opening `index.html` straight from disk also works.
 
 **Change the copy.** Everything else lives in `index.html`.
 
+## Testing
+
+Run everything with:
+
+```sh
+npm install        # once, installs the test tools
+npm test           # site check, then browser tests
+```
+
+On a machine that already has Chromium, point the tests at it with `CHROMIUM_PATH=/path/to/chromium npm test`; otherwise run `npx playwright install chromium` once.
+
+**Site check** (`tools/check.mjs`, no install needed):
+- Project data loads and every screenshot file exists
+- Every file the page loads exists and every in-page link has a target
+- No private claude.ai links, no email except the studio's, no phone numbers
+- No risky claims in the page or assistant: guarantees, funnel or lead-gen service offers, promises about every device, promised lead numbers or turnaround times, "best" claims, or saying private apps are available
+- The hero panel stays labelled as a sample
+
+**Browser tests** (`tools/browser-test.mjs`), at small phone, phone, tablet, desktop and dark mode:
+- No sideways scrolling; all screenshots and both fonts load; no missing files or page errors
+- No requests to any other company
+- Carousels work by dots and by swipe; the assistant fits on screen and ends at the studio email
+- Zero accessibility issues in axe, with the assistant open
+- Keyboard only: every main control and carousel is reachable, with a visible focus ring
+- 200% zoom, reduced motion, and JavaScript turned off all still work
+- The page's security policy blocks injected scripts
+- Search basics: title, description length, language, one main headline, only the studio email
+
+The publish workflow runs both on every pull request and before every deploy.
+
 ## Automated updates
 
-The site is set up so AI agents can make routine updates safely. `CLAUDE.md` tells them what they may change and what must never be published. `tools/check.mjs` enforces the mechanical parts: it fails on broken project data, missing screenshots, broken links, private claude.ai links, unknown email addresses and phone numbers. The publish workflow runs the check on every pull request and before every deploy, so a failing change never goes live.
+The site is set up so AI agents can make routine updates safely. `CLAUDE.md` tells them what they may change and what must never be published. `npm test` enforces the mechanical parts (see Testing above). The publish workflow runs it on every pull request and before every deploy, so a failing change never goes live.
 
 ## Accessibility
 

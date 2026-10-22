@@ -57,7 +57,8 @@
     return node;
   }
 
-  const log = el('div', { class: 'chat-log', 'aria-live': 'polite' });
+  // Focusable and labelled, so keyboard users can scroll back through the conversation.
+  const log = el('div', { class: 'chat-log', 'aria-live': 'polite', tabindex: '0', role: 'log', 'aria-label': 'Conversation' });
   const choices = el('div', { class: 'chat-choices' });
   const close = el('button', { type: 'button', class: 'chat-close', 'aria-label': 'Close questions', text: '×' });
   const panel = el('div', { class: 'chat-panel', id: 'chat-panel', role: 'dialog', 'aria-label': 'Questions' }, [

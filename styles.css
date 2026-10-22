@@ -211,6 +211,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .chat-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--code-bg); color: var(--code-dim); font: 400 12px var(--mono); }
 .chat-head b { font-weight: 400; }
 .chat-close { border: 0; background: transparent; color: var(--code-dim); font-size: 20px; line-height: 1; cursor: pointer; }
+.chat-log:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 14px; }
 .chat-msg { margin: 0; max-width: 90%; padding: 9px 12px; border-radius: 8px; font-size: 14px; line-height: 1.45; }
 .chat-msg.bot { align-self: start; background: color-mix(in srgb, var(--fg) 6%, transparent); }

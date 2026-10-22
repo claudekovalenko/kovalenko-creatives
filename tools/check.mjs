@@ -51,6 +51,30 @@ for (const [file, text] of published) {
   if (/\(\d{3}\)\s?\d{3}-\d{4}|\b\d{3}-\d{3}-\d{4}\b/.test(text)) fail(`${file} contains what looks like a phone number`);
 }
 
+// 4. Claims the owner has chosen not to make (see CLAUDE.md). Visible copy only: page text and assistant answers.
+const visibleCopy = [
+  ['index.html', html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ')],
+  ['chat.js', readFileSync('chat.js', 'utf8')],
+  ['projects.js', readFileSync('projects.js', 'utf8')],
+];
+const RISKY = [
+  [/\bguarantee/i, 'a guarantee'],
+  [/\bfunnel/i, 'a lead-generation funnel offer'],
+  [/lead[- ]gen(eration)? (service|package|campaign)s?/i, 'a lead-generation service offer'],
+  [/tested on (any|every)|works on (any|every) (phone|device)/i, 'a promise about every device'],
+  [/\b\d+\s*(leads|customers|sales)\s*(a|per)\s*(day|week|month)/i, 'a promised number of leads or sales'],
+  [/\b(in|within)\s+\d+\s*(days?|weeks?)\b/i, 'a promised turnaround time'],
+  [/\b(#1|number one|best in (the )?(world|industry))\b/i, 'an unprovable "best" claim'],
+  [/available (now|today) to the public|download (it )?now/i, 'a claim that the private apps are available'],
+];
+for (const [file, text] of visibleCopy) {
+  for (const [pattern, what] of RISKY) {
+    const m = text.match(pattern);
+    if (m) fail(`${file} contains ${what}: "${m[0]}"`);
+  }
+}
+if (!/sample/i.test(html.slice(html.indexOf('class="panel"'), html.indexOf('</figure>')))) fail('The hero panel must stay labelled as a sample');
+
 if (problems.length) {
   console.error(`Site check failed (${problems.length}):\n- ` + problems.join('\n- '));
   process.exit(1);

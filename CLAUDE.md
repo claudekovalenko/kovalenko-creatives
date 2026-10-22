@@ -26,6 +26,6 @@ Keep edits as small as the request needs. Do not restructure files, rename secti
 
 ## Before you finish
 
-1. Run `node tools/check.mjs` and fix anything it reports. The publish workflow runs the same check and refuses to deploy if it fails.
-2. Open `index.html` in a browser (or serve the folder) and confirm the change looks right at desktop and phone widths, with no sideways scrolling.
+1. Run `npm test` (site check plus browser tests) and fix anything it reports. The publish workflow runs the same tests and refuses to deploy if they fail.
+2. Look at the change in a browser at desktop and phone widths.
 3. Describe what changed in the commit message in plain words.
