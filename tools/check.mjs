@@ -21,10 +21,10 @@ for (const g of BODY_OF_WORK) {
   if (!/^#[0-9a-f]{6}$/i.test(g.color || '')) fail(`BODY_OF_WORK "${g.label}" needs a 6-digit hex color`);
 }
 for (const p of PROJECTS) {
-  for (const field of ['title', 'category', 'description', 'color']) {
+  for (const field of ['title', 'comment', 'status', 'description']) {
     if (!p[field]) fail(`Project "${p.title || '?'}" is missing ${field}`);
   }
-  if (!p.slides?.length) fail(`Project "${p.title}" has no slides`);
+  if (!Array.isArray(p.slides)) fail(`Project "${p.title}" needs a slides list (it may be empty)`);
   for (const slide of p.slides || []) {
     if (/^images\//.test(slide) && !existsSync(slide)) fail(`Project "${p.title}" points to a missing image: ${slide}`);
   }

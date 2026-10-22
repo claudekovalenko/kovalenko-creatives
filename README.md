@@ -1,6 +1,6 @@
 # Kovalenko Creatives
 
-The website for Kovalenko Creatives, a one-person studio that builds custom websites and apps for businesses. It shows recent work, what the studio builds (with optional maintenance and upgrades), the owner's background, the AI-assisted way the work is made, and how to get in touch.
+The website for Kovalenko Creatives, a software studio that builds websites, apps and integrations for businesses. It uses the "Studio" design: a light grid, monospace labels (`/services`, `/work`, `/process`, `/company`, `/contact`), one green accent and dark code-style panels. It shows what the studio builds (with optional maintenance and upgrades), selected work with real app screenshots, how a project runs, the company background and toolkit, and how to get in touch.
 
 It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
 
@@ -8,10 +8,10 @@ It is a plain static site. There is no build step, no framework, no server and n
 
 | File | What it holds |
 |---|---|
-| `index.html` | Page structure and all fixed copy: hero, recent work, what I build, background, AI and toolkit, contact |
-| `styles.css` | All styling. Colours and fonts are tokens at the top, with light and dark versions |
+| `index.html` | Page structure and all fixed copy: hero with sample scope panel, services, work, process, company and toolkit, contact |
+| `styles.css` | All styling for the Studio design. Colours and fonts are tokens at the top, with light and dark versions |
 | `projects.js` | The data the page renders: project totals (`BODY_OF_WORK`) and the project cards (`PROJECTS`) |
-| `app.js` | Renders the project totals and grid of squares, project cards, picture carousels, filters and the copy-email button |
+| `app.js` | Renders the project cards and their screenshot carousels, the project total and the copy-email button |
 | `chat.js` | The "Questions?" assistant: answers common questions from a fixed list and leads visitors to email. Runs entirely in the browser |
 | `images/` | Screenshots used in the project carousels |
 | `tools/check.mjs` | Site check: data loads, screenshots and links exist, no private details. Run `node tools/check.mjs` |
@@ -31,17 +31,16 @@ Opening `index.html` straight from disk also works.
 
 ## Common edits
 
-**Change the project totals.** Edit `BODY_OF_WORK` at the top of `projects.js`. The hero's project count, the grid of squares and its key all update from it. Only totals are shown, never project names.
+**Change the project total.** Edit `BODY_OF_WORK` at the top of `projects.js`. The "projects built" number in the hero adds it up. Only the total is shown, never project names.
 
 **Add, remove or reorder a project.** Edit the `PROJECTS` list in `projects.js`. Each entry has:
 
-- `title`, `category`, `description`
-- `features` and `tags` (optional lists)
-- `color`: the background behind the screenshots
-- `slides`: the pictures visitors cycle through, as image paths (`'images/app-1.webp'`) or HTML for a drawn placeholder screen
-- `status` (optional badge, such as "In development") and `url` (optional "Open app" link)
-
-The category filters are built from the categories in use, so a new category gets a filter button automatically.
+- `title`, `description`
+- `comment`: the small `// label` on the card's dark top, such as `// church app`
+- `status`: the badge, such as `Custom · private` or `In development`
+- `tags`: short labels shown at the bottom of the card
+- `slides`: screenshot paths (`'images/app-1.webp'`) that visitors swipe through. Leave it empty (`[]`) to show the title on the dark top instead
+- `url` (optional): adds an "Open app" button
 
 **Add screenshots.** Put them in `images/` and list them in the project's `slides`. Portrait phone screenshots cropped to about 9:13 fit the cards best; WebP keeps them small.
 

@@ -6,33 +6,38 @@
 
   const TOPICS = {
     start: {
-      answer: 'Hi! I can answer quick questions about Kovalenko Creatives. What would you like to know?',
-      next: ['build', 'background', 'after', 'cost', 'email'],
+      answer: 'Hi! Ask a quick question about Kovalenko Creatives. What would you like to know?',
+      next: ['build', 'how', 'after', 'background', 'email'],
     },
     build: {
       label: 'What do you build?',
-      answer: 'Custom websites and apps for businesses, a limited number each season, each with a clear scope agreed up front, handed over tested and documented. You can flip through some recent work in the Work section.',
-      next: ['after', 'background', 'cost', 'email'],
+      answer: 'Websites and apps for businesses: fast, mobile-first sites that are easy to update, and apps your customers or team use every day. We take on a limited number of projects at a time, each with a clear scope agreed up front.',
+      next: ['how', 'cost', 'email'],
+    },
+    how: {
+      label: 'How does a project work?',
+      answer: 'You send an email with what you need, who it’s for and your timeline. You get a reply with how we’d approach it and what’s included. Then it’s built, tested on every device, and handed over with documentation.',
+      next: ['after', 'cost', 'email'],
     },
     after: {
       label: 'What happens after launch?',
-      answer: 'The site or app is yours. If you want ongoing care, an optional monthly maintenance retainer covers hosting, updates and small fixes. New pages or features can be requested any time and are quoted one by one, with no ongoing commitment.',
+      answer: 'It’s yours. An optional monthly maintenance retainer covers hosting, security updates and small fixes. New pages or features can be requested any time and are quoted one by one, with no ongoing commitment.',
       next: ['cost', 'email'],
     },
     background: {
       label: 'What’s your background?',
-      answer: 'Six years inside a lead-generation and performance-marketing company, four years as a data analyst and then two as a software developer: more than 30 buyer integrations that matched leads to buyers, a calling program grown from $0 to $100K in weekly profit, and a direct mail campaign that generated over $1M in one year. Plus a business degree from USC Marshall.',
+      answer: 'Six years of data analysis and software development: four as a data analyst, then two as a software developer, plus a business degree from USC Marshall. Builds also use the most capable AI models, including Claude, with every change reviewed by hand.',
       next: ['build', 'apps', 'email'],
     },
     apps: {
-      label: 'Can I use the apps on this site?',
-      answer: 'Not yet. They’re custom builds in private use and aren’t available to the public. If you’d like something similar for your business, a custom build is the way to go.',
+      label: 'Can I use the apps shown here?',
+      answer: 'Not yet. They’re custom builds in private use. If you’d like something similar for your business, a custom build is the way to go.',
       next: ['build', 'email'],
     },
     cost: {
       label: 'How much does it cost?',
       answer: 'It depends on the scope: what you need built and how many pages or features it has. Send an email with what you have in mind and you’ll get a clear quote.',
-      next: ['email', 'build'],
+      next: ['email', 'how'],
     },
     email: {
       label: 'I’d like to get in touch',
@@ -56,7 +61,7 @@
   const choices = el('div', { class: 'chat-choices' });
   const close = el('button', { type: 'button', class: 'chat-close', 'aria-label': 'Close questions', text: '×' });
   const panel = el('div', { class: 'chat-panel', id: 'chat-panel', role: 'dialog', 'aria-label': 'Questions' }, [
-    el('div', { class: 'chat-head' }, [el('b', { text: 'Questions?' }), close]),
+    el('div', { class: 'chat-head' }, [el('b', { text: 'questions.chat' }), close]),
     log,
     choices,
   ]);
@@ -74,7 +79,7 @@
     choices.replaceChildren();
     if (topic.cta) {
       const subject = encodeURIComponent('Project enquiry');
-      choices.append(el('a', { class: 'button chat-cta', href: `mailto:${EMAIL}?subject=${subject}`, text: 'Write an email' }));
+      choices.append(el('a', { class: 'btn chat-cta', href: `mailto:${EMAIL}?subject=${subject}`, text: 'Write an email' }));
       const copy = el('button', { type: 'button', class: 'copy', text: 'Copy address' });
       copy.addEventListener('click', () => {
         navigator.clipboard.writeText(EMAIL)

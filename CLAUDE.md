@@ -1,6 +1,6 @@
 # Instructions for AI agents updating this site
 
-This is the public website for Kovalenko Creatives, a one-person studio that builds custom websites and apps for businesses. The owner worked six years in the lead-generation industry (four as a data analyst, two as a software developer). Read `README.md` for how the files fit together. These rules apply to every automated change.
+This is the public website for Kovalenko Creatives, a software studio that builds websites, apps and integrations for businesses, in the "Studio" design. The owner worked six years in the lead-generation industry (four as a data analyst, two as a software developer). Read `README.md` for how the files fit together. These rules apply to every automated change.
 
 ## What you may change
 
@@ -10,7 +10,7 @@ This is the public website for Kovalenko Creatives, a one-person studio that bui
 - **Assistant answers:** `TOPICS` in `chat.js`.
 - **Page copy:** `index.html`, when the owner asks for a wording change.
 
-Keep edits as small as the request needs. Do not restructure files, rename sections, change the design tokens in `styles.css`, or add libraries unless the owner asks.
+Keep edits as small as the request needs. Do not restructure files, rename sections, change the Studio design tokens in `styles.css`, or add libraries unless the owner asks. The hero panel shows a sample project scope and must stay labelled as a sample.
 
 ## Never publish
 
