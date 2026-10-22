@@ -12,7 +12,8 @@
   // Screenshots that scroll natively, so swiping follows the finger with momentum and snaps
   // to each picture. Arrows and dots scroll it too.
   function shots(p, top) {
-    const track = el('div', { class: 'slides' }, p.slides.map((src, i) =>
+    // Focusable and labelled, so keyboard users can scroll the screenshots with the arrow keys.
+    const track = el('div', { class: 'slides', tabindex: '0', role: 'group', 'aria-label': `${p.title} screenshots` }, p.slides.map((src, i) =>
       el('div', { class: 'slide', 'aria-roledescription': 'slide', 'aria-label': `${i + 1} of ${p.slides.length}` }, [
         el('img', { src, alt: `${p.title} screen ${i + 1}`, loading: 'lazy' }),
       ])));

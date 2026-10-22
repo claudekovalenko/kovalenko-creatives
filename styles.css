@@ -1,4 +1,11 @@
 /* Studio: clean light grid, monospace for labels and data, one green accent, dark code panels as the signature. */
+
+/* Fonts are self-hosted (SIL Open Font License, see fonts/LICENSE-*.txt), so no request goes to a third party. */
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/inter-tight-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/inter-tight-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Inter Tight'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/inter-tight-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); }
 :root {
   --bg: #FAFAF9; --card: #FFFFFF; --fg: #0E1116; --muted: #5F6670; --line: #E3E4E6;
   --accent: #0E7C5A; --accent-soft: #E3F2EC;
@@ -111,6 +118,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .proj-body .mono { font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
 .proj-body h3 { font-size: 19px; letter-spacing: -0.02em; }
 .proj-body p { margin: 0; color: var(--muted); font-size: 14px; }
+.noscript { color: var(--muted); font: 400 13px var(--mono); }
+.slides:focus-visible { outline: 2px solid var(--code-hi); outline-offset: -4px; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 10px; }
 .tags span { font: 400 11px var(--mono); padding: 3px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
 

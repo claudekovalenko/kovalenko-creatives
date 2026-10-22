@@ -42,7 +42,7 @@ jobs:
         run: |
           mkdir _site
           cp index.html styles.css app.js projects.js chat.js _site/
-          cp -r images _site/
+          cp -r images fonts _site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
       - id: deployment

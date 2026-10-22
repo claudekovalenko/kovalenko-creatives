@@ -3,15 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- Security: only this site's own files and Google Fonts may load; nothing can be framed, posted or injected. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <!-- Security and privacy: only this site's own files may load (fonts are self-hosted), so no visitor data goes to any third party; nothing can be framed, posted or injected. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Kovalenko Creatives</title>
   <meta name="description" content="Kovalenko Creatives builds websites, apps and integrations backed by six years of data analysis and software development.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E1116'/%3E%3Crect x='11' y='11' width='10' height='10' rx='2' fill='%234FD1A1'/%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -45,7 +42,7 @@
             <div class="panel-bar"><i></i><i></i><i></i><span>project.scope</span></div>
 <pre><span class="c"># sample: website for a local bakery</span>
 <span class="k">pages</span>      home · menu · order · contact
-<span class="k">works on</span>   phone · tablet · desktop
+<span class="k">layout</span>     mobile-first
 <span class="k">forms</span>      orders → owner's inbox
 <span class="k">handover</span>   docs · security defaults
 <div class="checks"><div><span>scope agreed</span><b style="--w:100%"></b><span>✓</span></div><div><span>design</span><b style="--w:100%"></b><span>✓</span></div><div><span>build</span><b style="--w:100%"></b><span>✓</span></div><div><span>testing</span><b style="--w:72%"></b><span>72%</span></div></div>
@@ -56,7 +53,7 @@
         <div class="stats">
           <div><b id="total-projects">68</b><span>projects built</span></div>
           <div><b>6 yrs</b><span>data + development</span></div>
-          <div><b>Any</b><span>phone, tablet or desktop</span></div>
+          <div><b>Mobile-first</b><span>design approach</span></div>
           <div><b>Guide</b><span>included with every build</span></div>
         </div>
       </div>
@@ -70,7 +67,7 @@
         </div>
         <div class="services">
           <article class="svc"><span class="mono">web</span><h3>Websites</h3><p>Fast, mobile-first and easy to update.</p><ul><li>Clear pages about what you do</li><li>A next step on every page</li><li>Forms that reach you right away</li></ul></article>
-          <article class="svc"><span class="mono">apps</span><h3>Apps</h3><p>Tools your customers or team use every day.</p><ul><li>Install on any phone</li><li>Accounts and sync as needed</li><li>Offline where it helps</li></ul></article>
+          <article class="svc"><span class="mono">apps</span><h3>Apps</h3><p>Tools your customers or team use every day.</p><ul><li>Add to the home screen</li><li>Accounts and sync as needed</li><li>Offline where it helps</li></ul></article>
           <article class="svc"><span class="mono">monthly</span><h3>Maintenance</h3><p>Optional retainer to keep things running.</p><ul><li>Hosting and uptime checks</li><li>Security updates</li><li>Small fixes</li></ul></article>
           <article class="svc"><span class="mono">on request</span><h3>Upgrades</h3><p>New pages, features or integrations any time.</p><ul><li>Each request quoted on its own</li><li>No ongoing commitment</li></ul></article>
         </div>
@@ -84,6 +81,7 @@
           <p>Custom builds in private use. Most aren't public yet, and more are in progress. Swipe a card to see more screens.</p>
         </div>
         <div class="work" id="work-grid"></div>
+        <noscript><p class="noscript">N&amp;N Reading Plan (church app) · Seminary Homework (planning) · Greek Vocab (learning) · Time Cup (time planning) · Next Steps (creator platform, in development)</p></noscript>
       </div>
     </section>
 
@@ -96,7 +94,7 @@
         <div class="process">
           <div class="step"><h3>Your email</h3><p>Tell us what you need built, who it's for and your timeline.</p></div>
           <div class="step"><h3>Approach and scope</h3><p>You get a reply with how we'd approach it and what's included.</p></div>
-          <div class="step"><h3>Build</h3><p>Built to work on any phone, then tested before launch.</p></div>
+          <div class="step"><h3>Build</h3><p>Your site or app is built and checked with you before launch.</p></div>
           <div class="step"><h3>Handover</h3><p>It goes live, and you get a simple guide to running and updating it. Security basics are set up for you.</p></div>
         </div>
       </div>
@@ -119,7 +117,6 @@
         </dl>
       </div>
     </section>
-  </main>
 
   <section class="contact" id="contact">
     <div class="wrap contact-grid">
@@ -138,6 +135,7 @@
       </div>
     </div>
   </section>
+  </main>
   <footer class="site-footer"><div class="wrap"><span>© <span id="year">2026</span> Kovalenko Creatives</span><span>A software studio · data analysis + development</span></div></footer>
 
   <script src="projects.js"></script>

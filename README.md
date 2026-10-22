@@ -14,6 +14,7 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `app.js` | Renders the project cards and their screenshot carousels, the project total and the copy-email button |
 | `chat.js` | The "Questions?" assistant: answers common questions from a fixed list and leads visitors to email. Runs entirely in the browser |
 | `images/` | Screenshots used in the project carousels |
+| `fonts/` | The two typefaces (Inter Tight, JetBrains Mono), self-hosted, with their SIL Open Font License files |
 | `tools/check.mjs` | Site check: data loads, screenshots and links exist, no private details. Run `node tools/check.mjs` |
 | `CLAUDE.md` | Rules for AI agents that update the site |
 | `.github/workflows/pages.yml` | Runs the site check on every change and publishes to GitHub Pages from `main` |
@@ -52,6 +53,10 @@ Opening `index.html` straight from disk also works.
 
 The site is set up so AI agents can make routine updates safely. `CLAUDE.md` tells them what they may change and what must never be published. `tools/check.mjs` enforces the mechanical parts: it fails on broken project data, missing screenshots, broken links, private claude.ai links, unknown email addresses and phone numbers. The publish workflow runs the check on every pull request and before every deploy, so a failing change never goes live.
 
+## Accessibility
+
+The page is checked with axe (the standard automated accessibility checker) in light mode, dark mode and on a phone, with no issues. Every image has a text description, all content sits in page landmarks, the screenshot carousels can be reached and scrolled with the keyboard, focus is always visible, the layout holds at 200% zoom, and animation is off for visitors who ask their device to reduce motion. Without JavaScript the page still shows all its text, and a short list replaces the project cards.
+
 ## Privacy checklist for new content
 
 This site is public. Before adding a project or screenshot, check that it shows none of the following:
@@ -64,10 +69,11 @@ This site is public. Before adding a project or screenshot, check that it shows 
 
 ## Security
 
-- **Content Security Policy.** `index.html` only allows the site's own scripts, styles and images, plus Google Fonts. Inline and third-party scripts are blocked, the page cannot be used to post forms anywhere, and plugins are disabled.
+- **Content Security Policy.** `index.html` only allows the site's own scripts, styles, images and fonts. Inline and third-party scripts are blocked, the page cannot be used to post forms anywhere, and plugins are disabled.
+- **No third-party requests.** Fonts are self-hosted, so loading the page sends nothing to Google or anyone else. That keeps the site clear of privacy rules on sharing visitors' IP addresses, and means no cookie banner or privacy policy is needed for the site itself.
 - **No secrets.** The site has no API keys, tokens or backend. Nothing here needs to be kept secret, and nothing secret should ever be added.
 - **No visitor data.** There are no forms, cookies, analytics or trackers. The contact section and the assistant both lead to an email address; the assistant runs in the browser and sends nothing.
-- **Trusted content only.** `app.js` renders slide HTML from `projects.js` as markup. That file is written by the site owner only; never paste content from visitors or other sites into it.
+- **Text only.** `app.js` and `chat.js` build every element with `textContent`, never as raw HTML, so project data and assistant answers cannot inject markup.
 - **External links** open in a new tab with `rel="noopener"`.
 
 ## Deploying
