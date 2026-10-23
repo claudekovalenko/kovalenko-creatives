@@ -28,6 +28,9 @@ const server = createServer(async (req, res) => {
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const PAGE = `http://127.0.0.1:${server.address().port}/index.html`;
 
+// The number of project cards the page should show, read from projects.js.
+const PROJECT_COUNT = (await readFile(join(ROOT, 'projects.js'), 'utf8')).match(/^\s{2}\{$/gm).length;
+
 const failures = [];
 const passes = [];
 const check = (ok, label) => (ok ? passes : failures).push(label);
@@ -72,7 +75,7 @@ for (const [name, opts] of SIZES) {
   check(fonts.some(f => f.includes('Inter Tight')) && fonts.some(f => f.includes('JetBrains Mono')), `${name}: self-hosted fonts load`);
 
   // Project cards and carousel
-  check(await page.locator('.proj').count() === 5, `${name}: all 5 project cards show`);
+  check(await page.locator('.proj').count() === PROJECT_COUNT, `${name}: all ${PROJECT_COUNT} project cards show`);
   const top = page.locator('.proj-top.has-shots').first();
   await top.scrollIntoViewIfNeeded();
   await top.locator('.dots button').nth(1).click();

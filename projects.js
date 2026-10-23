@@ -12,6 +12,14 @@ const BODY_OF_WORK = [
 
 const PROJECTS = [
   {
+    title: 'Koine Quest',
+    comment: '// 3d learning game',
+    status: 'In development',
+    description: 'A 3D adventure game that teaches Biblical Greek from the alphabet up. Play an apprentice wizard across nine worlds: teachers explain each rule, then trials, mini-games and spaced-repetition battles put it to work, all the way to reading the New Testament in Greek.',
+    tags: ['Game', '3D', 'Offline'],
+    slides: ['images/koinequest-1.webp', 'images/koinequest-2.webp', 'images/koinequest-3.webp', 'images/koinequest-4.webp'],
+  },
+  {
     title: 'N&N Reading Plan',
     comment: '// church app',
     status: 'Custom · private',
