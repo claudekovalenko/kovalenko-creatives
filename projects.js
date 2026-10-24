@@ -20,6 +20,14 @@ const PROJECTS = [
     slides: ['images/koinequest-1.webp', 'images/koinequest-2.webp', 'images/koinequest-3.webp', 'images/koinequest-4.webp'],
   },
   {
+    title: 'Greek Quest',
+    comment: '// gamified learning',
+    status: 'Custom · private',
+    description: 'A seminary Greek course turned into a game. Eight arcade games, a journey of unlockable stops with boss fights, a card collection that levels from bronze to gold, daily quests and streaks, plus a 3D world to walk through each lesson.',
+    tags: ['Game', '3D', 'Learning'],
+    slides: ['images/greekquest-1.webp', 'images/greekquest-2.webp', 'images/greekquest-3.webp'],
+  },
+  {
     title: 'N&N Reading Plan',
     comment: '// church app',
     status: 'Custom · private',
