@@ -1,8 +1,7 @@
-name: Check and deploy
+name: Check
 
 on:
   push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -27,29 +26,3 @@ jobs:
       - name: Browser tests
         run: node tools/browser-test.mjs
 
-  deploy:
-    needs: check
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: true
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      # Publish only the site files, not the repo's docs, tools or workflow.
-      - name: Collect site files
-        run: |
-          mkdir _site
-          cp index.html styles.css app.js projects.js chat.js _site/
-          cp -r images fonts _site/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-      - id: deployment
-        uses: actions/deploy-pages@v4

@@ -26,6 +26,6 @@ Keep edits as small as the request needs. Do not restructure files, rename secti
 
 ## Before you finish
 
-1. Run `npm test` (site check plus browser tests) and fix anything it reports. The publish workflow runs the same tests and refuses to deploy if they fail.
+1. Run `npm test` (site check plus browser tests) and fix anything it reports. GitHub runs the same tests on every push, but Cloudflare publishes the production branch as soon as it changes, so never push there with failing tests.
 2. Look at the change in a browser at desktop and phone widths.
 3. Describe what changed in the commit message in plain words.

@@ -19,7 +19,8 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `tools/browser-test.mjs` | Browser tests: loads the page at five screen sizes and checks layout, accessibility, keyboard use, screenshots, assistant, security and search basics. Run `npm test` |
 | `package.json` | Test tools only (Playwright and axe). The site itself needs nothing installed |
 | `CLAUDE.md` | Rules for AI agents that update the site |
-| `.github/workflows/pages.yml` | Runs the site check on every change and publishes to GitHub Pages from `main` |
+| `.github/workflows/pages.yml` | Runs the site check and browser tests on every push and pull request |
+| `tools/build.sh` | Collects only the website files into `_site/` for Cloudflare Pages to publish |
 
 ## Previewing locally
 
@@ -79,11 +80,11 @@ On a machine that already has Chromium, point the tests at it with `CHROMIUM_PAT
 - The page's security policy blocks injected scripts
 - Search basics: title, description length, language, one main headline, only the studio email
 
-The publish workflow runs both on every pull request and before every deploy.
+The check workflow runs both on every push and pull request.
 
 ## Automated updates
 
-The site is set up so AI agents can make routine updates safely. `CLAUDE.md` tells them what they may change and what must never be published. `npm test` enforces the mechanical parts (see Testing above). The publish workflow runs it on every pull request and before every deploy, so a failing change never goes live.
+The site is set up so AI agents can make routine updates safely. `CLAUDE.md` tells them what they may change and what must never be published. `npm test` enforces the mechanical parts (see Testing above). The check workflow runs it on every push and pull request. Cloudflare publishes whatever reaches the production branch, so run `npm test` before pushing there.
 
 ## Accessibility
 
@@ -110,10 +111,15 @@ This site is public. Before adding a project or screenshot, check that it shows 
 
 ## Deploying
 
-The included workflow runs the site check on every pull request, and on every push to `main` it runs the check and then publishes the site to GitHub Pages.
+The site is published by Cloudflare Pages, connected to this (private) repository. Cloudflare publishes only the website files, never the repository's history, docs or tests. Every push to the production branch goes live automatically.
 
-1. Merge the work into `main`.
-2. In the repository, go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions**. This only has to be done once.
-3. The site is then live at `https://claudekovalenko.github.io/kovalenko-creatives/`.
+Cloudflare Pages settings:
 
-To use a custom domain, add it under **Settings → Pages → Custom domain** and follow GitHub's DNS instructions.
+- **Production branch:** the branch the site is published from
+- **Build command:** `sh tools/build.sh` (copies only the website files into `_site/`)
+- **Build output directory:** `_site`
+- **Preview deployments:** off, so unfinished branches never get a public link
+
+The workflow in `.github/workflows/pages.yml` runs the site check and browser tests on every push and pull request. Run `npm test` before pushing to the production branch, since Cloudflare publishes whatever is pushed there.
+
+To use a custom domain, add it in the Cloudflare Pages project under **Custom domains**.
