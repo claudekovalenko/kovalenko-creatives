@@ -71,6 +71,7 @@ On a machine that already has Chromium, point the tests at it with `CHROMIUM_PAT
 - No private claude.ai links, no email except the studio's, no phone numbers
 - No risky claims in the page or assistant: guarantees, funnel or lead-gen service offers, promises about every device, promised lead numbers or turnaround times, "best" claims, or saying private apps are available
 - The hero panel stays labelled as a sample
+- The live build (`tools/build.sh`) publishes only website files, with developer comments stripped and no links to anything outside the site, so search engines and AI crawlers read only the page itself
 
 **Browser tests** (`tools/browser-test.mjs`), at small phone, phone, tablet, desktop and dark mode:
 - No sideways scrolling; all screenshots and both fonts load; no missing files or page errors

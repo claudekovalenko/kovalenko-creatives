@@ -1,7 +1,8 @@
 // Site check: run before every publish (`node tools/check.mjs`). Exits non-zero on any problem.
 // It catches the mistakes an automated update is most likely to make: broken data, missing
 // screenshots, broken page links, and private details that must never reach the public site.
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import vm from 'node:vm';
 
 const problems = [];
@@ -74,6 +75,20 @@ for (const [file, text] of visibleCopy) {
   }
 }
 if (!/sample/i.test(html.slice(html.indexOf('class="panel"'), html.indexOf('</figure>')))) fail('The hero panel must stay labelled as a sample');
+
+// 5. What goes online: build the live site and check that crawlers can reach only the website itself.
+execSync('sh tools/build.sh');
+const listFiles = dir => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? listFiles(`${dir}/${e.name}`) : [`${dir}/${e.name}`.slice('_site/'.length)]);
+const PUBLIC_FILE = /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt))$/;
+for (const f of listFiles('_site')) {
+  if (!PUBLIC_FILE.test(f)) fail(`The live build would publish ${f}, which is not a website file`);
+  if (!/\.(html|js|css)$/.test(f)) continue;
+  const text = readFileSync(`_site/${f}`, 'utf8');
+  if (/\.(html|js)$/.test(f) && /^\s*\/\/|<!--/m.test(text)) fail(`The live build of ${f} still contains developer comments`);
+  for (const [url] of text.matchAll(/https?:\/\/[^\s"'`)<]+/g)) {
+    if (!url.startsWith('http://www.w3.org/')) fail(`The live build of ${f} links to ${url}; the site links only to its own pages and email`);
+  }
+}
 
 if (problems.length) {
   console.error(`Site check failed (${problems.length}):\n- ` + problems.join('\n- '));
