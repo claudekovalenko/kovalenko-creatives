@@ -20,6 +20,8 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `package.json` | Test tools only (Playwright and axe). The site itself needs nothing installed |
 | `CLAUDE.md` | Rules for AI agents that update the site |
 | `.github/workflows/pages.yml` | Runs the site check and browser tests on every push and pull request |
+| `tools/preview.py` | Builds the one-file review copy published to claude.ai for invited reviewers: `python3 tools/preview.py OUT.html` |
+| `review/` | The review copy's feedback section (`feedback.js`, `feedback.css`), where invited reviewers comment on what each part needs. Never part of the live site |
 | `tools/build.sh` | Collects only the website files into `_site/` for Cloudflare Pages to publish |
 
 ## Previewing locally
@@ -108,6 +110,10 @@ This site is public. Before adding a project or screenshot, check that it shows 
 - **No visitor data.** There are no forms, cookies, analytics or trackers. The contact section and the assistant both lead to an email address; the assistant runs in the browser and sends nothing.
 - **Text only.** `app.js` and `chat.js` build every element with `textContent`, never as raw HTML, so project data and assistant answers cannot inject markup.
 - **External links** open in a new tab with `rel="noopener"`.
+
+## Review copy and feedback
+
+Before launch, a one-file review copy is published to claude.ai (`tools/preview.py`). It adds a `/feedback` section where invited reviewers, signed in with their Claude account, open claude.ai's comment box on any section of the page. Comments are stored by claude.ai, not by the site. The live site never includes this section: `tools/build.sh` copies only the website files.
 
 ## Deploying
 

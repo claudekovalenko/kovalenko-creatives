@@ -1,0 +1,10 @@
+/* Review copy only: the feedback section shown on the claude.ai preview. Never published to the live site. */
+.feedback-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 0 0 32px; padding: 0; list-style: none; counter-reset: fb; }
+.feedback-steps li { border: 1px solid var(--line); border-radius: 8px; padding: 20px; background: var(--bg); }
+.feedback-steps li::before { counter-increment: fb; content: "0" counter(fb); display: block; font: 400 12px var(--mono); color: var(--accent); margin-bottom: 8px; }
+.feedback-steps b { display: block; font: 600 17px var(--hd); margin-bottom: 4px; }
+.feedback-steps span { color: var(--muted); }
+.feedback-targets { display: flex; flex-wrap: wrap; gap: 10px; }
+.feedback-targets .btn { padding: 10px 16px; font-size: 14px; }
+.feedback-note { margin: 16px 0 0; color: var(--muted); font-size: 14px; max-width: 60ch; }
+.feedback-targets .btn[hidden] { display: none; }
