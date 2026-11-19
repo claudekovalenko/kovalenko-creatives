@@ -2,7 +2,7 @@
 
 The website for Kovalenko Creatives, a software studio that builds websites, apps and integrations for businesses. It uses the "Studio" design: a light grid, monospace labels (`/services`, `/work`, `/process`, `/company`, `/contact`), one green accent and dark code-style panels. It shows what the studio builds (with optional maintenance and upgrades), selected work with real app screenshots, how a project runs, the company background and toolkit, and how to get in touch.
 
-It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
+It is a plain static site. There is no build step, no framework, no server and no third-party scripts. The one exception is the separate **client portal** at `/portal/`, which signs people in through Supabase (see Client portal below); the public page itself never contacts it.
 
 ## Files
 
@@ -23,6 +23,11 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `tools/preview.py` | Builds the one-file review copy published to claude.ai for invited reviewers: `python3 tools/preview.py OUT.html` |
 | `review/` | The review copy's feedback section (`feedback.js`, `feedback.css`), where invited reviewers comment on what each part needs. Never part of the live site |
 | `tools/build.sh` | Collects only the website files into `_site/` for Cloudflare Pages to publish |
+| `portal/` | The client portal page: `index.html`, `portal.js` (all the logic), `portal.css`, and `config.js` (Supabase address and public key) |
+| `supabase/portal.sql` | The portal's database: tables, and the rules for who can see and change what |
+| `bots/` | The portal's bots, run by GitHub Actions: `agent.mjs` (makes accepted changes and publishes approved ones) and `digest.mjs` (weekly summaries) |
+| `.github/workflows/portal-bots.yml` | Runs the bots. Switched off until set up (see Client portal) |
+| `tools/portal-test.mjs`, `tools/portal-bots-test.mjs`, `tools/portal-db-test.sh` | Tests for the portal page, the bots and the database rules |
 
 ## Previewing locally
 
@@ -60,7 +65,8 @@ Run everything with:
 
 ```sh
 npm install        # once, installs the test tools
-npm test           # site check, then browser tests
+npm test           # site check, browser tests, portal page tests, bot tests
+npm run test:db    # portal database rules, against a throwaway local Postgres (needs Postgres installed)
 ```
 
 On a machine that already has Chromium, point the tests at it with `CHROMIUM_PATH=/path/to/chromium npm test`; otherwise run `npx playwright install chromium` once.
@@ -83,7 +89,7 @@ On a machine that already has Chromium, point the tests at it with `CHROMIUM_PAT
 - The page's security policy blocks injected scripts
 - Search basics: title, description length, language, one main headline, only the studio email
 
-The check workflow runs both on every push and pull request.
+The check workflow runs these on every push and pull request, plus the portal tests and the database rules test.
 
 ## Automated updates
 
@@ -111,6 +117,43 @@ This site is public. Before adding a project or screenshot, check that it shows 
 - **No visitor data.** There are no forms, cookies, analytics or trackers. The contact section and the assistant both lead to an email address; the assistant runs in the browser and sends nothing.
 - **Text only.** `app.js` and `chat.js` build every element with `textContent`, never as raw HTML, so project data and assistant answers cannot inject markup.
 - **External links** open in a new tab with `rel="noopener"`.
+
+## Client portal
+
+A private area at `/portal/` where clients and collaborators sign in with Google, see the projects you add them to, and post requests and comments. You approve people, set each request's status, and approve or reject the changes the agent prepares. Nothing an agent makes reaches a live site until you press **Approve and publish**.
+
+**How it fits together**
+
+- **Sign-in:** Google, through Supabase Auth. Everyone starts as *pending* and sees nothing until you approve them on the People page and tick the projects they may see.
+- **Posts:** approved members' requests and comments show immediately to everyone on that project. You can hide any of them.
+- **Request status:** New → Accepted or Declined → In progress → Waiting for review → Live.
+- **Permissions live in the database** (`supabase/portal.sql`, Row Level Security). The page uses only the public key, so even a modified page cannot see another project, read people's emails, change a status or approve a change.
+- **Agent** (`bots/agent.mjs`, every 30 minutes once switched on): takes requests you set to *Accepted* in projects that have a repository, has Claude Code make the change on a new branch, and opens a pull request. The portal then shows the summary, a preview link and **Approve and publish** / **Reject**. Approving merges the pull request once the repository's own checks pass, and Cloudflare publishes it as usual. Rejecting closes the pull request and returns the request to *In progress*.
+- **Weekly summary** (`bots/digest.mjs`, Mondays): one short summary per active project on the Updates page, written by Claude, or a plain list if no Claude key is set. It is sent no names or emails.
+
+**Agent safety.** Only requests you accepted reach the agent. Claude Code may only read and edit files (no shell, no web), runs in a throwaway container that never sees the GitHub or database keys, is told to treat request text as data and follow the repository's `CLAUDE.md`, and any change to `.github/` is refused. Bot logs never include request text, names or keys, because Actions logs on a public repository are public. On a **public** repository, the pull request (titled "Portal request #N", with the agent's summary) is public too.
+
+### Setting it up (once)
+
+1. **Supabase.** Create a Supabase project for the portal (keep it separate from other apps' data). In the SQL editor, run `supabase/portal.sql`.
+2. **Google sign-in.** In Google Cloud, create an OAuth client (type: Web application) with the authorized redirect URI `https://YOUR-PROJECT.supabase.co/auth/v1/callback`. In Supabase, under Authentication → Sign In / Providers, turn on Google and paste the client ID and secret. Under Authentication → URL Configuration, add the portal address (for example `https://your-site/portal/index.html` and `https://your-site/portal/`) to the redirect URLs.
+3. **Connect the page.** In `portal/config.js`, fill in the project URL and the **publishable** (anon) key from Project Settings → API. Never the service-role or secret key: the site check refuses it.
+4. **Make yourself the owner.** Sign in on `/portal/` once, then run in the SQL editor, with your Google email:
+   `update public.profiles set access = 'approved', is_owner = true where email = 'YOUR-GOOGLE-EMAIL';`
+5. **Projects and people.** Add projects on the portal's projects page. When people sign in, approve them on the People page and tick their projects.
+
+### Switching the bots on (when you are ready)
+
+1. In this repository's Settings → Secrets and variables → Actions, add:
+   - secret `PORTAL_SUPABASE_SERVICE_ROLE_KEY`: the Supabase service-role key (Project Settings → API)
+   - secret `PORTAL_GITHUB_TOKEN`: a fine-grained GitHub token for only the project repositories, with Contents (read and write), Pull requests (read and write) and Checks (read)
+   - secret `ANTHROPIC_API_KEY`: for Claude (the agent needs it; the summary falls back to a plain list without it)
+   - variable `PORTAL_SUPABASE_URL`: the Supabase project URL
+   - variable `PORTAL_BOTS` = `on`
+2. For each project the agent should work on, open it in the portal → Project settings, and set the GitHub repository, its live branch, and its preview address (for Cloudflare Pages: `{branch}.PROJECT.pages.dev`).
+3. Try it by hand first: Actions → Portal bots → Run workflow. Then uncomment the `schedule` lines in `.github/workflows/portal-bots.yml`.
+
+If a project's repository requires pull-request reviews before merging, the agent's merge is refused; the portal then shows the change as failed, and you merge on GitHub instead.
 
 ## Review copy and feedback
 

@@ -1,0 +1,60 @@
+/* Client portal. Uses the Studio tokens and fonts from ../styles.css; only portal pieces are defined here. */
+.portal { padding-block: 32px 80px; display: grid; gap: 16px; align-content: start; min-height: 70vh; }
+.portal:focus { outline: none; }
+.portal h1 { font-size: clamp(28px, 5vw, 40px); }
+.portal h2 { font-size: 20px; }
+.portal .section-title { margin-top: 16px; }
+.portal-muted { color: var(--muted); margin: 0; }
+.portal .small { font-size: 13px; }
+.portal .eyebrow { color: var(--accent); font-size: 12px; margin: 0; }
+.portal-head { display: grid; gap: 6px; }
+.crumbs { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+.crumbs a { color: var(--muted); }
+.prewrap { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+
+.portal-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 10px; min-width: 0; }
+.portal-card.narrow { max-width: 520px; }
+.portal-card form { display: grid; gap: 10px; margin-top: 12px; }
+.portal-card summary { cursor: pointer; font-weight: 600; }
+
+.portal label { font: 500 13px var(--mono); color: var(--muted); }
+.portal label.check { display: flex; align-items: center; gap: 8px; font: 400 15px var(--hd); color: var(--fg); }
+.portal input:not([type="checkbox"]), .portal textarea, .portal select {
+  width: 100%; font: 400 16px var(--hd); color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px;
+}
+.portal select { width: auto; max-width: 100%; }
+.portal textarea { resize: vertical; }
+.portal .btn { justify-self: start; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.site-header nav .link-btn { font: 400 12px var(--mono); }
+/* The site hides its section links on phones; the portal's few links stay visible. */
+#portal-nav { gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+#portal-nav a:not(.cta) { display: inline; }
+.link-btn:hover { color: var(--fg); }
+
+.portal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.portal-list > li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+.row-link { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; text-decoration: none; }
+.row-link strong { overflow-wrap: anywhere; }
+.row-link:hover strong { text-decoration: underline; }
+.comments .is-hidden { opacity: .6; }
+.person > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.person fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.person legend { font-family: var(--mono); color: var(--muted); padding: 0; margin-bottom: 4px; }
+
+.title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.title-row h1 { overflow-wrap: anywhere; }
+.owner-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.owner-bar p { flex-basis: 100%; }
+.links { display: flex; flex-wrap: wrap; gap: 16px; margin: 0; }
+.links a { color: var(--accent); }
+
+.badge { display: inline-block; font: 500 11px var(--mono); padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--fg); border: 1px solid var(--line); white-space: nowrap; }
+.badge.s-new, .badge.a-pending, .badge.r-ready { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.badge.s-live, .badge.r-merged, .badge.a-approved { background: var(--accent-soft); color: var(--fg); border-color: var(--accent); }
+.badge.s-declined, .badge.a-blocked, .badge.r-rejected, .badge.r-failed { background: transparent; color: var(--muted); }
+
+.portal-error { margin: 0; padding: 10px 12px; border-radius: 6px; border: 1px solid #B42318; color: #B42318; background: transparent; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .portal-error { border-color: #F97066; color: #F97066; } }
+:root[data-theme="dark"] .portal-error { border-color: #F97066; color: #F97066; }

@@ -25,4 +25,10 @@ jobs:
         run: npm ci && npx playwright install --with-deps chromium
       - name: Browser tests
         run: node tools/browser-test.mjs
+      # Client portal: the page against a stand-in Supabase, the bots against stand-in services,
+      # and the database rules against a throwaway Postgres (preinstalled on GitHub's runners).
+      - name: Portal tests
+        run: node tools/portal-test.mjs && node tools/portal-bots-test.mjs
+      - name: Portal database rules
+        run: sh tools/portal-db-test.sh
 

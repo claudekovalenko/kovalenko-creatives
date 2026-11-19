@@ -43,7 +43,7 @@ for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) {
 
 // 3. Privacy: nothing private may be published.
 const STUDIO_EMAIL = 'kovalenkocreatives@gmail.com';
-const published = ['index.html', 'projects.js', 'app.js', 'chat.js'].map(f => [f, readFileSync(f, 'utf8')]);
+const published = ['index.html', 'projects.js', 'app.js', 'chat.js', 'portal/index.html', 'portal/portal.js', 'portal/config.js'].map(f => [f, readFileSync(f, 'utf8')]);
 for (const [file, text] of published) {
   if (/claude\.ai\/(code\/)?artifact\//.test(text)) fail(`${file} links to a private claude.ai artifact`);
   for (const [email] of text.matchAll(/[\w.+-]+@[\w-]+(?:\.[a-z]{2,})+/gi)) {
@@ -79,16 +79,26 @@ if (!/sample/i.test(html.slice(html.indexOf('class="panel"'), html.indexOf('</fi
 // 5. What goes online: build the live site and check that crawlers can reach only the website itself.
 execSync('sh tools/build.sh');
 const listFiles = dir => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? listFiles(`${dir}/${e.name}`) : [`${dir}/${e.name}`.slice('_site/'.length)]);
-const PUBLIC_FILE = /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt))$/;
+const PUBLIC_FILE = /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt)|portal\/(index\.html|portal\.js|portal\.css|config\.js))$/;
 for (const f of listFiles('_site')) {
   if (!PUBLIC_FILE.test(f)) fail(`The live build would publish ${f}, which is not a website file`);
   if (!/\.(html|js|css)$/.test(f)) continue;
   const text = readFileSync(`_site/${f}`, 'utf8');
   if (/\.(html|js)$/.test(f) && /^\s*\/\/|<!--/m.test(text)) fail(`The live build of ${f} still contains developer comments`);
   for (const [url] of text.matchAll(/https?:\/\/[^\s"'`)<]+/g)) {
+    // The portal talks to its Supabase project, and only to that.
+    if (f.startsWith('portal/') && /^https:\/\/(\*|[a-z0-9-]+)\.supabase\.co[;/]?$/.test(url)) continue;
     if (!url.startsWith('http://www.w3.org/')) fail(`The live build of ${f} links to ${url}; the site links only to its own pages and email`);
   }
 }
+
+// 6. The portal may only ever hold the public (publishable) Supabase key, never the service-role key.
+const portalConfig = readFileSync('portal/config.js', 'utf8');
+if (/sb_secret_/.test(portalConfig)) fail('portal/config.js contains a Supabase secret key; only the publishable key belongs there');
+for (const [jwt] of portalConfig.matchAll(/eyJ[\w-]+\.([\w-]+)\.[\w-]+/g)) {
+  try { if (JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url')).role === 'service_role') fail('portal/config.js contains the Supabase service-role key; only the publishable key belongs there'); } catch { /* not a JWT */ }
+}
+if (!/<meta name="robots" content="noindex/.test(readFileSync('portal/index.html', 'utf8'))) fail('portal/index.html must stay out of search engines (robots noindex)');
 
 if (problems.length) {
   console.error(`Site check failed (${problems.length}):\n- ` + problems.join('\n- '));

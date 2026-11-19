@@ -1,0 +1,67 @@
+name: Portal bots
+
+# The client portal's bots. SWITCHED OFF: nothing runs until both of these are done.
+#   1. Repository variable PORTAL_BOTS = on, plus the secrets and variable listed in README.md (Client portal).
+#   2. The schedule lines below uncommented (until then, the bots can only be started by hand from the Actions tab).
+#
+# agent  — every 30 minutes: publishes changes you approved (after their checks pass), closes rejected ones,
+#          and starts on requests you accepted (one per run), opening a pull request for your review.
+# digest — Mondays: saves a summary of each project's week to the portal's Updates page.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bot:
+        description: Which bot to run
+        type: choice
+        options: [agent, digest]
+        default: agent
+  # schedule:
+  #   - cron: '7,37 * * * *'
+  #   - cron: '23 13 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-bots
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    if: vars.PORTAL_BOTS == 'on' && ((github.event_name == 'schedule' && github.event.schedule == '7,37 * * * *') || inputs.bot == 'agent')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the agent
+        run: node bots/agent.mjs
+        env:
+          SUPABASE_URL: ${{ vars.PORTAL_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PORTAL_SUPABASE_SERVICE_ROLE_KEY }}
+          PORTAL_GITHUB_TOKEN: ${{ secrets.PORTAL_GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Claude Code runs in a throwaway container that never sees the other keys.
+          AGENT_SANDBOX: docker
+
+  digest:
+    if: vars.PORTAL_BOTS == 'on' && ((github.event_name == 'schedule' && github.event.schedule == '23 13 * * 1') || inputs.bot == 'digest')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm ci
+        working-directory: bots
+      - name: Write the weekly summaries
+        run: node bots/digest.mjs
+        env:
+          SUPABASE_URL: ${{ vars.PORTAL_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.PORTAL_SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

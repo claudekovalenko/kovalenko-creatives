@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "check": "node tools/check.mjs",
-    "test": "node tools/check.mjs && node tools/browser-test.mjs"
+    "test": "node tools/check.mjs && node tools/browser-test.mjs && node tools/portal-test.mjs && node tools/portal-bots-test.mjs",
+    "test:db": "sh tools/portal-db-test.sh"
   },
   "devDependencies": {
     "axe-core": "4.14.0",

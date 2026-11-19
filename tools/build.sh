@@ -11,3 +11,10 @@ done
 sed -E '/^[[:space:]]*<!--.*-->[[:space:]]*$/d' index.html > _site/index.html
 cp styles.css _site/
 cp -r images fonts _site/
+# The client portal (portal/) is published at /portal/. It is kept out of search engines by its own page.
+mkdir _site/portal
+for f in portal/portal.js portal/config.js; do
+  sed -E '/^[[:space:]]*\/\/.*$/d' "$f" > "_site/$f"
+done
+sed -E '/^[[:space:]]*<!--.*-->[[:space:]]*$/d' portal/index.html > _site/portal/index.html
+cp portal/portal.css _site/portal/

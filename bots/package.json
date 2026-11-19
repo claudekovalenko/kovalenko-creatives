@@ -1,0 +1,9 @@
+{
+  "name": "kovalenko-creatives-portal-bots",
+  "private": true,
+  "description": "Client portal bots (agent and weekly summaries). Run from GitHub Actions; see README.md.",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.10.0"
+  }
+}
