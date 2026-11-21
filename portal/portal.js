@@ -139,14 +139,21 @@
   function signInView() {
     const back = `/portal/${location.hash || '#/'}`;
     const cancelled = location.hash === '#/signin-cancelled';
+    const expired = location.hash === '#/invite-expired';
     setView('Members',
       h('section', { class: 'hero-card' },
         h('span', { class: 'path' }, '/members'),
         h('h1', {}, 'Members portal'),
         h('p', { class: 'lede' }, 'Follow your project’s development plan, see what’s done and what’s next, leave comments and talk with the studio.'),
         cancelled ? h('p', { class: 'notice' }, 'Sign-in was cancelled. You can try again any time.') : null,
-        h('a', { class: 'btn google', href: `/auth/google?return=${encodeURIComponent(back)}` }, googleMark(), 'Continue with Google'),
-        h('p', { class: 'muted small' }, 'New here? Sign in with Google and the studio will approve your access. Only your name and email are used.')));
+        expired ? h('p', { class: 'notice' }, 'That sign-in link has expired or was already used. Ask the studio for a new one.') : null,
+        state.google !== false ? h('a', { class: 'btn google', href: `/auth/google?return=${encodeURIComponent(back)}` }, googleMark(), 'Continue with Google') : null,
+        state.google !== false
+          ? h('p', { class: 'muted small' }, 'New here? Sign in with Google and the studio will approve your access. Only your name and email are used.')
+          : null,
+        h('p', { class: 'muted small' }, state.google !== false
+          ? 'Got a sign-in link from the studio? Open it on this device to sign in.'
+          : 'Sign in with the private link the studio sent you. Open it on this device; each link works once.')));
   }
 
   function googleMark() {
@@ -771,6 +778,7 @@
       waitingSection('People asking for access', overview.pending_users, u => personRequest(u, plans, clients), 'No one is waiting.'),
       waitingSection('Join requests', overview.pending_joins, joinRequest, 'No join requests.'),
       waitingSection('Agent proposals', overview.proposals, proposalCard, 'No proposals waiting. Agents send them here when they think they can help.'),
+      inviteSection(plans, clients),
       agentsSection(agents),
       availabilitySection(settings, notifications),
       peopleSection(users),
@@ -1050,6 +1058,64 @@
     return b;
   }
 
+  // Invite someone with a private sign-in link (works once, for 14 days). No Google needed.
+  function inviteSection(plans, clients) {
+    const name = h('input', { type: 'text', maxlength: '120', placeholder: 'Their name' });
+    const email = h('input', { type: 'text', inputmode: 'email', maxlength: '200', placeholder: 'name@example.com' });
+    const client = h('select', {}, h('option', { value: '' }, 'Choose a client'), clients.map(c => h('option', { value: c.id }, c.name)));
+    const boxes = plans.map(p => h('label', { class: 'check small', 'data-client': p.client_id || '' }, h('input', { type: 'checkbox', value: p.id }), p.title));
+    const filter = () => boxes.forEach(b => {
+      const ok = !!client.value && b.dataset.client === client.value;
+      b.hidden = !ok;
+      if (!ok) b.querySelector('input').checked = false;
+    });
+    client.addEventListener('change', filter);
+    filter();
+    const btn = h('button', { type: 'submit', class: 'btn small' }, 'Create sign-in link');
+    const out = h('div', {});
+    const form = h('form', { class: 'stack', onsubmit: e => {
+      e.preventDefault();
+      act(btn, async () => {
+        const plan_ids = boxes.map(b => b.querySelector('input')).filter(i => i.checked).map(i => i.value);
+        const r = await api('/api/admin/invites', { method: 'POST', body: { name: name.value, email: email.value, client_id: client.value || null, plan_ids } });
+        out.replaceChildren(linkBox(r, name.value));
+        name.value = '';
+        email.value = '';
+      });
+    } },
+      h('div', { class: 'grid-form' }, field('Name', name), field('Email', email), field('Client', client)),
+      h('fieldset', { class: 'plans-pick' }, h('legend', { class: 'small muted' }, 'Projects they can see (choose a client first):'), boxes),
+      h('div', {}, btn));
+    return h('section', { class: 'owner-section' },
+      h('h2', {}, 'Invite someone'),
+      h('p', { class: 'muted small' }, 'They are approved straight away and get a private sign-in link. Send it by text or email. Each link works once, for 14 days; you can make a new one any time from People.'),
+      h('div', { class: 'card' }, form, out));
+  }
+
+  function linkBox(r, who) {
+    const code = h('code', { class: 'token' }, r.link);
+    const copy = h('button', { type: 'button', class: 'btn small ghost' }, 'Copy link');
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(r.link); toast('Link copied'); } catch {
+        const range = document.createRange(); range.selectNodeContents(code);
+        const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        toast('Link selected. Copy it with your keyboard or long-press.');
+      }
+    });
+    return h('div', { class: 'notice' },
+      h('p', {}, h('b', {}, `Sign-in link${who ? ` for ${who}` : ''}. `), `Works once, until ${new Date(r.expires).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. Anyone with the link can sign in as them, so send it only to them.`),
+      code, h('div', { class: 'row' }, copy));
+  }
+
+  function newLinkButton(u, holder) {
+    const b = h('button', { type: 'button', class: 'linkish small' }, 'New sign-in link');
+    b.addEventListener('click', () => act(b, async () => {
+      const r = await api(`/api/admin/users/${u.id}/invite`, { method: 'POST', body: {} });
+      holder.replaceChildren(linkBox(r, u.name));
+    }));
+    return b;
+  }
+
   function peopleSection(users) {
     return h('details', { class: 'owner-section panel-box' },
       h('summary', {}, `People (${users.length})`),
@@ -1057,7 +1123,8 @@
         h('b', {}, u.name),
         h('span', { class: 'muted small' }, `${u.email} · ${u.role === 'owner' ? 'owner' : u.status}`),
         h('span', { class: 'small' }, u.plans.filter(p => p.status === 'approved').map(p => p.title).join(', ')),
-        u.role !== 'owner' && u.status !== 'pending' ? statusToggle(u) : null))));
+        u.role !== 'owner' && u.status !== 'pending' ? statusToggle(u) : null,
+        ...(u.role !== 'owner' && u.status === 'approved' ? (() => { const holder = h('div', { class: 'link-holder' }); return [newLinkButton(u, holder), holder]; })() : [])))));
   }
 
   function statusToggle(u) {
@@ -1124,7 +1191,9 @@
       return blockedView();
     }
     try {
-      state.user = (await api('/api/me')).user;
+      const me = await api('/api/me');
+      state.user = me.user;
+      state.google = me.google;
     } catch {
       state.user = null;
     }

@@ -299,6 +299,28 @@ check(!(await owner.send('/api/admin/attention')).data.items.some(i => i.id === 
   check(ok && claims.aud === 'https://push.example.com' && authz.includes(`k=${VAPID_PUBLIC_KEY}`), 'push: the VAPID signature verifies and names the push service');
 }
 
+// Invite links: sign in without Google
+check((await owner.send('/api/me')).data.google === false, 'invites: the portal says when Google sign-in is not set up');
+const inv = await owner.send('/api/admin/invites', { method: 'POST', body: { name: 'Ivy Invited', email: 'ivy@example.com', client_id: clientA, plan_ids: [planId] } });
+check(inv.status === 201 && /\/auth\/invite\?t=/.test(inv.data.link), 'invites: the owner gets a private sign-in link');
+check((await member.send('/api/admin/invites', { method: 'POST', body: { name: 'x', email: 'x@example.com' } })).status === 403, 'invites: members cannot invite people');
+check((await owner.send('/api/admin/invites', { method: 'POST', body: { name: 'Bad', email: 'not-an-email' } })).status === 400, 'invites: a real email is required');
+check((await owner.send('/api/admin/invites', { method: 'POST', body: { name: 'Wrong', email: 'ivy@example.com', client_id: clientB } })).status === 409, 'invites: a person cannot be invited into another client');
+const ivy = person('ivy@example.com', 'Ivy Invited');
+const invPath = new URL(inv.data.link).pathname + new URL(inv.data.link).search;
+const used = await ivy.send(invPath);
+check(used.status === 302 && used.location === '/portal/', 'invites: opening the link signs the person in');
+const ivyMe = (await ivy.send('/api/me')).data.user;
+check(ivyMe.status === 'approved' && (await ivy.send(`/api/plans/${planId}`)).status === 200 && (await ivy.send(`/api/plans/${planB}`)).status === 403, 'invites: they see their client’s plan and nothing else');
+const reused = await person('someone@example.com', 'Someone').send(invPath);
+check(reused.status === 302 && reused.location === '/portal/#/invite-expired', 'invites: a link works only once');
+check((await ivy.send('/auth/invite?t=made-up')).location === '/portal/#/invite-expired', 'invites: a made-up link does nothing');
+const fresh = await owner.send(`/api/admin/users/${ivyMe.id}/invite`, { method: 'POST', body: {} });
+check(fresh.status === 201 && fresh.data.link !== inv.data.link, 'invites: the owner can send a new link');
+await owner.send(`/api/admin/users/${ivyMe.id}`, { method: 'POST', body: { status: 'blocked' } });
+const blockedUse = await person('ivy2@example.com', 'x').send(new URL(fresh.data.link).pathname + new URL(fresh.data.link).search);
+check(blockedUse.location === '/portal/#/blocked', 'invites: a blocked person’s link does not sign them in');
+
 // Sign out
 check((await member.send('/auth/logout', { method: 'POST' })).status === 200, 'sign out works');
 check((await member.send('/api/me')).data.user === null, 'after sign-out the session is gone');

@@ -30,7 +30,8 @@ export const memberRoutes = ctx => route(ctx, [
 ]);
 
 async function me(ctx) {
-  return json({ user: publicUser(ctx.user) });
+  // google: whether "Continue with Google" is set up, so the sign-in page only offers what works.
+  return json({ user: publicUser(ctx.user), google: !!(ctx.env.GOOGLE_CLIENT_ID && ctx.env.GOOGLE_CLIENT_SECRET) });
 }
 
 // A pending person can leave a short note for the owner ("I'm from the church team").

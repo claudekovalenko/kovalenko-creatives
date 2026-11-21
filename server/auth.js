@@ -36,6 +36,7 @@ export async function authRoutes(request, env, url) {
   if (path === '/auth/google/callback' && request.method === 'GET') return finishGoogle(request, env, url);
   if (path === '/auth/logout' && request.method === 'POST') return logout(request, env, url);
   if (path === '/auth/dev' && request.method === 'GET') return devLogin(env, url);
+  if (path === '/auth/invite' && request.method === 'GET') return useInvite(env, url);
   throw new HttpError(404, 'Not found');
 }
 
@@ -168,4 +169,28 @@ async function devLogin(env, url) {
   const email = url.searchParams.get('email') || 'owner@example.com';
   const user = await upsertUser(env, { sub: `dev:${email}`, email, name: url.searchParams.get('name') || email.split('@')[0] });
   return startSession(env, user, safeReturn(url.searchParams.get('return')));
+}
+
+// Invite links: /auth/invite?t=<secret>. Each link signs one person in once, within 14 days.
+export const INVITE_DAYS = 14;
+
+export async function createInvite(env, userId) {
+  const token = randomToken(32);
+  const expires = new Date(Date.now() + INVITE_DAYS * 86400_000).toISOString();
+  await env.DB.prepare('INSERT INTO invites (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
+    .bind(await sha256Hex(token), userId, now(), expires).run();
+  return { token, expires };
+}
+
+async function useInvite(env, url) {
+  const token = url.searchParams.get('t') || '';
+  const invite = token ? await env.DB.prepare('SELECT * FROM invites WHERE token_hash = ?').bind(await sha256Hex(token)).first() : null;
+  if (!invite || invite.used_at || invite.expires_at < now()) return redirect('/portal/#/invite-expired', env);
+  // Mark it used first, so the same link can never start two sessions.
+  const res = await env.DB.prepare('UPDATE invites SET used_at = ? WHERE token_hash = ? AND used_at IS NULL').bind(now(), invite.token_hash).run();
+  if (!res.meta.changes) return redirect('/portal/#/invite-expired', env);
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(invite.user_id).first();
+  if (!user) return redirect('/portal/#/invite-expired', env);
+  await env.DB.prepare('UPDATE users SET last_seen_at = ? WHERE id = ?').bind(now(), user.id).run();
+  return startSession(env, user, '/portal/');
 }

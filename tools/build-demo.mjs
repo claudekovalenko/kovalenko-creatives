@@ -88,7 +88,7 @@ class Stmt {
   async all() { return { results: this.rows(), success: true }; }
   async run() { raw.run(this.sql, this.p); return { success: true, meta: { changes: raw.getRowsModified(), last_row_id: raw.exec('SELECT last_insert_rowid()')[0].values[0][0] } }; }
 }
-const env = { DB: { prepare: s => new Stmt(s), batch: async ss => { const o = []; for (const s of ss) o.push(await s.run()); return o; } }, COOKIE_INSECURE: '1', OWNER_EMAILS: 'owner@example.com' };
+const env = { DB: { prepare: s => new Stmt(s), batch: async ss => { const o = []; for (const s of ss) o.push(await s.run()); return o; } }, COOKIE_INSECURE: '1', OWNER_EMAILS: 'owner@example.com', GOOGLE_CLIENT_ID: 'demo', GOOGLE_CLIENT_SECRET: 'demo' };
 
 // The portal's /api and /auth calls go to the server code running here instead of the network.
 const ORIGIN = 'https://portal.example';

@@ -255,3 +255,4 @@ fieldset.plain legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
   :root:not([data-theme="light"]) .urgent-guard .muted { color: #FDBA8C; }
   :root:not([data-theme="light"]) .chip.urg-soon { color: #FDBA8C; border-color: #7C2D12; background: #2A160C; }
 }
+.link-holder { flex-basis: 100%; }

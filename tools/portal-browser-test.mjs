@@ -11,7 +11,7 @@ const AXE = await readFile(require.resolve('axe-core/axe.min.js'), 'utf8');
 const pushed = [];
 const { server, url: BASE } = await startDevServer({ port: 0, env: {
   SUMMARIZE_FN: async () => 'We would like to launch before the holidays. Can you confirm the date?',
-  VAPID_PUBLIC_KEY: 'test', VAPID_PRIVATE_KEY: 'test', PUSH_FN: async (sub, msg) => { pushed.push(msg); return 201; },
+  VAPID_PUBLIC_KEY: 'test', VAPID_PRIVATE_KEY: 'test', GOOGLE_CLIENT_ID: 'test', GOOGLE_CLIENT_SECRET: 'test', PUSH_FN: async (sub, msg) => { pushed.push(msg); return 201; },
 } });
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const failures = [];

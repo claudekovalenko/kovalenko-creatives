@@ -3,6 +3,7 @@ import { HttpError, json, now, newId, randomToken, sha256Hex, readJson, text, on
 import { route } from './router.js';
 import { getSettings, saveSettings, contactFor, withinHours, hoursText } from './settings.js';
 import { notifyOwner } from './notify.js';
+import { createInvite, INVITE_DAYS } from './auth.js';
 import { requireOwner, logActivity, userActor, progressOf, publicUser, moneyOf, dollars, unreadOf } from './data.js';
 
 export const adminRoutes = ctx => {
@@ -20,6 +21,8 @@ export const adminRoutes = ctx => {
     ['DELETE', '/api/admin/agents/:id', revokeAgent],
     ['GET', '/api/admin/summary', summary],
     ['GET', '/api/admin/board', board],
+    ['POST', '/api/admin/invites', invitePerson],
+    ['POST', '/api/admin/users/:id/invite', reinvite],
     ['GET', '/api/admin/attention', attention],
     ['GET', '/api/admin/settings', readSettings],
     ['PUT', '/api/admin/settings', writeSettings],
@@ -231,6 +234,41 @@ async function pushTest(ctx) {
 
 async function notificationLog(ctx) {
   return json({ notifications: (await ctx.db.prepare('SELECT * FROM notifications ORDER BY id DESC LIMIT 30').all()).results });
+}
+
+// Invite someone by name and email: they are approved for the chosen client's plans straight away
+// and get a private sign-in link. If they already have an account, they get a fresh link.
+async function invitePerson(ctx) {
+  const body = await readJson(ctx.request);
+  const name = text(body.name, 'Name', { max: 120 });
+  const email = text(body.email, 'Email', { max: 200 }).toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'Enter a real email address, so the same person can also sign in with Google later');
+  const clientId = body.client_id ? (await ctx.db.prepare('SELECT id FROM clients WHERE id = ?').bind(body.client_id).first())?.id : null;
+  if (body.client_id && !clientId) throw new HttpError(400, 'Unknown client');
+  let user = await ctx.db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+  const t = now();
+  if (!user) {
+    const id = newId();
+    await ctx.db.prepare(`INSERT INTO users (id, email, name, role, status, client_id, created_at, approved_at) VALUES (?, ?, ?, 'member', 'approved', ?, ?, ?)`)
+      .bind(id, email, name, clientId, t, t).run();
+    user = await ctx.db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+  } else {
+    if (user.role === 'owner') throw new HttpError(400, 'That is the owner account');
+    if (user.client_id && clientId && user.client_id !== clientId) throw new HttpError(409, `${user.name} belongs to another client`);
+    await ctx.db.prepare(`UPDATE users SET status = 'approved', approved_at = COALESCE(approved_at, ?), client_id = COALESCE(client_id, ?) WHERE id = ?`).bind(t, clientId, user.id).run();
+  }
+  for (const planId of Array.isArray(body.plan_ids) ? body.plan_ids.slice(0, 50) : []) await setMembership(ctx.db, planId, user.id, 'approved');
+  const { token, expires } = await createInvite(ctx.env, user.id);
+  await logActivity(ctx.db, { ...userActor(ctx.user), action: 'invite_created', refType: 'user', refId: user.id, summary: `${ctx.user.name} invited ${name}` });
+  return json({ user_id: user.id, link: `${ctx.url.origin}/auth/invite?t=${token}`, expires, days: INVITE_DAYS }, 201);
+}
+
+async function reinvite(ctx, { id }) {
+  const user = await ctx.db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+  if (!user || user.role === 'owner') throw new HttpError(404, 'Person not found');
+  if (user.status === 'blocked') throw new HttpError(409, 'Unblock this person first');
+  const { token, expires } = await createInvite(ctx.env, user.id);
+  return json({ link: `${ctx.url.origin}/auth/invite?t=${token}`, expires, days: INVITE_DAYS }, 201);
 }
 
 async function listAgents(ctx) {
