@@ -28,7 +28,7 @@
 /* Forms */
 .field { display: grid; gap: 6px; min-width: 0; }
 .field label { font: 400 12px var(--mono); color: var(--muted); }
-input[type="text"], input[type="date"], textarea, select {
+input[type="text"], input[type="date"], input[type="time"], textarea, select {
   width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px;
   background: var(--card); color: var(--fg); font: 400 15px/1.5 var(--hd);
 }
@@ -229,3 +229,29 @@ details.panel-box.inner { margin-top: 14px; background: var(--bg); }
   .tabs a { padding: 12px 9px; font-size: 12px; }
 }
 .grid-form > .btn { justify-self: start; }
+
+/* Urgency */
+.chip.urg-urgent { color: #fff; background: #B42318; border-color: #B42318; }
+.chip.urg-soon { color: #9A3412; border-color: #F3C4A8; background: #FFF4ED; }
+.chip.handled { color: var(--muted); background: var(--card); border-color: var(--line); }
+.composer-wrap { position: sticky; bottom: max(12px, env(safe-area-inset-bottom)); background: var(--bg); padding-top: 8px; margin-top: 16px; }
+.composer-wrap .composer { position: static; margin-top: 0; padding: 0; }
+.thread .composer-wrap { position: static; background: none; }
+.composer-side { display: grid; gap: 6px; }
+.urgency-select { width: auto; padding: 6px 8px; font: 400 12px var(--mono); }
+.urgent-guard, .urgent-after { border: 1px solid #F3C4A8; background: #FFF4ED; color: #431407; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.urgent-guard p, .urgent-after p { margin: 0 0 6px; }
+.urgent-guard .muted { color: #7C2D12; }
+.urgent-after { margin: 10px 0 0; }
+.attention-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.urg-row { border: 1px solid var(--line); border-left: 4px solid #F3C4A8; border-radius: 10px; background: var(--card); padding: 12px 14px; display: grid; gap: 6px; }
+.urg-row.urg-urgent { border-left-color: #B42318; }
+.urg-row p { margin: 0; }
+fieldset.plain { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+fieldset.plain legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.card.device { margin-bottom: 4px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .urgent-guard, :root:not([data-theme="light"]) .urgent-after { background: #2A160C; border-color: #7C2D12; color: #FED7AA; }
+  :root:not([data-theme="light"]) .urgent-guard .muted { color: #FDBA8C; }
+  :root:not([data-theme="light"]) .chip.urg-soon { color: #FDBA8C; border-color: #7C2D12; background: #2A160C; }
+}

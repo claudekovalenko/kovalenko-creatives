@@ -6,6 +6,7 @@ import { HttpError, json, now, newId, sha256Hex, readJson, text, oneOf } from '.
 import { route } from './router.js';
 import { loadPlan, logActivity } from './data.js';
 import { proposalRows, buildSummary } from './admin.js';
+import { notifyOwnerLater } from './notify.js';
 
 export async function currentAgent(request, env) {
   const auth = request.headers.get('authorization') || '';
@@ -39,7 +40,7 @@ async function activity(ctx) {
   // Post bodies in full, so the agent can judge comments and ideas.
   for (const r of rows) {
     if (r.ref_type === 'post') {
-      const post = await ctx.db.prepare('SELECT kind, task_id, body FROM posts WHERE id = ?').bind(r.ref_id).first();
+      const post = await ctx.db.prepare('SELECT kind, task_id, body, urgency, handled_at FROM posts WHERE id = ?').bind(r.ref_id).first();
       if (post) r.post = post;
     }
   }
@@ -104,12 +105,19 @@ async function createProposal(ctx) {
     if (dup) return json({ id: dup.id, duplicate: true });
   }
   const confidence = typeof body.confidence === 'number' ? Math.min(Math.max(body.confidence, 0), 1) : null;
+  // A suggested reply to the member. It is only sent if the owner approves it (and may edit it first).
+  const replyDraft = text(body.reply_draft, 'reply_draft', { max: 4000, required: false }) || null;
   const id = newId();
   const t = now();
   await ctx.db.prepare(
-    `INSERT INTO proposals (id, agent_id, plan_id, task_id, post_id, kind, title, body, confidence, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?)`,
-  ).bind(id, ctx.agent.id, planId, taskId, postId, kind, title, detail, confidence, t, t).run();
+    `INSERT INTO proposals (id, agent_id, plan_id, task_id, post_id, kind, title, body, confidence, reply_draft, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?)`,
+  ).bind(id, ctx.agent.id, planId, taskId, postId, kind, title, detail, confidence, replyDraft, t, t).run();
+  // A bot's answer to an urgent message is worth the same alert (within the owner's rules).
+  const about = postId ? await ctx.db.prepare('SELECT urgency, handled_at FROM posts WHERE id = ?').bind(postId).first() : null;
+  if (about && about.urgency === 'urgent' && !about.handled_at) {
+    notifyOwnerLater(ctx, { title: `${ctx.agent.name} has a suggestion`, body: title, url: '/portal/#/owner', urgency: 'urgent' });
+  }
   await logActivity(ctx.db, { planId, actorType: 'agent', actorId: ctx.agent.id, actorName: ctx.agent.name, action: 'proposal_created', refType: 'proposal', refId: id, summary: `${ctx.agent.name} proposed: ${title}` });
   return json({ id }, 201);
 }

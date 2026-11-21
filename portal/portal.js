@@ -377,9 +377,10 @@
     try {
       const { posts } = await api(`/api/plans/${plan.id}/posts?kind=message&task=${encodeURIComponent(task.id)}`);
       const list = h('ol', { class: 'posts compact' }, posts.map(postItem));
-      thread.replaceChildren(list, composer({ placeholder: 'Add a comment', button: 'Comment', onsend: async body => {
-        const { post } = await api(`/api/plans/${plan.id}/posts`, { method: 'POST', body: { body, task_id: task.id } });
-        list.append(postItem(post));
+      thread.replaceChildren(list, composer({ placeholder: 'Add a comment', button: 'Comment', urgency: state.user.role !== 'owner', onsend: async (body, urgency) => {
+        const res = await api(`/api/plans/${plan.id}/posts`, { method: 'POST', body: { body, task_id: task.id, urgency } });
+        list.append(postItem(res.post));
+        return res;
       } }));
     } catch (e) {
       thread.replaceChildren(h('p', { class: 'error-text' }, e.message));
@@ -600,8 +601,23 @@
     return h('li', { class: `post${own ? ' from-owner' : ''}${p.mine ? ' mine' : ''}` },
       h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(p.author_name)),
       h('div', { class: 'post-body' },
-        h('div', { class: 'post-meta' }, h('b', {}, p.author_name), own ? h('span', { class: 'chip tiny' }, 'studio') : null, when(p.created_at)),
-        postText(p)));
+        h('div', { class: 'post-meta' }, h('b', {}, p.author_name), own ? h('span', { class: 'chip tiny' }, 'studio') : null,
+          p.urgency && p.urgency !== 'normal' ? h('span', { class: `chip tiny urg-${p.urgency}${p.handled_at ? ' handled' : ''}` }, p.handled_at ? `${p.urgency} · handled` : p.urgency) : null,
+          when(p.created_at)),
+        postText(p),
+        state.user.role === 'owner' && p.urgency && p.urgency !== 'normal' && !p.handled_at ? handledButton(p) : null));
+  }
+
+  function handledButton(p, done) {
+    const b = h('button', { type: 'button', class: 'linkish small' }, 'Mark handled');
+    b.addEventListener('click', () => act(b, async () => {
+      await api(`/api/posts/${p.id}`, { method: 'PATCH', body: { handled: true } });
+      p.handled_at = new Date().toISOString();
+      b.replaceWith(h('span', { class: 'muted small' }, 'Handled'));
+      if (done) done();
+      refreshOwnerCount();
+    }));
+    return b;
   }
 
   // Long messages stay easy to read: a short version first (when there is one), the full text a tap away.
@@ -654,9 +670,10 @@
     };
     panel.append(empty, list);
     if (kind !== 'update' || isOwner) {
-      panel.append(composer({ placeholder: t.placeholder, button: t.button, onsend: async body => {
-        await api(`/api/plans/${plan.id}/posts`, { method: 'POST', body: { kind, body } });
+      panel.append(composer({ placeholder: t.placeholder, button: t.button, urgency: kind === 'message' && !isOwner, onsend: async (body, urgency) => {
+        const res = await api(`/api/plans/${plan.id}/posts`, { method: 'POST', body: { kind, body, urgency } });
         await load();
+        return res;
       } }));
     }
     await load();
@@ -674,48 +691,192 @@
     return b;
   }
 
-  function composer({ placeholder, button, onsend }) {
+  // Message box. For members it has an urgency choice; "Urgent" first explains what counts and asks to confirm,
+  // so the studio isn't treated as on call.
+  function composer({ placeholder, button, onsend, urgency: withUrgency }) {
     const input = h('textarea', { rows: '2', maxlength: '4000', placeholder, 'aria-label': placeholder });
     const btn = h('button', { type: 'submit', class: 'btn small' }, button);
+    const level = h('select', { class: 'urgency-select', 'aria-label': 'How urgent is this?' },
+      h('option', { value: 'normal' }, 'Normal'), h('option', { value: 'soon' }, 'Soon'), h('option', { value: 'urgent' }, 'Urgent'));
+    const confirmBox = h('input', { type: 'checkbox' });
+    const hoursLine = h('p', { class: 'small muted' });
+    const guard = h('div', { class: 'urgent-guard', hidden: true },
+      h('p', {}, h('b', {}, 'Urgent is for things that can’t wait: '), 'the site or app is down, a security or data problem, a payment or deadline problem today.'),
+      h('p', { class: 'small' }, 'Questions, changes and new ideas are best sent as Normal or Soon. They are answered during studio hours.'),
+      hoursLine,
+      h('label', { class: 'check small' }, confirmBox, 'Yes, this is urgent'));
+    const after = h('div', { class: 'urgent-after', hidden: true, role: 'status' });
+    level.addEventListener('change', async () => {
+      guard.hidden = level.value !== 'urgent';
+      confirmBox.checked = false;
+      if (level.value === 'urgent' && !hoursLine.textContent) {
+        try {
+          const c = await api('/api/contact');
+          hoursLine.textContent = `Studio hours: ${c.hours}. ${c.open ? 'The studio is open now.' : 'The studio is closed right now; urgent messages are seen first thing.'}`;
+        } catch { /* ignore */ }
+      }
+    });
     const form = h('form', {
-      class: 'composer', onsubmit: e => {
+      class: 'composer' + (withUrgency ? ' with-urgency' : ''), onsubmit: e => {
         e.preventDefault();
         const body = input.value.trim();
         if (!body) return;
+        if (withUrgency && level.value === 'urgent' && !confirmBox.checked) {
+          toast('Tick “Yes, this is urgent”, or choose Soon', true);
+          return;
+        }
         act(btn, async () => {
-          await onsend(body);
+          const res = await onsend(body, withUrgency ? level.value : 'normal');
           input.value = '';
+          if (res && res.contact) showUrgentAfter(after, res.contact, body);
+          level.value = 'normal';
+          guard.hidden = true;
         });
       },
-    }, input, btn);
+    }, input, withUrgency ? h('div', { class: 'composer-side' }, level, btn) : btn);
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) form.requestSubmit();
     });
-    return form;
+    return withUrgency ? h('div', { class: 'composer-wrap' }, guard, form, after) : form;
+  }
+
+  function showUrgentAfter(box, c, body) {
+    const parts = [h('p', {}, h('b', {}, 'Sent as urgent. '), c.open ? 'The studio has been notified.' : 'The studio is outside its hours right now and will see this first thing.', ' An assistant may look at it first to help the studio respond faster.')];
+    if (c.text_phone) {
+      const digits = c.text_phone.replace(/[^\d+]/g, '');
+      parts.push(h('p', { class: 'small' }, 'If it truly can’t wait, you can also text the studio.'),
+        h('a', { class: 'btn small ghost', href: `sms:${digits}?&body=${encodeURIComponent(`Urgent (from the portal): ${body.slice(0, 140)}`)}` }, `Text ${c.text_phone}`));
+    }
+    box.replaceChildren(...parts);
+    box.hidden = false;
   }
 
   /* ---------- owner dashboard ---------- */
 
   async function ownerView() {
-    const [overview, { plans }, { agents }, { activity }, { users }, board, { clients }] = await Promise.all([
+    const [overview, { plans }, { agents }, { activity }, { users }, board, { clients }, attention, settings, { notifications }] = await Promise.all([
       api('/api/admin/overview'), api('/api/plans'), api('/api/admin/agents'), api('/api/admin/activity?limit=30'), api('/api/admin/users'),
-      api('/api/admin/board'), api('/api/admin/clients'),
+      api('/api/admin/board'), api('/api/admin/clients'), api('/api/admin/attention'), api('/api/admin/settings'), api('/api/admin/notifications'),
     ]);
-    state.ownerCount = overview.pending_users.length + overview.pending_joins.length + overview.proposals.length;
+    state.ownerCount = overview.pending_users.length + overview.pending_joins.length + overview.proposals.length + attention.items.length;
     renderNav();
     const waitingCount = state.ownerCount;
     setView('Owner',
       h('div', { class: 'sec-head' },
         h('div', {}, h('span', { class: 'path' }, '/owner'), h('h1', {}, 'Owner dashboard')),
         h('p', {}, waitingCount ? `${waitingCount} thing${waitingCount === 1 ? '' : 's'} waiting on you.` : 'Nothing is waiting on you.')),
+      attentionSection(attention),
       clientBoard(board),
       summaryBox(overview.summary),
       waitingSection('People asking for access', overview.pending_users, u => personRequest(u, plans, clients), 'No one is waiting.'),
       waitingSection('Join requests', overview.pending_joins, joinRequest, 'No join requests.'),
       waitingSection('Agent proposals', overview.proposals, proposalCard, 'No proposals waiting. Agents send them here when they think they can help.'),
       agentsSection(agents),
+      availabilitySection(settings, notifications),
       peopleSection(users),
       activitySection(activity));
+  }
+
+  // Urgent and "soon" messages that are not handled yet, most urgent first.
+  function attentionSection(a) {
+    const urgent = a.items.filter(i => i.urgency === 'urgent').length;
+    const list = h('ul', { class: 'attention-list' }, a.items.map(i => {
+      const li = h('li', { class: `urg-row urg-${i.urgency}` },
+        h('div', { class: 'row' },
+          h('span', { class: `chip urg-${i.urgency}` }, i.urgency),
+          h('b', {}, i.author_name),
+          h('span', { class: 'muted small' }, [i.client_name, i.plan_title, i.task_title].filter(Boolean).join(' · ')),
+          h('span', { class: 'muted small' }, when(i.created_at))),
+        h('p', { class: 'pre' }, i.summary || (i.body.length > 280 ? `${i.body.slice(0, 280)}…` : i.body)),
+        h('div', { class: 'row' },
+          h('a', { class: 'btn small', href: `#/plan/${i.plan_id}/${i.task_id ? 'progress' : 'chat'}` }, 'Open and reply'),
+          handledButton(i, () => li.remove()),
+          i.proposals ? h('span', { class: 'chip' }, `${i.proposals} bot suggestion${i.proposals === 1 ? '' : 's'} below`) : null));
+      return li;
+    }));
+    return h('section', { class: 'owner-section' },
+      h('h2', {}, 'Needs attention', a.items.length ? h('span', { class: 'badge' }, String(a.items.length)) : null),
+      h('p', { class: 'muted small' }, `${a.open ? 'Studio hours now' : 'Outside studio hours'} · ${a.hours}${urgent ? ` · ${urgent} urgent` : ''}`),
+      a.items.length ? list : h('p', { class: 'muted small' }, 'Nothing urgent or time-sensitive. Replying in a chat marks its waiting messages handled.'));
+  }
+
+  const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  // When you can be reached, and how. Defaults keep you off call.
+  function availabilitySection(data, notifications) {
+    const s = data.settings;
+    const days = DAY_SHORT.map((d, i) => h('label', { class: 'check small' }, h('input', { type: 'checkbox', value: String(i), checked: s.days.includes(i) }), d));
+    const start = h('input', { type: 'time', value: s.hours_start });
+    const end = h('input', { type: 'time', value: s.hours_end });
+    const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [s.timezone];
+    const tz = h('select', {}, [...new Set([s.timezone, Intl.DateTimeFormat().resolvedOptions().timeZone, ...zones])].map(z => h('option', { value: z, selected: z === s.timezone }, z)));
+    const radio = (value, label) => h('label', { class: 'check small' }, h('input', { type: 'radio', name: 'notify_urgent', value, checked: s.notify_urgent === value }), label);
+    const soon = h('input', { type: 'checkbox', checked: s.notify_soon });
+    const textOn = h('input', { type: 'checkbox', checked: s.text_enabled });
+    const phone = h('input', { type: 'text', inputmode: 'tel', maxlength: '30', placeholder: 'Your mobile number', value: s.text_phone || '' });
+    const textHours = h('input', { type: 'checkbox', checked: s.text_hours_only });
+    const save = h('button', { type: 'submit', class: 'btn small' }, 'Save');
+    const form = h('form', { class: 'stack', onsubmit: e => {
+      e.preventDefault();
+      act(save, async () => {
+        const body = {
+          days: days.map(l => l.querySelector('input')).filter(i => i.checked).map(i => Number(i.value)),
+          hours_start: start.value, hours_end: end.value, timezone: tz.value,
+          notify_urgent: form.querySelector('input[name="notify_urgent"]:checked').value,
+          notify_soon: soon.checked, text_enabled: textOn.checked, text_phone: phone.value, text_hours_only: textHours.checked,
+        };
+        const r = await api('/api/admin/settings', { method: 'PUT', body });
+        toast(`Saved. Studio hours: ${r.hours}`);
+      });
+    } },
+      h('fieldset', { class: 'plain' }, h('legend', {}, 'Studio hours'), h('div', { class: 'row' }, days), h('div', { class: 'grid-form' }, field('From', start), field('Until', end), field('Time zone', tz))),
+      h('fieldset', { class: 'plain' }, h('legend', {}, 'Notify my phone about urgent messages'),
+        radio('hours', 'Only during studio hours (recommended)'), radio('always', 'Any time, day or night'), radio('off', 'Never; I’ll check the dashboard'),
+        h('label', { class: 'check small' }, soon, 'Also notify for “soon” messages during studio hours')),
+      h('fieldset', { class: 'plain' }, h('legend', {}, 'Texting'),
+        h('label', { class: 'check small' }, textOn, 'After someone sends an urgent message, offer them a button to text me'),
+        field('Mobile number (only shown at that moment, never on the website)', phone),
+        h('label', { class: 'check small' }, textHours, 'Only offer texting during studio hours')),
+      h('div', {}, save));
+    return h('section', { class: 'owner-section' },
+      h('h2', {}, 'Availability and notifications'),
+      h('p', { class: 'muted small' }, 'Members can mark a message Soon or Urgent. Nothing else notifies you, and nothing reaches you outside your hours unless you choose “Any time”.'),
+      deviceBox(data),
+      h('details', { class: 'panel-box' }, h('summary', {}, `Hours, notifications and texting · ${data.hours}`), form),
+      notifications.length ? h('details', { class: 'panel-box' }, h('summary', {}, 'Recent notifications'),
+        h('ul', { class: 'simple-list' }, notifications.map(n => h('li', {},
+          h('span', { class: `chip ${n.sent ? 'pay-paid' : ''}` }, n.sent ? 'sent' : 'held'), h('b', {}, n.title), h('span', { class: 'muted small' }, n.reason, ' · ', when(n.created_at)))))) : null);
+  }
+
+  // Turn phone notifications on for this device (works best from the installed app).
+  function deviceBox(data) {
+    const status = h('p', { class: 'small muted' });
+    const on = h('button', { type: 'button', class: 'btn small' }, 'Turn on notifications on this device');
+    const test = h('button', { type: 'button', class: 'btn small ghost' }, 'Send a test');
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    status.textContent = !data.push_ready ? 'Phone notifications need setting up first (VAPID keys in Cloudflare; see the README).'
+      : !supported ? 'This browser can’t receive notifications. On iPhone, add the portal to your Home Screen first, then open it from there.'
+      : data.devices.length ? `${data.devices.length} device${data.devices.length === 1 ? '' : 's'} will be notified.` : 'No device is set to get notifications yet.';
+    on.disabled = !data.push_ready || !supported;
+    on.addEventListener('click', () => act(on, async () => {
+      if (await Notification.requestPermission() !== 'granted') throw new Error('Notifications were not allowed. You can allow them in your phone’s settings.');
+      const { key } = await api('/api/admin/push/key');
+      const reg = await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlBytes(key) });
+      await api('/api/admin/push/subscribe', { method: 'POST', body: { subscription: sub.toJSON(), label: /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android phone' : 'Computer' } });
+      toast('This device will now get urgent notifications');
+      route();
+    }));
+    test.addEventListener('click', () => act(test, async () => {
+      const r = await api('/api/admin/push/test', { method: 'POST', body: {} });
+      toast(r.sent ? 'Test sent' : r.reason, !r.sent);
+    }));
+    return h('div', { class: 'card device' }, status, h('div', { class: 'row' }, on, data.devices.length ? test : null));
+  }
+
+  function b64urlBytes(s) {
+    const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
+    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   }
 
   const AGREEMENT_LABEL = { draft: 'agreement: draft', shared: 'awaiting acceptance', accepted: 'agreed' };
@@ -828,12 +989,14 @@
   const KIND_LABEL = { fix: 'can fix', summary: 'summary', note: 'note' };
 
   function proposalCard(p) {
-    const note = h('textarea', { rows: '2', maxlength: '2000', placeholder: 'Optional reply to the agent' });
-    const yes = h('button', { type: 'button', class: 'btn small' }, 'Approve');
+    const note = h('textarea', { rows: '2', maxlength: '2000', placeholder: 'Optional note to the agent' });
+    const reply = p.reply_draft ? h('textarea', { rows: '3', maxlength: '4000' }) : null;
+    if (reply) reply.value = p.reply_draft;
+    const yes = h('button', { type: 'button', class: 'btn small' }, reply ? 'Approve and send reply' : 'Approve');
     const no = h('button', { type: 'button', class: 'btn small ghost' }, 'Decline');
     const decide = (btn, status) => act(btn, async () => {
-      await api(`/api/admin/proposals/${p.id}`, { method: 'POST', body: { status, note: note.value } });
-      toast(status === 'approved' ? 'Approved. The agent will pick it up.' : 'Declined');
+      await api(`/api/admin/proposals/${p.id}`, { method: 'POST', body: { status, note: note.value, reply: reply && status === 'approved' ? reply.value : undefined } });
+      toast(status === 'approved' ? (reply ? 'Reply sent and the agent can go ahead.' : 'Approved. The agent will pick it up.') : 'Declined');
       route();
     });
     yes.addEventListener('click', () => decide(yes, 'approved'));
@@ -843,7 +1006,8 @@
       h('h3', {}, p.title),
       p.plan_title ? h('div', { class: 'muted small' }, p.plan_title, p.task_title ? ` · ${p.task_title}` : '') : null,
       h('p', { class: 'pre' }, p.body),
-      field('Reply', note),
+      reply ? field('Suggested reply to the member (edit before sending)', reply) : null,
+      field('Note to the agent', note),
       h('div', { class: 'row' }, yes, no));
   }
 
@@ -947,8 +1111,8 @@
   async function refreshOwnerCount() {
     if (state.user?.role !== 'owner') return;
     try {
-      const o = await api('/api/admin/overview');
-      state.ownerCount = o.pending_users.length + o.pending_joins.length + o.proposals.length;
+      const [o, a] = await Promise.all([api('/api/admin/overview'), api('/api/admin/attention')]);
+      state.ownerCount = o.pending_users.length + o.pending_joins.length + o.proposals.length + a.items.length;
       renderNav();
     } catch { /* ignore */ }
   }

@@ -1,0 +1,39 @@
+name: Portal agent
+
+# Runs the agent watcher on a schedule: it reads new portal activity (urgent messages first) and
+# sends the owner proposals and reply drafts to approve. It never messages members itself.
+# Needs repository secrets KC_URL (the portal address), KC_AGENT_TOKEN (from the owner dashboard)
+# and ANTHROPIC_API_KEY. Without them it does nothing.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-agent
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    env:
+      KC_URL: ${{ secrets.KC_URL }}
+      KC_AGENT_TOKEN: ${{ secrets.KC_AGENT_TOKEN }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Remember where the last run stopped, so each run only looks at what is new.
+      - uses: actions/cache@v4
+        with:
+          path: .agent-state.json
+          key: agent-state-${{ github.run_id }}
+          restore-keys: agent-state-
+      - name: Review new activity
+        if: env.KC_URL != '' && env.KC_AGENT_TOKEN != '' && env.ANTHROPIC_API_KEY != ''
+        run: npm ci --omit=dev && node tools/agent-watch.mjs

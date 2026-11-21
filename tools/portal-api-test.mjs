@@ -3,7 +3,16 @@
 import { startDevServer } from './dev-server.mjs';
 
 // Long posts get a short version; the test stands in for Claude so nothing is sent anywhere.
-const { server, url: BASE } = await startDevServer({ port: 0, env: { SUMMARIZE_FN: async body => `Short: ${body.slice(0, 20)}` } });
+// Phone notifications are captured instead of sent.
+const pushed = [];
+const vapid = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+const VAPID_PUBLIC_KEY = Buffer.from(await crypto.subtle.exportKey('raw', vapid.publicKey)).toString('base64url');
+const VAPID_PRIVATE_KEY = (await crypto.subtle.exportKey('jwk', vapid.privateKey)).d;
+const { server, url: BASE } = await startDevServer({ port: 0, env: {
+  SUMMARIZE_FN: async body => `Short: ${body.slice(0, 20)}`,
+  PUSH_FN: async (sub, msg) => { pushed.push(msg); return 201; },
+  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY,
+} });
 const failures = [];
 const passes = [];
 const check = (ok, label) => (ok ? passes : failures).push(label);
@@ -203,6 +212,92 @@ const tok = (await owner.send('/api/admin/agents', { method: 'POST', body: { nam
 const agentPlan = (await agentCall(tok, `/api/agent/plans/${planId}`)).data.plan;
 const agentSummary = (await agentCall(tok, '/api/agent/summary')).data.summary;
 check(agentPlan.terms === undefined && !JSON.stringify(agentPlan).includes('Two rounds') && !/Money:|\$/.test(agentSummary.text), 'agents: never see agreement terms or money');
+
+// Urgency, notifications and studio hours
+const wait = () => new Promise(r => setTimeout(r, 80));
+await owner.send('/api/admin/push/subscribe', { method: 'POST', body: { subscription: { endpoint: 'https://push.example.com/abc', keys: { p256dh: 'x', auth: 'y' } }, label: 'Phone' } });
+check((await member.send('/api/admin/settings', { method: 'PUT', body: { text_enabled: true } })).status === 403, 'settings: members cannot change the owner settings');
+check((await owner.send('/api/admin/settings', { method: 'PUT', body: { text_enabled: true } })).status === 400, 'settings: texting needs a phone number first');
+const ALL_DAY = { days: [0, 1, 2, 3, 4, 5, 6], hours_start: '00:00', hours_end: '23:59', timezone: 'UTC' };
+const CLOSED = { days: [], hours_start: '09:00', hours_end: '17:00', timezone: 'UTC' };
+await owner.send('/api/admin/settings', { method: 'PUT', body: { ...CLOSED, notify_urgent: 'hours', text_enabled: true, text_phone: '+1 808 555 0100', text_hours_only: true } });
+let r = await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: 'The site is down!', urgency: 'urgent' } });
+await wait();
+check(r.status === 201 && r.data.post.urgency === 'urgent', 'urgency: a member can mark a message urgent');
+check(pushed.length === 0 && r.data.contact && r.data.contact.text_phone === null && r.data.contact.open === false, 'off hours: no notification and no phone number, by default');
+let log = (await owner.send('/api/admin/notifications')).data.notifications;
+check(log[0].sent === 0 && /Outside studio hours/.test(log[0].reason), 'off hours: the held notification is logged with the reason');
+await owner.send('/api/admin/settings', { method: 'PUT', body: ALL_DAY });
+r = await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: 'Checkout is broken', urgency: 'urgent' } });
+const urgentId = r.data.post.id;
+await wait();
+check(pushed.length === 1 && /Urgent/.test(pushed[0].title) && pushed[0].url.includes(planId), 'studio hours: an urgent message notifies the owner');
+check(r.data.contact.text_phone === '+1 808 555 0100', 'studio hours: texting is offered only after an urgent message');
+check(!JSON.stringify((await member.send('/api/contact')).data).includes('555'), 'contact: the phone number is never sent before an urgent message');
+await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: 'Can we talk this week?', urgency: 'soon' } });
+await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: 'Normal note' } });
+await wait();
+check(pushed.length === 1, 'notifications: "soon" and normal messages do not notify unless turned on');
+check((await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { kind: 'idea', body: 'x', urgency: 'urgent' } })).status === 400, 'urgency: only messages can be urgent');
+let att = (await owner.send('/api/admin/attention')).data.items;
+check(att.length === 3 && att[0].urgency === 'urgent' && att[2].urgency === 'soon', 'attention list: urgent first, then soon');
+check((await member.send(`/api/posts/${urgentId}`, { method: 'PATCH', body: { handled: true } })).status === 403, 'attention list: only the owner marks things handled');
+await owner.send(`/api/posts/${urgentId}`, { method: 'PATCH', body: { handled: true } });
+check((await owner.send('/api/admin/attention')).data.items.length === 2, 'attention list: handled messages drop off');
+await owner.send('/api/admin/settings', { method: 'PUT', body: { notify_urgent: 'off' } });
+await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: 'Another urgent one', urgency: 'urgent' } });
+await wait();
+check(pushed.length === 1, 'notifications: the owner can turn urgent notifications off');
+await owner.send('/api/admin/settings', { method: 'PUT', body: { notify_urgent: 'hours' } });
+
+// An agent drafts a reply; the owner edits and sends it with the approval
+const helper = (await owner.send('/api/admin/agents', { method: 'POST', body: { name: 'Helper' } })).data.token;
+const feed2 = (await agentCall(helper, '/api/agent/activity?after_id=0&limit=500')).data.activity;
+const soonEvent = feed2.find(a => a.post?.urgency === 'soon');
+check(!!soonEvent, 'agents: activity shows how urgent each message is');
+const urgentLeft = (await owner.send('/api/admin/attention')).data.items.find(i => i.urgency === 'urgent');
+const before2 = pushed.length;
+const draftProp = (await agentCall(helper, '/api/agent/proposals', { method: 'POST', body: { kind: 'note', title: 'Answer about the outage', body: 'Looks like a DNS issue.', post_id: urgentLeft.id, reply_draft: 'Thanks, we are looking at it now.' } })).data.id;
+await wait();
+check(pushed.length === before2 + 1, 'agents: a suggestion about an urgent message notifies the owner');
+const memberChatBefore = (await member.send(`/api/plans/${planId}/posts?kind=message`)).data.posts.length;
+await owner.send(`/api/admin/proposals/${draftProp}`, { method: 'POST', body: { status: 'approved', reply: 'Thanks, I am looking at it now.' } });
+const memberChat = (await member.send(`/api/plans/${planId}/posts?kind=message`)).data.posts;
+check(memberChat.length === memberChatBefore + 1 && memberChat.at(-1).body === 'Thanks, I am looking at it now.' && memberChat.at(-1).author_role === 'owner', 'agents: the approved (edited) reply reaches the member from the owner');
+check(!(await owner.send('/api/admin/attention')).data.items.some(i => i.id === urgentLeft.id), 'agents: sending the reply marks the message handled');
+
+// Web Push encryption, checked against an independent decoder (RFC 8291) using Node's own crypto
+{
+  const { encryptPayload, vapidAuthorization } = await import('../server/webpush.js');
+  const nodeCrypto = await import('node:crypto');
+  const ua = nodeCrypto.createECDH('prime256v1');
+  ua.generateKeys();
+  const authSecret = nodeCrypto.randomBytes(16);
+  const sub = { endpoint: 'https://push.example.com/x', p256dh: ua.getPublicKey().toString('base64url'), auth: authSecret.toString('base64url') };
+  const body = Buffer.from(await encryptPayload(sub, '{"title":"Hello"}'));
+  const salt = body.subarray(0, 16);
+  const idlen = body[20];
+  const asPublic = body.subarray(21, 21 + idlen);
+  const ciphertext = body.subarray(21 + idlen);
+  const hmac = (key, data) => nodeCrypto.createHmac('sha256', key).update(data).digest();
+  const ecdh = ua.computeSecret(asPublic);
+  const prkKey = hmac(authSecret, ecdh);
+  const ikm = hmac(prkKey, Buffer.concat([Buffer.from('WebPush: info\0'), ua.getPublicKey(), asPublic, Buffer.from([1])])).subarray(0, 32);
+  const prk = hmac(salt, ikm);
+  const cek = hmac(prk, Buffer.concat([Buffer.from('Content-Encoding: aes128gcm\0'), Buffer.from([1])])).subarray(0, 16);
+  const nonce = hmac(prk, Buffer.concat([Buffer.from('Content-Encoding: nonce\0'), Buffer.from([1])])).subarray(0, 12);
+  const decipher = nodeCrypto.createDecipheriv('aes-128-gcm', cek, nonce);
+  decipher.setAuthTag(ciphertext.subarray(-16));
+  const plain = Buffer.concat([decipher.update(ciphertext.subarray(0, -16)), decipher.final()]);
+  check(plain.at(-1) === 2 && plain.subarray(0, -1).toString() === '{"title":"Hello"}' && body.readUInt32BE(16) === 4096, 'push: the message decrypts with the standard Web Push method');
+  const authz = await vapidAuthorization({ VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY }, sub.endpoint);
+  const [, jwt] = authz.match(/t=([^,]+)/);
+  const [h, c, sig] = jwt.split('.');
+  const verifyKey = nodeCrypto.createPublicKey({ key: { kty: 'EC', crv: 'P-256', x: Buffer.from(VAPID_PUBLIC_KEY, 'base64url').subarray(1, 33).toString('base64url'), y: Buffer.from(VAPID_PUBLIC_KEY, 'base64url').subarray(33).toString('base64url') }, format: 'jwk' });
+  const ok = nodeCrypto.verify('sha256', Buffer.from(`${h}.${c}`), { key: verifyKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url'));
+  const claims = JSON.parse(Buffer.from(c, 'base64url'));
+  check(ok && claims.aud === 'https://push.example.com' && authz.includes(`k=${VAPID_PUBLIC_KEY}`), 'push: the VAPID signature verifies and names the push service');
+}
 
 // Sign out
 check((await member.send('/auth/logout', { method: 'POST' })).status === 200, 'sign out works');

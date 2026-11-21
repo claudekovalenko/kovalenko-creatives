@@ -1,7 +1,7 @@
 /* Service worker: makes the site installable and lets the portal open quickly, even offline.
    Pages are fetched fresh when online (cached copy when offline). Fonts, icons and styles are
    cached. Nothing from /api or /auth is ever cached, so private plan data never sits in the cache. */
-const VERSION = 'kc-v2';
+const VERSION = 'kc-v3';
 const SHELL = ['/portal/', '/portal/portal.js', '/portal/portal.css', '/styles.css', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', event => {
@@ -31,4 +31,31 @@ self.addEventListener('fetch', event => {
   } else {
     event.respondWith(caches.match(req).then(r => r || fresh()));
   }
+});
+
+/* Phone notifications for the owner (urgent messages, within the owner's own rules). */
+self.addEventListener('push', event => {
+  let msg = {};
+  try { msg = event.data ? event.data.json() : {}; } catch { msg = { body: event.data && event.data.text() }; }
+  event.waitUntil(self.registration.showNotification(msg.title || 'Kovalenko Creatives', {
+    body: msg.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    data: { url: msg.url || '/portal/#/owner' },
+    tag: msg.url || 'kc',
+  }));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/portal/', location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) {
+      if (c.url.startsWith(location.origin) && 'focus' in c) {
+        c.navigate(url);
+        return c.focus();
+      }
+    }
+    return self.clients.openWindow(url);
+  }));
 });

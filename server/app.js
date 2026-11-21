@@ -16,7 +16,7 @@ export async function handle(request, env, waitUntil) {
     }
     if (url.pathname.startsWith('/api/agent/')) {
       const agent = await currentAgent(request, env);
-      return await agentRoutes({ request, env, url, agent, db: env.DB });
+      return await agentRoutes({ request, env, url, agent, db: env.DB, waitUntil });
     }
     if (url.pathname.startsWith('/api/')) {
       if (!['GET', 'HEAD'].includes(request.method)) checkSameOrigin(request, url);

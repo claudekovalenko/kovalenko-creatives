@@ -5,6 +5,8 @@ import { route } from './router.js';
 import { requireUser, requireApproved, requireOwner, requirePlanAccess, isOwner, logActivity, userActor, loadPlan, progressOf, publicUser, moneyOf, unreadOf, markRead } from './data.js';
 import { summarizeLater } from './summarize.js';
 import { agreementRoutes } from './agreements.js';
+import { notifyOwnerLater } from './notify.js';
+import { getSettings, contactFor } from './settings.js';
 
 export const memberRoutes = ctx => route(ctx, [
   ['GET', '/api/me', me],
@@ -22,6 +24,8 @@ export const memberRoutes = ctx => route(ctx, [
   ['GET', '/api/plans/:id/posts', listPosts],
   ['POST', '/api/plans/:id/posts', createPost],
   ['DELETE', '/api/posts/:id', deletePost],
+  ['PATCH', '/api/posts/:id', updatePost],
+  ['GET', '/api/contact', contactInfo],
   ...agreementRoutes,
 ]);
 
@@ -208,7 +212,7 @@ async function listPosts(ctx, { id }) {
   const task = ctx.url.searchParams.get('task');
   const after = ctx.url.searchParams.get('after') || '';
   const rows = (await ctx.db.prepare(
-    `SELECT p.id, p.task_id, p.kind, p.user_id, p.author_name, p.body, p.summary, p.created_at, u.role AS author_role
+    `SELECT p.id, p.task_id, p.kind, p.user_id, p.author_name, p.body, p.summary, p.urgency, p.handled_at, p.created_at, u.role AS author_role
      FROM posts p LEFT JOIN users u ON u.id = p.user_id
      WHERE p.plan_id = ? AND p.kind = ? AND ${task ? 'p.task_id = ?' : 'p.task_id IS NULL'} AND p.created_at > ?
      ORDER BY p.created_at DESC LIMIT 200`,
@@ -235,18 +239,59 @@ async function createPost(ctx, { id }) {
     taskTitle = task.title;
   }
   const text_ = text(body.body, 'Message', { max: 4000 });
+  // Urgency is for messages from the client's side. The owner's own posts are always normal.
+  const urgency = isOwner(user) ? 'normal' : oneOf(body.urgency || 'normal', ['normal', 'soon', 'urgent'], 'urgency');
+  if (urgency !== 'normal' && kind !== 'message') throw new HttpError(400, 'Only messages can be marked soon or urgent');
   const postId = newId();
   const t = now();
-  await ctx.db.prepare('INSERT INTO posts (id, plan_id, task_id, kind, user_id, author_name, body, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(postId, id, taskId, kind, user.id, user.name, text_, t).run();
+  await ctx.db.prepare('INSERT INTO posts (id, plan_id, task_id, kind, user_id, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(postId, id, taskId, kind, user.id, user.name, text_, urgency, t).run();
+  // The owner replying in a plan's chat counts as handling what was waiting there.
+  if (isOwner(user) && kind === 'message') {
+    await ctx.db.prepare(`UPDATE posts SET handled_at = ? WHERE plan_id = ? AND handled_at IS NULL AND urgency != 'normal' AND ${taskId ? 'task_id = ?' : 'task_id IS NULL'}`)
+      .bind(...[t, id, taskId].filter(v => v !== null)).run();
+  }
   await touchPlan(ctx.db, id);
   const where = taskId ? ` on "${taskTitle}"` : ` in ${plan.title}`;
   await logActivity(ctx.db, {
     planId: id, ...userActor(user), action: taskId ? 'task_comment' : `post_${kind}`, refType: 'post', refId: postId,
-    summary: `${user.name} ${taskId ? 'commented' : KIND_WORDS[kind]}${where}: ${text_.slice(0, 300)}`,
+    summary: `${urgency === 'urgent' ? 'URGENT: ' : urgency === 'soon' ? 'Soon: ' : ''}${user.name} ${taskId ? 'commented' : KIND_WORDS[kind]}${where}: ${text_.slice(0, 300)}`,
   });
   summarizeLater(ctx, postId, text_);
-  return json({ post: { id: postId, task_id: taskId, kind, user_id: user.id, author_name: user.name, author_role: user.role, body: text_, created_at: t, mine: true } }, 201);
+  let contact = null;
+  if (urgency !== 'normal') {
+    notifyOwnerLater(ctx, {
+      title: `${urgency === 'urgent' ? 'Urgent' : 'Soon'}: ${plan.title}`,
+      body: `${user.name}: ${text_.slice(0, 180)}`,
+      url: `/portal/#/plan/${id}/${taskId ? 'progress' : 'chat'}`,
+      urgency,
+    });
+    if (urgency === 'urgent') contact = contactFor(await getSettings(ctx.db));
+  }
+  return json({ post: { id: postId, task_id: taskId, kind, user_id: user.id, author_name: user.name, author_role: user.role, body: text_, urgency, handled_at: null, created_at: t, mine: true }, contact }, 201);
+}
+
+// Owner marks a soon/urgent message handled (or not).
+async function updatePost(ctx, { id }) {
+  const user = requireOwner(ctx);
+  const post = await ctx.db.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
+  if (!post) throw new HttpError(404, 'Not found');
+  const body = await readJson(ctx.request);
+  if (body.handled !== undefined) {
+    await ctx.db.prepare('UPDATE posts SET handled_at = ? WHERE id = ?').bind(body.handled ? now() : null, id).run();
+    if (body.handled) await logActivity(ctx.db, { planId: post.plan_id, ...userActor(user), action: 'post_handled', refType: 'post', refId: id, summary: `${user.name} marked ${post.author_name}'s ${post.urgency} message handled` });
+  }
+  if (body.urgency !== undefined) {
+    await ctx.db.prepare('UPDATE posts SET urgency = ? WHERE id = ?').bind(oneOf(body.urgency, ['normal', 'soon', 'urgent'], 'urgency'), id).run();
+  }
+  return json({ ok: true });
+}
+
+// Studio hours, shown next to the urgency choice. The phone number is never sent here.
+async function contactInfo(ctx) {
+  requireApproved(ctx);
+  const c = contactFor(await getSettings(ctx.db));
+  return json({ open: c.open, hours: c.hours, text_possible: !!c.text_phone });
 }
 
 async function deletePost(ctx, { id }) {

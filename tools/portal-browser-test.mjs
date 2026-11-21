@@ -8,7 +8,11 @@ import { startDevServer } from './dev-server.mjs';
 
 const require = createRequire(import.meta.url);
 const AXE = await readFile(require.resolve('axe-core/axe.min.js'), 'utf8');
-const { server, url: BASE } = await startDevServer({ port: 0, env: { SUMMARIZE_FN: async () => 'We would like to launch before the holidays. Can you confirm the date?' } });
+const pushed = [];
+const { server, url: BASE } = await startDevServer({ port: 0, env: {
+  SUMMARIZE_FN: async () => 'We would like to launch before the holidays. Can you confirm the date?',
+  VAPID_PUBLIC_KEY: 'test', VAPID_PRIVATE_KEY: 'test', PUSH_FN: async (sub, msg) => { pushed.push(msg); return 201; },
+} });
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const failures = [];
 const passes = [];
@@ -43,6 +47,8 @@ await call(seed.page, `/api/plans/${planId}/payments`, 'POST', { label: 'On laun
 await call(seed.page, `/api/plans/${planId}/extras`, 'POST', { title: 'Set up email forwarding', hours: 1, amount: 75 });
 await call(seed.page, `/api/plans/${planId}/agreement`, 'PATCH', { status: 'shared' });
 await call(seed.page, `/api/plans/${planId}/posts`, 'POST', { body: 'A long note about the launch, with all the details we discussed. '.repeat(14) });
+await call(seed.page, '/api/admin/settings', 'PUT', { days: [0, 1, 2, 3, 4, 5, 6], hours_start: '00:00', hours_end: '23:59', timezone: 'UTC', text_enabled: true, text_phone: '+1 808 555 0100' });
+await call(seed.page, '/api/admin/push/subscribe', 'POST', { subscription: { endpoint: 'https://push.example.com/t', keys: { p256dh: 'x', auth: 'y' } } });
 const pending = await signedIn('waiting@example.com', 'Wren Waiting');
 const memberSeed = await signedIn('member@example.com', 'Mia Member');
 const users = (await call(seed.page, '/api/admin/users')).users;
@@ -141,6 +147,36 @@ for (const [size, opts] of SIZES) {
   await owner.page.waitForSelector('.client');
   const board = await owner.page.textContent('.board');
   check(board.includes('Sample client') && board.includes('agreed') && board.includes('$2,500.00'), 'board: the owner sees each client, agreement status and money owed');
+  await member.ctx.close();
+  await owner.ctx.close();
+}
+
+// Urgent messages: the member has to confirm, the owner is notified and sees it first, texting is offered.
+{
+  const member = await signedIn('member@example.com', 'Mia Member', { viewport: { width: 390, height: 844 } });
+  await member.page.goto(`${BASE}/portal/#/plan/${planId}/chat`);
+  await member.page.waitForSelector('.urgency-select');
+  await member.page.fill('.composer textarea', 'The site shows an error on every page.');
+  await member.page.selectOption('.urgency-select', 'urgent');
+  check(await member.page.isVisible('.urgent-guard'), 'urgent: choosing Urgent explains what counts as urgent');
+  const postsBefore = await member.page.locator('.post').count();
+  await member.page.click('.composer button[type=submit]');
+  await member.page.waitForTimeout(300);
+  check(await member.page.locator('.post').count() === postsBefore && await member.page.isHidden('.urgent-after'), 'urgent: it is not sent until the member confirms');
+  await member.page.check('.urgent-guard input');
+  await member.page.click('.composer button[type=submit]');
+  await member.page.waitForSelector('.urgent-after:not([hidden])');
+  const sms = await member.page.getAttribute('.urgent-after a', 'href');
+  check(sms?.startsWith('sms:+18085550100'), 'urgent: after sending, the member is offered a text to the studio');
+  await member.page.waitForTimeout(200);
+  check(pushed.some(p => /Urgent/.test(p.title)), 'urgent: the owner’s phone is notified');
+  const owner = await signedIn('owner@example.com', 'Owner');
+  await owner.page.goto(`${BASE}/portal/#/owner`);
+  await owner.page.waitForSelector('.attention-list');
+  check((await owner.page.textContent('.attention-list')).includes('error on every page'), 'urgent: the message tops the owner’s Needs attention list');
+  await owner.page.click('.attention-list button:has-text("Mark handled")');
+  await owner.page.waitForTimeout(300);
+  check(await owner.page.locator('.attention-list li').count() === 0, 'urgent: marking it handled clears it');
   await member.ctx.close();
   await owner.ctx.close();
 }

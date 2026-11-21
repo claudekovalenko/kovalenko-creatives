@@ -1,6 +1,8 @@
 // Owner dashboard: approvals, people, agent proposals, agent tokens, activity and the summary digest.
 import { HttpError, json, now, newId, randomToken, sha256Hex, readJson, text, oneOf } from './util.js';
 import { route } from './router.js';
+import { getSettings, saveSettings, contactFor, withinHours, hoursText } from './settings.js';
+import { notifyOwner } from './notify.js';
 import { requireOwner, logActivity, userActor, progressOf, publicUser, moneyOf, dollars, unreadOf } from './data.js';
 
 export const adminRoutes = ctx => {
@@ -18,6 +20,14 @@ export const adminRoutes = ctx => {
     ['DELETE', '/api/admin/agents/:id', revokeAgent],
     ['GET', '/api/admin/summary', summary],
     ['GET', '/api/admin/board', board],
+    ['GET', '/api/admin/attention', attention],
+    ['GET', '/api/admin/settings', readSettings],
+    ['PUT', '/api/admin/settings', writeSettings],
+    ['GET', '/api/admin/push/key', pushKey],
+    ['POST', '/api/admin/push/subscribe', pushSubscribe],
+    ['POST', '/api/admin/push/unsubscribe', pushUnsubscribe],
+    ['POST', '/api/admin/push/test', pushTest],
+    ['GET', '/api/admin/notifications', notificationLog],
     ['GET', '/api/admin/clients', listClients],
     ['POST', '/api/admin/clients', createClient],
     ['PATCH', '/api/admin/clients/:id', updateClient],
@@ -145,9 +155,82 @@ async function decideProposal(ctx, { id }) {
   const note = text(body.note, 'Note', { max: 2000, required: false });
   const p = await ctx.db.prepare('SELECT * FROM proposals WHERE id = ?').bind(id).first();
   if (!p) throw new HttpError(404, 'Proposal not found');
-  await ctx.db.prepare('UPDATE proposals SET status = ?, owner_note = ?, updated_at = ? WHERE id = ?').bind(status, note || p.owner_note, now(), id).run();
+  // Approving with a reply posts it to the member, as the owner, in the same place they wrote.
+  let replyPostId = p.reply_post_id;
+  const reply = body.reply !== undefined ? text(body.reply, 'Reply', { max: 4000, required: false }) : '';
+  if (status === 'approved' && reply && !p.reply_post_id) {
+    if (!p.plan_id) throw new HttpError(400, 'This proposal is not tied to a plan, so there is nowhere to send a reply');
+    const original = p.post_id ? await ctx.db.prepare('SELECT task_id FROM posts WHERE id = ?').bind(p.post_id).first() : null;
+    replyPostId = newId();
+    const t = now();
+    await ctx.db.prepare(`INSERT INTO posts (id, plan_id, task_id, kind, user_id, author_name, body, urgency, created_at) VALUES (?, ?, ?, 'message', ?, ?, ?, 'normal', ?)`)
+      .bind(replyPostId, p.plan_id, original?.task_id || null, owner.id, owner.name, reply, t).run();
+    if (p.post_id) await ctx.db.prepare('UPDATE posts SET handled_at = ? WHERE id = ? AND handled_at IS NULL').bind(t, p.post_id).run();
+    await logActivity(ctx.db, { planId: p.plan_id, ...userActor(owner), action: 'post_message', refType: 'post', refId: replyPostId, summary: `${owner.name} replied (drafted by an agent): ${reply.slice(0, 200)}` });
+  }
+  await ctx.db.prepare('UPDATE proposals SET status = ?, owner_note = ?, reply_post_id = ?, updated_at = ? WHERE id = ?').bind(status, note || p.owner_note, replyPostId, now(), id).run();
   await logActivity(ctx.db, { planId: p.plan_id, ...userActor(owner), action: `proposal_${status}`, refType: 'proposal', refId: id, summary: `${owner.name} ${status === 'done' ? 'closed' : status} proposal: ${p.title}${note ? ` (${note.slice(0, 200)})` : ''}` });
   return json({ ok: true });
+}
+
+// What needs the owner, most urgent first: unhandled urgent and soon messages, then plans
+// where members are waiting on a reply.
+async function attention(ctx) {
+  const rows = (await ctx.db.prepare(
+    `SELECT p.id, p.plan_id, p.task_id, p.author_name, p.body, p.summary, p.urgency, p.created_at, pl.title AS plan_title, c.name AS client_name, t.title AS task_title,
+       (SELECT COUNT(*) FROM proposals x WHERE x.post_id = p.id AND x.status = 'proposed') AS proposals
+     FROM posts p JOIN plans pl ON pl.id = p.plan_id LEFT JOIN clients c ON c.id = pl.client_id LEFT JOIN tasks t ON t.id = p.task_id
+     WHERE p.urgency != 'normal' AND p.handled_at IS NULL
+     ORDER BY p.urgency = 'urgent' DESC, p.created_at ASC LIMIT 100`,
+  ).all()).results;
+  const s = await getSettings(ctx.db);
+  return json({ items: rows, open: withinHours(s), hours: hoursText(s) });
+}
+
+async function readSettings(ctx) {
+  const s = await getSettings(ctx.db);
+  const devices = (await ctx.db.prepare('SELECT endpoint, label, created_at, last_ok_at FROM push_subscriptions WHERE user_id = ?').bind(ctx.user.id).all()).results;
+  return json({ settings: s, open: withinHours(s), hours: hoursText(s), push_ready: !!(ctx.env.VAPID_PUBLIC_KEY && ctx.env.VAPID_PRIVATE_KEY), devices: devices.map(d => ({ ...d, endpoint: d.endpoint.slice(0, 40) + '…', id: d.endpoint })) });
+}
+
+async function writeSettings(ctx) {
+  const s = await saveSettings(ctx.db, await readJson(ctx.request));
+  await logActivity(ctx.db, { ...userActor(ctx.user), action: 'settings_changed', refType: 'settings', summary: 'Availability and notification settings changed' });
+  return json({ settings: s, hours: hoursText(s), contact_preview: contactFor(s) });
+}
+
+async function pushKey(ctx) {
+  if (!ctx.env.VAPID_PUBLIC_KEY) throw new HttpError(503, 'Phone notifications are not set up yet (VAPID keys missing in Cloudflare settings)');
+  return json({ key: ctx.env.VAPID_PUBLIC_KEY });
+}
+
+async function pushSubscribe(ctx) {
+  const body = await readJson(ctx.request);
+  const sub = body.subscription || {};
+  const endpoint = text(sub.endpoint, 'endpoint', { max: 1000 });
+  if (!/^https:\/\//.test(endpoint)) throw new HttpError(400, 'Invalid subscription');
+  const p256dh = text(sub.keys?.p256dh, 'p256dh', { max: 200 });
+  const auth = text(sub.keys?.auth, 'auth', { max: 100 });
+  await ctx.db.prepare(
+    `INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth, label, created_at) VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT (endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth, label = excluded.label`,
+  ).bind(endpoint, ctx.user.id, p256dh, auth, text(body.label, 'label', { max: 80, required: false }) || 'This device', now()).run();
+  return json({ ok: true }, 201);
+}
+
+async function pushUnsubscribe(ctx) {
+  const endpoint = text((await readJson(ctx.request)).endpoint, 'endpoint', { max: 1000 });
+  await ctx.db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?').bind(endpoint, ctx.user.id).run();
+  return json({ ok: true });
+}
+
+async function pushTest(ctx) {
+  const result = await notifyOwner(ctx.env, ctx.db, { title: 'Kovalenko Creatives', body: 'Test notification: this device will get alerts for urgent messages.', url: '/portal/#/owner', urgency: 'urgent', force: true });
+  return json(result);
+}
+
+async function notificationLog(ctx) {
+  return json({ notifications: (await ctx.db.prepare('SELECT * FROM notifications ORDER BY id DESC LIMIT 30').all()).results });
 }
 
 async function listAgents(ctx) {
