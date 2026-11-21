@@ -59,18 +59,40 @@
     /* Comments */
     .comment-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; min-height: 60px; }
     .comment-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-    .comment-meta { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+    .comment-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
     .comment-name { font-weight: 600; font-size: 14px; }
     .comment-time { font-size: 12px; color: var(--muted); font-family: var(--mono); }
     .comment-body { font-size: 14px; line-height: 1.6; color: var(--text); }
-    .btn-delete { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; margin-left: auto; padding: 2px 6px; border-radius: 4px; }
+    .btn-delete { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; margin-left: auto; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .btn-delete:hover { background: var(--danger); color: #fff; }
     .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
+
+    /* Tag badges */
+    .tag-badge {
+      display: inline-block; font-size: 10px; font-family: var(--mono); letter-spacing: .04em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 20px; font-weight: 700;
+    }
+    .tag-question { background: #1c2e4a; color: #58a6ff; border: 1px solid #1f3a5f; }
+    .tag-feedback { background: #2a1f4a; color: #c084fc; border: 1px solid #3d2b6e; }
+    .tag-urgent   { background: #3d1a1a; color: #f97316; border: 1px solid #5a2a1a; }
+    .tag-idea     { background: #1f3020; color: #4ade80; border: 1px solid #2a4a2f; }
 
     /* Compose */
     .compose { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
     .compose textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; }
     .compose textarea:focus { border-color: var(--accent); }
+    .compose-tags { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+    .compose-tags-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: .04em; margin-right: 2px; }
+    .tag-pill {
+      border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+      border-radius: 20px; padding: 3px 10px; font-size: 11px; font-family: var(--mono);
+      cursor: pointer; letter-spacing: .03em; transition: all .15s;
+    }
+    .tag-pill:hover { border-color: var(--muted); color: var(--text); }
+    .tag-pill.selected-question { background: #1c2e4a; color: #58a6ff; border-color: #1f3a5f; }
+    .tag-pill.selected-feedback { background: #2a1f4a; color: #c084fc; border-color: #3d2b6e; }
+    .tag-pill.selected-urgent   { background: #3d1a1a; color: #f97316; border-color: #5a2a1a; }
+    .tag-pill.selected-idea     { background: #1f3020; color: #4ade80; border-color: #2a4a2f; }
     .compose-footer { display: flex; justify-content: flex-end; margin-top: 10px; }
     .btn-post { background: var(--accent); color: var(--bg); border: none; padding: 8px 20px; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
     .btn-post:hover { opacity: .9; }
@@ -83,9 +105,38 @@
     .update-items li { font-size: 14px; line-height: 1.6; color: var(--text); padding: 4px 0 4px 18px; position: relative; }
     .update-items li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
 
+    /* Plan tab */
+    .plan-logo { text-align: center; padding: 32px 0 24px; }
+    .plan-logo img { max-width: 220px; max-height: 120px; object-fit: contain; }
+    .plan-logo-fallback { display: none; }
+    .plan-section { margin-bottom: 28px; }
+    .plan-section-title {
+      font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em;
+      text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .plan-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 12px; }
+    .plan-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .plan-card .plan-sp-label { font-size: 11px; font-family: var(--mono); color: var(--accent); margin-bottom: 10px; }
+    .plan-items { list-style: none; margin-bottom: 14px; }
+    .plan-items li { font-size: 13px; line-height: 1.6; color: var(--text); padding: 3px 0 3px 18px; position: relative; }
+    .plan-items li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-size: 11px; top: 5px; }
+    .plan-accepted { background: var(--accent-dim); border: 1px solid #2a5c3f; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: #a7f3d0; margin-top: 4px; }
+    .plan-accepted strong { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+    .plan-timeline { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .plan-timeline th { text-align: left; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .plan-timeline td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .plan-timeline tr:last-child td { border-bottom: none; }
+    .plan-timeline tr:hover td { background: var(--accent-dim); }
+    .plan-timeline td:first-child { font-weight: 600; }
+    .plan-mvp { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .plan-mvp p { font-size: 14px; line-height: 1.7; color: var(--text); }
+
     @media (max-width: 600px) {
       .login-box { padding: 28px 20px; }
       #portal-screen { padding: 20px 16px; }
+      .plan-timeline { font-size: 12px; }
+      .plan-timeline th, .plan-timeline td { padding: 7px 8px; }
     }
   </style>
 </head>
@@ -127,23 +178,148 @@
   <div class="tabs">
     <button class="tab active" onclick="showTab('comments')">Comments</button>
     <button class="tab" onclick="showTab('updates')">Updates</button>
+    <button class="tab" onclick="showTab('plan')">Plan</button>
   </div>
 
+  <!-- Comments tab -->
   <div id="tab-comments" class="tab-panel active">
     <div class="comment-list" id="comment-list">
       <div class="empty-state">Loading…</div>
     </div>
     <div class="compose">
       <textarea id="compose-text" placeholder="Leave a note, question, or feedback…"></textarea>
+      <div class="compose-tags">
+        <span class="compose-tags-label">TAG</span>
+        <button class="tag-pill" data-tag="question" onclick="toggleTag('question')">Question</button>
+        <button class="tag-pill" data-tag="feedback" onclick="toggleTag('feedback')">Feedback</button>
+        <button class="tag-pill" data-tag="urgent" onclick="toggleTag('urgent')">Urgent</button>
+        <button class="tag-pill" data-tag="idea" onclick="toggleTag('idea')">Idea</button>
+      </div>
       <div class="compose-footer">
         <button class="btn-post" id="post-btn" onclick="postComment()">Post</button>
       </div>
     </div>
   </div>
 
+  <!-- Updates tab -->
   <div id="tab-updates" class="tab-panel">
     <div id="updates-list">
       <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+
+  <!-- Plan tab -->
+  <div id="tab-plan" class="tab-panel">
+    <div class="plan-logo">
+      <img id="jpn-logo" src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
+           onerror="this.style.display='none'; document.getElementById('jpn-logo-svg').style.display='block'">
+      <svg id="jpn-logo-svg" style="display:none" width="180" height="80" viewBox="0 0 180 80" xmlns="http://www.w3.org/2000/svg">
+        <rect width="180" height="80" rx="10" fill="#161b22"/>
+        <circle cx="90" cy="40" r="22" fill="none" stroke="#4fd1a1" stroke-width="2"/>
+        <circle cx="90" cy="40" r="6" fill="#4fd1a1"/>
+        <circle cx="58" cy="24" r="4" fill="#4fd1a1" opacity=".7"/>
+        <circle cx="122" cy="24" r="4" fill="#4fd1a1" opacity=".7"/>
+        <circle cx="58" cy="56" r="4" fill="#4fd1a1" opacity=".7"/>
+        <circle cx="122" cy="56" r="4" fill="#4fd1a1" opacity=".7"/>
+        <line x1="68" y1="40" x2="84" y2="40" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
+        <line x1="96" y1="40" x2="112" y2="40" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
+        <line x1="90" y1="18" x2="90" y2="34" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
+        <line x1="90" y1="46" x2="90" y2="62" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
+        <line x1="62" y1="27" x2="74" y2="34" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
+        <line x1="106" y1="34" x2="118" y2="27" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
+        <line x1="62" y1="53" x2="74" y2="46" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
+        <line x1="106" y1="46" x2="118" y2="53" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
+        <text x="90" y="74" font-family="system-ui,sans-serif" font-size="9" fill="#4fd1a1" text-anchor="middle" letter-spacing="2" font-weight="700">JESUS PEOPLE NETWORK</text>
+      </svg>
+    </div>
+
+    <div class="plan-section">
+      <div class="plan-section-title">Stopping Point 1 — Foundation</div>
+      <div class="plan-card">
+        <div class="plan-sp-label">SP1 · 6–8 weeks · Late Nov – Mid Dec 2026</div>
+        <h3>Foundation + Live Journey Pages</h3>
+        <ul class="plan-items">
+          <li>Discovery session confirmed and documented</li>
+          <li>Data model defined (creators, journeys, responses)</li>
+          <li>Network site scaffolded and deployed</li>
+          <li>Creator site with unique URL slug live</li>
+          <li>Three-step journey structure working</li>
+          <li>Response form collecting and saving submissions</li>
+        </ul>
+        <div class="plan-accepted">
+          <strong>Accepted when</strong>
+          A visitor can open a creator's link, go through all three steps, submit a response, and that response is saved under that creator.
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-section">
+      <div class="plan-section-title">Stopping Point 2 — Creator Platform</div>
+      <div class="plan-card">
+        <div class="plan-sp-label">SP2 · 5–7 weeks · End Dec 2026 – Late Jan 2027</div>
+        <h3>Creator Registration + Dashboard</h3>
+        <ul class="plan-items">
+          <li>Creator registration flow (name, email, org)</li>
+          <li>Google sign-in integrated</li>
+          <li>Creator dashboard with journey editor</li>
+          <li>Content blocks: text, image, video, call-to-action</li>
+          <li>Publish / unpublish toggle</li>
+          <li>Response analytics per creator</li>
+          <li>CSV export of responses</li>
+        </ul>
+        <div class="plan-accepted">
+          <strong>Accepted when</strong>
+          A creator can register, configure their three journey sections, publish, and see their own responses and basic analytics.
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-section">
+      <div class="plan-section-title">Stopping Point 3 — Network CRM + Launch</div>
+      <div class="plan-card">
+        <div class="plan-sp-label">SP3 · 6–8 weeks · Mid Feb – Late Mar 2027</div>
+        <h3>Admin, Follow-up &amp; Handoff</h3>
+        <ul class="plan-items">
+          <li>Network admin: manage creators, view all responses</li>
+          <li>Aggregated analytics across all creators</li>
+          <li>Follow-up email system (manual trigger)</li>
+          <li>QA across devices and browsers</li>
+          <li>Staging environment sign-off</li>
+          <li>Handoff: docs, training, DNS, production launch</li>
+        </ul>
+        <div class="plan-accepted">
+          <strong>Accepted when</strong>
+          MVP acceptance statement is fully met in production.
+        </div>
+      </div>
+    </div>
+
+    <div class="plan-section">
+      <div class="plan-section-title">Timeline</div>
+      <div class="plan-card" style="padding: 0; overflow: hidden;">
+        <table class="plan-timeline">
+          <thead>
+            <tr>
+              <th>Phase</th>
+              <th>Duration</th>
+              <th>Window</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>SP1 — Foundation</td><td>6–8 weeks</td><td>Late Nov – Mid Dec 2026</td></tr>
+            <tr><td>SP2 — Creator Platform</td><td>5–7 weeks</td><td>End Dec 2026 – Late Jan 2027</td></tr>
+            <tr><td>SP3 — Network + Launch</td><td>6–8 weeks</td><td>Mid Feb – Late Mar 2027</td></tr>
+            <tr><td style="color:var(--accent)">Full MVP</td><td style="color:var(--accent)">17–23 weeks</td><td style="color:var(--accent)">Nov 2026 – Mar 2027</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="plan-section">
+      <div class="plan-section-title">MVP Acceptance Statement</div>
+      <div class="plan-mvp">
+        <p>A new creator can register, receive a unique URL, configure three journey sections, publish, receive trackable responses, see their own data and analytics, and the network can see aggregated responses across all creators and trigger a follow-up email.</p>
+      </div>
     </div>
   </div>
 </div>
@@ -152,6 +328,8 @@
   let currentUser = null;
   let currentProject = null;
   let pollTimer = null;
+  let selectedTag = null;
+  const TABS = ['comments', 'updates', 'plan'];
 
   // --- Auth ---
   function restoreSession() {
@@ -211,9 +389,17 @@
 
   // --- Tabs ---
   function showTab(tab) {
-    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['comments','updates'][i] === tab));
-    document.getElementById('tab-comments').classList.toggle('active', tab === 'comments');
-    document.getElementById('tab-updates').classList.toggle('active', tab === 'updates');
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', TABS[i] === tab));
+    TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === tab));
+  }
+
+  // --- Tags ---
+  function toggleTag(tag) {
+    selectedTag = selectedTag === tag ? null : tag;
+    document.querySelectorAll('.tag-pill').forEach(p => {
+      const t = p.dataset.tag;
+      p.className = 'tag-pill' + (selectedTag === t ? ' selected-' + t : '');
+    });
   }
 
   // --- Comments ---
@@ -228,16 +414,21 @@
   function renderComments(posts) {
     const el = document.getElementById('comment-list');
     if (!posts.length) { el.innerHTML = '<div class="empty-state">No messages yet. Be the first to leave a note.</div>'; return; }
-    el.innerHTML = posts.map(p => `
-      <div class="comment-item" id="comment-${p.id}">
-        <div class="comment-meta">
-          <span class="comment-name">${esc(p.author_name)}</span>
-          <span class="comment-time">${formatDate(p.created_at)}</span>
-          ${p.author_name === currentUser ? `<button class="btn-delete" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : ''}
+    el.innerHTML = posts.map(p => {
+      const tag = p.urgency && p.urgency !== 'normal' ? `<span class="tag-badge tag-${esc(p.urgency)}">${esc(p.urgency)}</span>` : '';
+      const del = p.author_name === currentUser ? `<button class="btn-delete" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
+      return `
+        <div class="comment-item" id="comment-${p.id}">
+          <div class="comment-meta">
+            <span class="comment-name">${esc(p.author_name)}</span>
+            ${tag}
+            <span class="comment-time">${formatDate(p.created_at)}</span>
+            ${del}
+          </div>
+          <div class="comment-body">${esc(p.body)}</div>
         </div>
-        <div class="comment-body">${esc(p.body)}</div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   async function deleteComment(id) {
@@ -255,9 +446,17 @@
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan_id: currentProject.id, author_name: currentUser, body: text, kind: 'message' }),
+        body: JSON.stringify({
+          plan_id: currentProject.id,
+          author_name: currentUser,
+          body: text,
+          kind: 'message',
+          urgency: selectedTag || 'normal',
+        }),
       });
       document.getElementById('compose-text').value = '';
+      selectedTag = null;
+      document.querySelectorAll('.tag-pill').forEach(p => p.className = 'tag-pill');
       await loadComments();
     } finally { btn.disabled = false; }
   }
