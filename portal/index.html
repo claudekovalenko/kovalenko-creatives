@@ -52,15 +52,21 @@
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* Comments tab */
-    .comment-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; min-height: 60px; }
-    .comment-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-    .comment-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
-    .comment-name { font-weight: 600; font-size: 14px; }
-    .comment-time { font-size: 12px; color: var(--muted); font-family: var(--mono); }
-    .comment-body { font-size: 14px; line-height: 1.6; }
-    .btn-delete { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; margin-left: auto; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
-    .btn-delete:hover { background: var(--danger); color: #fff; }
+    /* Chat feed */
+    .chat-feed { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; min-height: 80px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
+    .chat-feed::-webkit-scrollbar { width: 4px; }
+    .chat-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .chat-row { display: flex; flex-direction: column; }
+    .chat-row.mine { align-items: flex-end; }
+    .chat-row.theirs { align-items: flex-start; }
+    .chat-sender { font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 4px; letter-spacing: .03em; }
+    .chat-bubble { max-width: 72%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; word-break: break-word; position: relative; }
+    .chat-row.mine .chat-bubble { background: var(--accent); color: var(--bg); border-bottom-right-radius: 4px; }
+    .chat-row.theirs .chat-bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .chat-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+    .chat-time { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+    .chat-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px; padding: 1px 5px; border-radius: 4px; opacity: 0.5; }
+    .chat-del:hover { background: var(--danger); color: #fff; opacity: 1; }
     .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
 
     .tag-badge { display: inline-block; font-size: 10px; font-family: var(--mono); letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; font-weight: 700; }
@@ -69,9 +75,13 @@
     .tag-urgent   { background: #3d1a1a; color: #f97316; border: 1px solid #5a2a1a; }
     .tag-idea     { background: #1f3020; color: #4ade80; border: 1px solid #2a4a2f; }
 
-    .compose { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-    .compose textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; }
+    .compose { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .compose-input-row { display: flex; gap: 8px; align-items: flex-end; }
+    .compose textarea { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); resize: none; min-height: 44px; max-height: 120px; outline: none; line-height: 1.5; overflow-y: auto; }
     .compose textarea:focus { border-color: var(--accent); }
+    .btn-post { background: var(--accent); color: var(--bg); border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); flex-shrink: 0; height: 44px; }
+    .btn-post:hover { opacity: .9; }
+    .btn-post:disabled { opacity: .4; cursor: not-allowed; }
     .compose-tags { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
     .compose-tags-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: .04em; margin-right: 2px; }
     .tag-pill { border: 1px solid var(--border); background: var(--bg); color: var(--muted); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-family: var(--mono); cursor: pointer; letter-spacing: .03em; }
@@ -80,10 +90,9 @@
     .tag-pill.selected-feedback { background: #2a1f4a; color: #c084fc; border-color: #3d2b6e; }
     .tag-pill.selected-urgent   { background: #3d1a1a; color: #f97316; border-color: #5a2a1a; }
     .tag-pill.selected-idea     { background: #1f3020; color: #4ade80; border-color: #2a4a2f; }
-    .compose-footer { display: flex; justify-content: flex-end; margin-top: 10px; }
-    .btn-post { background: var(--accent); color: var(--bg); border: none; padding: 8px 20px; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
-    .btn-post:hover { opacity: .9; }
-    .btn-post:disabled { opacity: .4; cursor: not-allowed; }
+    .feed-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+    .btn-copy-claude { background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-family: var(--mono); letter-spacing: .04em; }
+    .btn-copy-claude:hover { color: var(--accent); border-color: var(--accent); }
 
     /* Updates tab */
     .update-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
@@ -222,18 +231,21 @@
 
   <!-- Comments -->
   <div id="tab-comments" class="tab-panel active">
-    <div class="comment-list" id="comment-list"><div class="empty-state">Loading…</div></div>
+    <div class="feed-toolbar">
+      <button class="btn-copy-claude" onclick="copyForClaude()" title="Copy the full conversation for pasting into Claude">Copy for Claude</button>
+    </div>
+    <div class="chat-feed" id="comment-list"><div class="empty-state">Loading…</div></div>
     <div class="compose">
-      <textarea id="compose-text" placeholder="Leave a note, question, or feedback…"></textarea>
+      <div class="compose-input-row">
+        <textarea id="compose-text" placeholder="Message…" rows="1" onkeydown="handleComposeKey(event)" oninput="autoGrow(this)"></textarea>
+        <button class="btn-post" id="post-btn" onclick="postComment()">Send</button>
+      </div>
       <div class="compose-tags">
         <span class="compose-tags-label">TAG</span>
         <button class="tag-pill" data-tag="question" onclick="toggleTag('question')">Question</button>
         <button class="tag-pill" data-tag="feedback" onclick="toggleTag('feedback')">Feedback</button>
         <button class="tag-pill" data-tag="urgent"   onclick="toggleTag('urgent')">Urgent</button>
         <button class="tag-pill" data-tag="idea"     onclick="toggleTag('idea')">Idea</button>
-      </div>
-      <div class="compose-footer">
-        <button class="btn-post" id="post-btn" onclick="postComment()">Post</button>
       </div>
     </div>
   </div>
@@ -380,7 +392,7 @@
     loadUpdates();
     renderStagesSkeleton();
     loadPlanTasks();
-    pollTimer = setInterval(loadComments, 30000);
+    pollTimer = setInterval(loadComments, 5000);
   }
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
@@ -398,29 +410,43 @@
   }
 
   // ── Comments tab ──────────────────────────────────────────────────────────
+  let _firstCommentLoad = true;
   async function loadComments() {
     try {
       const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`);
       const posts = (await res.json()).filter(p => !p.task_id); // global comments only
       renderComments(posts);
+      if (_firstCommentLoad) {
+        _firstCommentLoad = false;
+        const feed = document.getElementById('comment-list');
+        feed.scrollTop = feed.scrollHeight;
+      }
     } catch {}
   }
 
   function renderComments(posts) {
     const el = document.getElementById('comment-list');
-    if (!posts.length) { el.innerHTML = '<div class="empty-state">No messages yet. Be the first to leave a note.</div>'; return; }
+    if (!posts.length) { el.innerHTML = '<div class="empty-state">No messages yet. Send the first one.</div>'; return; }
+    const wasAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 40;
     el.innerHTML = posts.map(p => {
+      const mine = p.author_name === currentUser;
       const tag = p.urgency && p.urgency !== 'normal' ? `<span class="tag-badge tag-${esc(p.urgency)}">${esc(p.urgency)}</span>` : '';
-      const del = p.author_name === currentUser ? `<button class="btn-delete" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
-      return `<div class="comment-item" id="comment-${p.id}">
-        <div class="comment-meta"><span class="comment-name">${esc(p.author_name)}</span>${tag}<span class="comment-time">${fmt(p.created_at)}</span>${del}</div>
-        <div class="comment-body">${esc(p.body)}</div>
+      const del = mine ? `<button class="chat-del" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
+      return `<div class="chat-row ${mine ? 'mine' : 'theirs'}" id="comment-${p.id}">
+        ${!mine ? `<div class="chat-sender">${esc(p.author_name)}</div>` : ''}
+        <div class="chat-bubble">${esc(p.body)}</div>
+        <div class="chat-meta">
+          ${tag}
+          <span class="chat-time">${fmt(p.created_at)}</span>
+          ${del}
+        </div>
       </div>`;
     }).join('');
+    if (wasAtBottom) el.scrollTop = el.scrollHeight;
   }
 
   async function deleteComment(id) {
-    if (!confirm('Delete this comment?')) return;
+    if (!confirm('Delete this message?')) return;
     await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
     document.getElementById(`comment-${id}`)?.remove();
   }
@@ -437,10 +463,57 @@
         body: JSON.stringify({ plan_id: currentProject.id, author_name: currentUser, body: text, kind: 'message', urgency: selectedTag || 'normal' }),
       });
       document.getElementById('compose-text').value = '';
+      autoGrow(document.getElementById('compose-text'));
       selectedTag = null;
       document.querySelectorAll('.tag-pill').forEach(p => p.className = 'tag-pill');
       await loadComments();
+      const feed = document.getElementById('comment-list');
+      feed.scrollTop = feed.scrollHeight;
     } finally { btn.disabled = false; }
+  }
+
+  function handleComposeKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); postComment(); }
+  }
+
+  function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  async function copyForClaude() {
+    try {
+      const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`);
+      const all = await res.json();
+      const global = all.filter(p => !p.task_id);
+      const taskMsgs = all.filter(p => p.task_id);
+
+      let out = `# Portal conversation — ${currentProject.name}\nExported ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}\n\n`;
+
+      if (global.length) {
+        out += `## Comments feed\n`;
+        for (const p of global) {
+          const tag = p.urgency && p.urgency !== 'normal' ? ` [${p.urgency.toUpperCase()}]` : '';
+          out += `**${p.author_name}**${tag} · ${fmt(p.created_at)}\n${p.body}\n\n`;
+        }
+      }
+
+      if (taskMsgs.length) {
+        out += `## Task notes\n`;
+        const byTask = {};
+        for (const m of taskMsgs) { if (!byTask[m.task_id]) byTask[m.task_id] = []; byTask[m.task_id].push(m); }
+        for (const [tid, msgs] of Object.entries(byTask)) {
+          out += `### Task ${tid}\n`;
+          for (const m of msgs) out += `**${m.author_name}** · ${fmt(m.created_at)}\n${m.body}\n\n`;
+        }
+      }
+
+      await navigator.clipboard.writeText(out);
+      const btn = document.querySelector('.btn-copy-claude');
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = orig, 2000);
+    } catch (err) { alert('Could not copy: ' + err.message); }
   }
 
   // ── Updates tab ───────────────────────────────────────────────────────────
