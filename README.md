@@ -33,6 +33,7 @@ The public website is a plain static site: no framework, no third-party scripts.
 | `tools/dev-server.mjs` | Local preview of site and portal with a local database: `npm run dev` |
 | `tools/agent-watch.mjs` | Agent that reads new portal activity and sends the owner proposals: `npm run agent` |
 | `tools/import-plan.mjs` | Turns a plan exported from a claude.ai artifact into SQL for the portal |
+| `tools/build-demo.mjs` | Builds a one-file clickable demo of the portal with sample data, for previewing before it is live: `node tools/build-demo.mjs OUT.html` |
 
 ## Previewing locally
 
