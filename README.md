@@ -68,7 +68,7 @@ Open `/portal/` (or the **/members** link in the header). How it works:
 
 ### Moving a plan over from a claude.ai artifact
 
-Export the artifact's `tasks` collection to a folder (one JSON file per task), write a small config naming the plan and its phases (see the top of `tools/import-plan.mjs`), then `node tools/import-plan.mjs plan.json > plan.sql` and run `plan.sql` in the D1 console. Imported plans start unlisted; approve members for them on the dashboard. Keep the export and SQL out of this repository.
+Export the artifact's `tasks` collection to a folder (one JSON file per task), write a small config naming your clients and their projects (with phases, what's included, terms and payments where you have them; see the top of `tools/import-plan.mjs`), then `node tools/import-plan.mjs projects.json > projects.sql` and run `projects.sql` in the D1 console. Imported plans start unlisted; approve members for them on the dashboard. Keep the export and SQL out of this repository.
 
 ### Running an agent
 
