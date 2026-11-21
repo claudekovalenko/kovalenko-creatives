@@ -43,7 +43,7 @@ for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) {
 
 // 3. Privacy: nothing private may be published.
 const STUDIO_EMAIL = 'kovalenkocreatives@gmail.com';
-const published = ['index.html', 'projects.js', 'app.js', 'chat.js'].map(f => [f, readFileSync(f, 'utf8')]);
+const published = ['index.html', 'projects.js', 'app.js', 'chat.js', 'portal/index.html', 'portal/portal.js', 'sw.js', 'manifest.webmanifest'].map(f => [f, readFileSync(f, 'utf8')]);
 for (const [file, text] of published) {
   if (/claude\.ai\/(code\/)?artifact\//.test(text)) fail(`${file} links to a private claude.ai artifact`);
   for (const [email] of text.matchAll(/[\w.+-]+@[\w-]+(?:\.[a-z]{2,})+/gi)) {
@@ -74,12 +74,18 @@ for (const [file, text] of visibleCopy) {
     if (m) fail(`${file} contains ${what}: "${m[0]}"`);
   }
 }
+// 4b. The portal stays out of search results, and its server code never ships secrets.
+if (!/<meta name="robots" content="noindex/.test(readFileSync('portal/index.html', 'utf8'))) fail('portal/index.html must tell search engines not to index it');
+for (const f of readdirSync('server')) {
+  const code = readFileSync(`server/${f}`, 'utf8');
+  if (/GOCSPX-|sk-ant-|kca_[A-Za-z0-9_-]{20,}/.test(code)) fail(`server/${f} contains what looks like a secret; secrets belong in Cloudflare settings`);
+}
 if (!/sample/i.test(html.slice(html.indexOf('class="panel"'), html.indexOf('</figure>')))) fail('The hero panel must stay labelled as a sample');
 
 // 5. What goes online: build the live site and check that crawlers can reach only the website itself.
 execSync('sh tools/build.sh');
 const listFiles = dir => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? listFiles(`${dir}/${e.name}`) : [`${dir}/${e.name}`.slice('_site/'.length)]);
-const PUBLIC_FILE = /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt))$/;
+const PUBLIC_FILE = /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|sw\.js|manifest\.webmanifest|_headers|portal\/(index\.html|portal\.js|portal\.css)|icons\/[\w-]+\.(png|svg)|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt))$/;
 for (const f of listFiles('_site')) {
   if (!PUBLIC_FILE.test(f)) fail(`The live build would publish ${f}, which is not a website file`);
   if (!/\.(html|js|css)$/.test(f)) continue;

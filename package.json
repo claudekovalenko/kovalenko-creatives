@@ -1,13 +1,17 @@
 {
   "name": "kovalenko-creatives",
   "private": true,
-  "description": "Kovalenko Creatives website. The site itself has no dependencies; these are only for testing.",
+  "description": "Kovalenko Creatives website and members portal. The website needs nothing installed; these are for testing, local preview and the agent watcher.",
   "type": "module",
   "scripts": {
     "check": "node tools/check.mjs",
-    "test": "node tools/check.mjs && node tools/browser-test.mjs"
+    "dev": "node tools/dev-server.mjs",
+    "test:portal": "node tools/portal-api-test.mjs && node tools/portal-browser-test.mjs",
+    "test": "node tools/check.mjs && node tools/portal-api-test.mjs && node tools/browser-test.mjs && node tools/portal-browser-test.mjs",
+    "agent": "node tools/agent-watch.mjs"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "1.10.0",
     "axe-core": "4.14.0",
     "playwright": "1.64.1"
   }

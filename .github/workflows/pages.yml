@@ -23,6 +23,8 @@ jobs:
       # keyboard use, screenshots, assistant, security policy and what search engines read.
       - name: Install test tools
         run: npm ci && npx playwright install --with-deps chromium
+      - name: Portal API tests
+        run: node tools/portal-api-test.mjs
       - name: Browser tests
-        run: node tools/browser-test.mjs
+        run: node tools/browser-test.mjs && node tools/portal-browser-test.mjs
 

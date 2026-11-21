@@ -1,0 +1,218 @@
+// Owner dashboard: approvals, people, agent proposals, agent tokens, activity and the summary digest.
+import { HttpError, json, now, newId, randomToken, sha256Hex, readJson, text, oneOf } from './util.js';
+import { route } from './router.js';
+import { requireOwner, logActivity, userActor, progressOf, publicUser } from './data.js';
+
+export const adminRoutes = ctx => {
+  requireOwner(ctx);
+  return route(ctx, [
+    ['GET', '/api/admin/overview', overview],
+    ['GET', '/api/admin/users', listUsers],
+    ['POST', '/api/admin/users/:id', decideUser],
+    ['POST', '/api/admin/memberships', decideMembership],
+    ['GET', '/api/admin/activity', activity],
+    ['GET', '/api/admin/proposals', listProposals],
+    ['POST', '/api/admin/proposals/:id', decideProposal],
+    ['GET', '/api/admin/agents', listAgents],
+    ['POST', '/api/admin/agents', createAgent],
+    ['DELETE', '/api/admin/agents/:id', revokeAgent],
+    ['GET', '/api/admin/summary', summary],
+  ]);
+};
+
+// Everything that needs the owner's attention, in one request.
+async function overview(ctx) {
+  const db = ctx.db;
+  const [pendingUsers, pendingJoins, proposals, digest] = await Promise.all([
+    db.prepare(`SELECT * FROM users WHERE status = 'pending' ORDER BY created_at`).all(),
+    db.prepare(
+      `SELECT m.plan_id, m.user_id, m.note, m.requested_at, u.name, u.email, p.title AS plan_title
+       FROM plan_members m JOIN users u ON u.id = m.user_id JOIN plans p ON p.id = m.plan_id
+       WHERE m.status = 'pending' AND u.status = 'approved' ORDER BY m.requested_at`,
+    ).all(),
+    proposalRows(db, `p.status = 'proposed'`),
+    buildSummary(db, 7),
+  ]);
+  return json({
+    pending_users: pendingUsers.results.map(publicUser).map((u, i) => ({ ...u, created_at: pendingUsers.results[i].created_at })),
+    pending_joins: pendingJoins.results,
+    proposals,
+    summary: digest,
+  });
+}
+
+async function listUsers(ctx) {
+  const rows = (await ctx.db.prepare(`SELECT * FROM users ORDER BY role = 'owner' DESC, status, name`).all()).results;
+  const memberships = (await ctx.db.prepare(
+    `SELECT m.plan_id, m.user_id, m.status, p.title FROM plan_members m JOIN plans p ON p.id = m.plan_id`,
+  ).all()).results;
+  return json({
+    users: rows.map(u => ({ ...publicUser(u), created_at: u.created_at, last_seen_at: u.last_seen_at, plans: memberships.filter(m => m.user_id === u.id) })),
+  });
+}
+
+// Approve or block a person's account; optionally approve them for some plans at the same time.
+async function decideUser(ctx, { id }) {
+  const owner = ctx.user;
+  const body = await readJson(ctx.request);
+  const status = oneOf(body.status, ['approved', 'blocked', 'pending'], 'status');
+  const user = await ctx.db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+  if (!user) throw new HttpError(404, 'Person not found');
+  if (user.role === 'owner') throw new HttpError(400, 'Owner access is set with OWNER_EMAILS');
+  const t = now();
+  await ctx.db.prepare('UPDATE users SET status = ?, approved_at = ? WHERE id = ?').bind(status, status === 'approved' ? t : null, id).run();
+  if (status === 'blocked') await ctx.db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+  for (const planId of Array.isArray(body.plan_ids) ? body.plan_ids.slice(0, 50) : []) {
+    await setMembership(ctx.db, planId, id, 'approved');
+  }
+  await logActivity(ctx.db, { ...userActor(owner), action: `user_${status}`, refType: 'user', refId: id, summary: `${owner.name} ${status === 'approved' ? 'approved' : status === 'blocked' ? 'blocked' : 'reset'} ${user.name}` });
+  return json({ ok: true });
+}
+
+async function setMembership(db, planId, userId, status) {
+  const plan = await db.prepare('SELECT id FROM plans WHERE id = ?').bind(planId).first();
+  if (!plan) throw new HttpError(400, 'Unknown plan');
+  const t = now();
+  await db.prepare(
+    `INSERT INTO plan_members (plan_id, user_id, status, requested_at, decided_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (plan_id, user_id) DO UPDATE SET status = excluded.status, decided_at = excluded.decided_at`,
+  ).bind(planId, userId, status, t, t).run();
+}
+
+async function decideMembership(ctx) {
+  const owner = ctx.user;
+  const body = await readJson(ctx.request);
+  const status = oneOf(body.status, ['approved', 'declined'], 'status');
+  const user = await ctx.db.prepare('SELECT * FROM users WHERE id = ?').bind(String(body.user_id || '')).first();
+  if (!user) throw new HttpError(404, 'Person not found');
+  await setMembership(ctx.db, String(body.plan_id || ''), user.id, status);
+  if (status === 'approved' && user.status === 'pending') {
+    await ctx.db.prepare(`UPDATE users SET status = 'approved', approved_at = ? WHERE id = ?`).bind(now(), user.id).run();
+  }
+  const plan = await ctx.db.prepare('SELECT title FROM plans WHERE id = ?').bind(body.plan_id).first();
+  await logActivity(ctx.db, { planId: body.plan_id, ...userActor(owner), action: `join_${status}`, refType: 'user', refId: user.id, summary: `${owner.name} ${status} ${user.name} for ${plan.title}` });
+  return json({ ok: true });
+}
+
+async function activity(ctx) {
+  const limit = Math.min(Number(ctx.url.searchParams.get('limit')) || 50, 200);
+  const rows = (await ctx.db.prepare(
+    `SELECT a.*, p.title AS plan_title FROM activity a LEFT JOIN plans p ON p.id = a.plan_id ORDER BY a.id DESC LIMIT ?`,
+  ).bind(limit).all()).results;
+  return json({ activity: rows });
+}
+
+export async function proposalRows(db, where, binds = []) {
+  return (await db.prepare(
+    `SELECT p.*, a.name AS agent_name, pl.title AS plan_title, t.title AS task_title
+     FROM proposals p JOIN agents a ON a.id = p.agent_id LEFT JOIN plans pl ON pl.id = p.plan_id LEFT JOIN tasks t ON t.id = p.task_id
+     WHERE ${where} ORDER BY p.created_at DESC LIMIT 100`,
+  ).bind(...binds).all()).results;
+}
+
+async function listProposals(ctx) {
+  const status = ctx.url.searchParams.get('status');
+  const rows = status
+    ? await proposalRows(ctx.db, 'p.status = ?', [oneOf(status, ['proposed', 'approved', 'declined', 'in_progress', 'done'], 'status')])
+    : await proposalRows(ctx.db, '1 = 1');
+  return json({ proposals: rows });
+}
+
+async function decideProposal(ctx, { id }) {
+  const owner = ctx.user;
+  const body = await readJson(ctx.request);
+  const status = oneOf(body.status, ['approved', 'declined', 'done'], 'status');
+  const note = text(body.note, 'Note', { max: 2000, required: false });
+  const p = await ctx.db.prepare('SELECT * FROM proposals WHERE id = ?').bind(id).first();
+  if (!p) throw new HttpError(404, 'Proposal not found');
+  await ctx.db.prepare('UPDATE proposals SET status = ?, owner_note = ?, updated_at = ? WHERE id = ?').bind(status, note || p.owner_note, now(), id).run();
+  await logActivity(ctx.db, { planId: p.plan_id, ...userActor(owner), action: `proposal_${status}`, refType: 'proposal', refId: id, summary: `${owner.name} ${status === 'done' ? 'closed' : status} proposal: ${p.title}${note ? ` (${note.slice(0, 200)})` : ''}` });
+  return json({ ok: true });
+}
+
+async function listAgents(ctx) {
+  const rows = (await ctx.db.prepare('SELECT id, name, created_at, last_seen_at, revoked_at FROM agents ORDER BY created_at DESC').all()).results;
+  return json({ agents: rows });
+}
+
+// The token is shown once. Only its hash is stored, so a lost token is replaced, not recovered.
+async function createAgent(ctx) {
+  const name = text((await readJson(ctx.request)).name, 'Agent name', { max: 80 });
+  const id = newId();
+  const token = `kca_${randomToken(32)}`;
+  await ctx.db.prepare('INSERT INTO agents (id, name, token_hash, created_at) VALUES (?, ?, ?, ?)').bind(id, name, await sha256Hex(token), now()).run();
+  await logActivity(ctx.db, { ...userActor(ctx.user), action: 'agent_created', refType: 'agent', refId: id, summary: `Agent added: ${name}` });
+  return json({ id, name, token }, 201);
+}
+
+async function revokeAgent(ctx, { id }) {
+  const res = await ctx.db.prepare('UPDATE agents SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL').bind(now(), id).run();
+  if (!res.meta.changes) throw new HttpError(404, 'Agent not found');
+  return json({ ok: true });
+}
+
+async function summary(ctx) {
+  const days = Math.min(Math.max(Number(ctx.url.searchParams.get('days')) || 7, 1), 90);
+  return json({ summary: await buildSummary(ctx.db, days) });
+}
+
+// A plain digest of the last N days across every plan: progress, what got done, what people said,
+// what is waiting on the owner. Shown on the dashboard and copyable as text.
+export async function buildSummary(db, days) {
+  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const plans = (await db.prepare(`SELECT * FROM plans WHERE status != 'done' OR updated_at > ? ORDER BY updated_at DESC`).bind(since).all()).results;
+  const out = [];
+  for (const p of plans) {
+    const [tasks, posts, lastOwner] = await Promise.all([
+      db.prepare('SELECT title, status, done_at FROM tasks WHERE plan_id = ?').bind(p.id).all(),
+      db.prepare(
+        `SELECT p.kind, p.task_id, p.author_name, p.body, p.created_at, u.role FROM posts p LEFT JOIN users u ON u.id = p.user_id
+         WHERE p.plan_id = ? AND p.created_at > ? ORDER BY p.created_at`,
+      ).bind(p.id, since).all(),
+      db.prepare(`SELECT MAX(p.created_at) AS t FROM posts p JOIN users u ON u.id = p.user_id WHERE p.plan_id = ? AND u.role = 'owner'`).bind(p.id).first(),
+    ]);
+    const list = tasks.results;
+    const memberPosts = posts.results.filter(x => x.role !== 'owner');
+    const needsReply = (await db.prepare(
+      `SELECT COUNT(*) AS n FROM posts p JOIN users u ON u.id = p.user_id WHERE p.plan_id = ? AND p.kind = 'message' AND u.role != 'owner' AND p.created_at > ?`,
+    ).bind(p.id, lastOwner?.t || '').first()).n;
+    out.push({
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      progress: progressOf(list),
+      completed: list.filter(t => t.status === 'done' && t.done_at > since).map(t => t.title),
+      in_progress: list.filter(t => t.status === 'doing').map(t => t.title),
+      messages: memberPosts.filter(x => x.kind === 'message').length,
+      ideas: memberPosts.filter(x => x.kind === 'idea').map(x => `${x.author_name}: ${x.body.slice(0, 160)}`),
+      needs_reply: needsReply,
+    });
+  }
+  const [pendingPeople, pendingJoins, waitingProposals, approvedWork] = await Promise.all([
+    db.prepare(`SELECT COUNT(*) AS n FROM users WHERE status = 'pending'`).first(),
+    db.prepare(`SELECT COUNT(*) AS n FROM plan_members m JOIN users u ON u.id = m.user_id WHERE m.status = 'pending' AND u.status = 'approved'`).first(),
+    db.prepare(`SELECT COUNT(*) AS n FROM proposals WHERE status = 'proposed'`).first(),
+    db.prepare(`SELECT COUNT(*) AS n FROM proposals WHERE status IN ('approved', 'in_progress')`).first(),
+  ]);
+  const waiting = { people: pendingPeople.n, joins: pendingJoins.n, proposals: waitingProposals.n, agent_work_in_progress: approvedWork.n };
+  return { days, since, plans: out, waiting, text: summaryText(days, out, waiting) };
+}
+
+function summaryText(days, plans, waiting) {
+  const lines = [`Summary: last ${days} day${days === 1 ? '' : 's'}`, ''];
+  const asks = [];
+  if (waiting.people) asks.push(`${waiting.people} ${waiting.people === 1 ? 'person' : 'people'} waiting for access`);
+  if (waiting.joins) asks.push(`${waiting.joins} join request${waiting.joins === 1 ? '' : 's'}`);
+  if (waiting.proposals) asks.push(`${waiting.proposals} agent proposal${waiting.proposals === 1 ? '' : 's'} to review`);
+  lines.push(asks.length ? `Waiting on you: ${asks.join(', ')}.` : 'Nothing is waiting on you.');
+  if (waiting.agent_work_in_progress) lines.push(`Agents working on ${waiting.agent_work_in_progress} approved item${waiting.agent_work_in_progress === 1 ? '' : 's'}.`);
+  for (const p of plans) {
+    lines.push('', `${p.title}: ${p.progress.done}/${p.progress.total} tasks done (${p.progress.percent}%)${p.status !== 'active' ? `, ${p.status}` : ''}`);
+    if (p.completed.length) lines.push(`  Done: ${p.completed.join('; ')}`);
+    if (p.in_progress.length) lines.push(`  In progress: ${p.in_progress.join('; ')}`);
+    if (p.messages) lines.push(`  ${p.messages} message${p.messages === 1 ? '' : 's'} from members${p.needs_reply ? `, ${p.needs_reply} since your last reply` : ''}`);
+    for (const idea of p.ideas) lines.push(`  Idea from ${idea}`);
+    if (!p.completed.length && !p.in_progress.length && !p.messages && !p.ideas.length) lines.push('  No activity.');
+  }
+  return lines.join('\n');
+}

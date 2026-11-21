@@ -2,7 +2,7 @@
 
 The website for Kovalenko Creatives, a software studio that builds websites, apps and integrations for businesses. It uses the "Studio" design: a light grid, monospace labels (`/services`, `/work`, `/process`, `/company`, `/contact`), one green accent and dark code-style panels. It shows what the studio builds (with optional maintenance and upgrades), selected work with real app screenshots, how a project runs, the company background and toolkit, and how to get in touch.
 
-It is a plain static site. There is no build step, no framework, no server and no third-party scripts.
+The public website is a plain static site: no framework, no third-party scripts. Alongside it runs the **members portal** (`/portal/`), where approved people sign in with Google to follow development plans, comment and chat, and where the owner approves people, answers and reviews proposals from agents. The portal runs on Cloudflare Pages Functions with a Cloudflare D1 database. The whole site installs as an app on a phone (PWA).
 
 ## Files
 
@@ -23,6 +23,15 @@ It is a plain static site. There is no build step, no framework, no server and n
 | `tools/preview.py` | Builds the one-file review copy published to claude.ai for invited reviewers: `python3 tools/preview.py OUT.html` |
 | `review/` | The review copy's feedback section (`feedback.js`, `feedback.css`), where invited reviewers comment on what each part needs. Never part of the live site |
 | `tools/build.sh` | Collects only the website files into `_site/` for Cloudflare Pages to publish |
+| `portal/` | The members portal page (`index.html`, `portal.js`, `portal.css`) |
+| `functions/` | Cloudflare Pages Functions: send `/api/*` and `/auth/*` to `server/` |
+| `server/` | Portal server code: Google sign-in and sessions (`auth.js`), members and plans (`members.js`), owner dashboard (`admin.js`), agent API (`agents.js`) |
+| `migrations/0001_portal.sql` | Database tables for the portal |
+| `manifest.webmanifest`, `sw.js`, `icons/` | Installable app: name, icons, offline shell |
+| `_headers` | Security headers Cloudflare adds to every response |
+| `tools/dev-server.mjs` | Local preview of site and portal with a local database: `npm run dev` |
+| `tools/agent-watch.mjs` | Agent that reads new portal activity and sends the owner proposals: `npm run agent` |
+| `tools/import-plan.mjs` | Turns a plan exported from a claude.ai artifact into SQL for the portal |
 
 ## Previewing locally
 
@@ -34,6 +43,46 @@ python3 -m http.server 8000
 ```
 
 Opening `index.html` straight from disk also works.
+
+## Members portal
+
+Open `/portal/` (or the **/members** link in the header). How it works:
+
+1. **Sign in with Google.** Anyone can sign in, but a new account sees nothing until the owner approves it. They can leave a note ("I'm with the church team").
+2. **Owner approves.** The owner dashboard (`/portal/#/owner`) lists people waiting, with a tick box per plan to approve them for. Approved members can also ask to join any plan marked "Members can ask to join"; the owner approves each request. Plans are private to their approved members.
+3. **Plans.** Each plan has phases and tasks (to do, in progress, done) and shows progress. Tabs: **Progress** (with a comment thread on every task), **Chat** (refreshes every few seconds), **Updates** (owner progress posts) and **Ideas** (member suggestions the owner can turn into tasks).
+4. **Summary.** The dashboard opens with a plain-text digest for today, 7 or 30 days: tasks done and in progress per plan, messages since the owner last replied, ideas, and what is waiting on the owner. One button copies it.
+5. **Agents.** The owner creates a token per agent on the dashboard. An agent reads new activity through `/api/agent/*` and sends **proposals** ("I can fix this", notes, summaries). Proposals wait on the dashboard until the owner approves or declines them, with an optional reply. Agents cannot post to members, change plans or approve anything. Approved work is listed for the agent, which reports it in progress and then done.
+
+### Setting it up on Cloudflare (once)
+
+1. **Database.** The D1 database `kovalenko-creatives-hub` exists. Create the tables by running `migrations/0001_portal.sql` in Cloudflare (D1 > the database > Console, or `npx wrangler d1 execute kovalenko-creatives-hub --remote --file migrations/0001_portal.sql`).
+2. **Bind it.** Cloudflare Pages project > Settings > Bindings > add **D1 database**, variable name `DB`, database `kovalenko-creatives-hub` (for Production).
+3. **Google sign-in.** In Google Cloud Console > APIs & Services: configure the OAuth consent screen (External, app name Kovalenko Creatives, scopes `openid`, `email`, `profile`), then Credentials > Create OAuth client ID > Web application. Authorized redirect URI: `https://<your domain>/auth/google/callback` (add one per domain, e.g. the `pages.dev` address and the custom domain).
+4. **Settings.** Cloudflare Pages > Settings > Variables and secrets (Production): `GOOGLE_CLIENT_ID` (text), `GOOGLE_CLIENT_SECRET` (secret), `OWNER_EMAILS` (text: the owner's Google address; comma-separate several).
+5. **Deploy** (push to the production branch), open `/portal/`, sign in with the owner account, and the dashboard appears.
+
+### Moving a plan over from a claude.ai artifact
+
+Export the artifact's `tasks` collection to a folder (one JSON file per task), write a small config naming the plan and its phases (see the top of `tools/import-plan.mjs`), then `node tools/import-plan.mjs plan.json > plan.sql` and run `plan.sql` in the D1 console. Imported plans start unlisted; approve members for them on the dashboard. Keep the export and SQL out of this repository.
+
+### Running an agent
+
+```sh
+KC_URL=https://<your domain> KC_AGENT_TOKEN=kca_... ANTHROPIC_API_KEY=... npm run agent             # review new activity, send proposals
+npm run agent -- --summary    # send the owner a written weekly summary
+npm run agent -- --approved   # list work the owner approved
+```
+
+It uses Claude (`claude-opus-5-5`) to decide whether each new message, comment or idea is something it could fix, worth flagging, or nothing, and remembers where it stopped in `.agent-state.json`. Run it on a schedule: cron, a GitHub Actions schedule (store the token and key as repository secrets), or a Claude Code scheduled task. A coding agent can take the `--approved` list, make the change on a branch, and report back with `PATCH /api/agent/proposals/:id`.
+
+### Local preview
+
+```sh
+npm run dev   # http://localhost:8787/portal/
+```
+
+Sign in without Google at `http://localhost:8787/auth/dev?email=owner@example.com&name=Owner` (owner) or any other email (a new member). This shortcut only works on localhost with `DEV_LOGIN=1`, which the dev server sets and the live site never has.
 
 ## Common edits
 
@@ -73,6 +122,10 @@ On a machine that already has Chromium, point the tests at it with `CHROMIUM_PAT
 - The hero panel stays labelled as a sample
 - The live build (`tools/build.sh`) publishes only website files, with developer comments stripped and no links to anything outside the site, so search engines and AI crawlers read only the page itself
 
+**Portal API tests** (`tools/portal-api-test.mjs`): sign-in, pending and blocked accounts, approvals, plan access per member, chat, comments, ideas, updates, the summary, agent tokens and proposals, and refusal of changes sent from other sites.
+
+**Portal browser tests** (`tools/portal-browser-test.mjs`): every portal screen (signed out, waiting, member plan and chat, owner dashboard and plan) at phone, desktop and dark mode with no sideways scrolling, no accessibility issues, no errors and no third-party requests; chat end to end; installable-app manifest, icons and service worker; security policy; keyboard sign-in.
+
 **Browser tests** (`tools/browser-test.mjs`), at small phone, phone, tablet, desktop and dark mode:
 - No sideways scrolling; all screenshots and both fonts load; no missing files or page errors
 - No requests to any other company
@@ -107,8 +160,10 @@ This site is public. Before adding a project or screenshot, check that it shows 
 
 - **Content Security Policy.** `index.html` only allows the site's own scripts, styles, images and fonts. Inline and third-party scripts are blocked, the page cannot be used to post forms anywhere, and plugins are disabled.
 - **No third-party requests.** Fonts are self-hosted, so loading the page sends nothing to Google or anyone else. That keeps the site clear of privacy rules on sharing visitors' IP addresses, and means no cookie banner or privacy policy is needed for the site itself.
-- **No secrets.** The site has no API keys, tokens or backend. Nothing here needs to be kept secret, and nothing secret should ever be added.
-- **No visitor data.** There are no forms, cookies, analytics or trackers. The contact section and the assistant both lead to an email address; the assistant runs in the browser and sends nothing.
+- **No secrets in the repository.** The Google client secret and owner emails live only in Cloudflare's settings. Session cookies and agent tokens are random, and only their SHA-256 hashes are stored.
+- **No visitor data on the public site.** The website has no forms, cookies, analytics or trackers. The contact section and the assistant both lead to an email address; the assistant runs in the browser and sends nothing.
+- **Portal accounts.** The portal stores each member's Google name and email, what they write, and their sign-in sessions, in the D1 database. It sets one cookie, only after sign-in (`__Host-kc_session`: HTTPS only, HttpOnly, SameSite=Lax, 30 days). Google sign-in uses PKCE and a one-time state check. Every change must come from this site (Origin check). Nobody sees a plan until the owner approves them for it, and blocking someone ends their sessions at once. The portal is marked `noindex`. Since the portal holds members' data, tell members what is kept and why (a short privacy note), and delete people on request.
+- **Agents** see plan contents and member messages, so give tokens only to agents you run, and revoke a token from the dashboard if it leaks.
 - **Text only.** `app.js` and `chat.js` build every element with `textContent`, never as raw HTML, so project data and assistant answers cannot inject markup.
 - **External links** open in a new tab with `rel="noopener"`.
 

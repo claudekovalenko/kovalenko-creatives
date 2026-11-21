@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="referrer" content="same-origin">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Members · Kovalenko Creatives</title>
+  <meta name="description" content="Members portal for Kovalenko Creatives: follow development plans, comment and talk with the studio.">
+  <meta name="theme-color" content="#0E1116">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Kovalenko">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="logo" href="/portal/#/"><i aria-hidden="true"></i>Kovalenko Creatives</a>
+      <nav aria-label="Portal" id="portal-nav"></nav>
+    </div>
+  </header>
+  <main id="app" class="wrap portal" tabindex="-1">
+    <p class="muted">Loading…</p>
+    <noscript><p>The members portal needs JavaScript. The <a href="/">studio website</a> works without it.</p></noscript>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/portal/portal.js"></script>
+</body>
+</html>
