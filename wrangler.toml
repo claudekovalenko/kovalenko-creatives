@@ -1,0 +1,7 @@
+name = "kovalenko-creatives"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kovalenko-creatives-hub"
+database_id = "1570e160-ff96-4429-bf8a-ebdeac6c2a37"

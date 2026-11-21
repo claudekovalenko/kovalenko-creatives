@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Portal · Kovalenko Creatives</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E1116'/%3E%3Crect x='11' y='11' width='10' height='10' rx='2' fill='%234FD1A1'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0e1116;
+      --surface: #161b22;
+      --border: #21262d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #4fd1a1;
+      --accent-dim: #1a3d2e;
+      --danger: #f85149;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+    /* Header */
+    .header { border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header a { color: var(--text); text-decoration: none; font-weight: 600; font-size: 15px; }
+    .header a span { color: var(--accent); }
+    .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+    .header-right strong { color: var(--text); }
+    .btn-sm { background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: var(--sans); }
+    .btn-sm:hover { color: var(--text); border-color: var(--muted); }
+
+    /* Login screen */
+    #login-screen { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 57px); padding: 24px; }
+    .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; }
+    .login-box h1 { font-size: 20px; margin-bottom: 6px; }
+    .login-box p { color: var(--muted); font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 6px; letter-spacing: .05em; }
+    .field input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); outline: none; }
+    .field input:focus { border-color: var(--accent); }
+    .btn-primary { width: 100%; background: var(--accent); color: var(--bg); border: none; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+    .btn-primary:hover { opacity: .9; }
+    .error-msg { color: var(--danger); font-size: 13px; margin-top: 12px; display: none; }
+
+    /* Portal */
+    #portal-screen { display: none; max-width: 860px; margin: 0 auto; padding: 32px 24px; }
+    .project-header { margin-bottom: 32px; }
+    .project-label { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+    .project-title { font-size: 26px; font-weight: 700; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
+    .tab { padding: 10px 18px; font-size: 13px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--sans); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Comments */
+    .comment-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; min-height: 60px; }
+    .comment-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .comment-meta { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+    .comment-name { font-weight: 600; font-size: 14px; }
+    .comment-time { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+    .comment-body { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
+
+    /* Compose */
+    .compose { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .compose textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; }
+    .compose textarea:focus { border-color: var(--accent); }
+    .compose-footer { display: flex; justify-content: flex-end; margin-top: 10px; }
+    .btn-post { background: var(--accent); color: var(--bg); border: none; padding: 8px 20px; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+    .btn-post:hover { opacity: .9; }
+    .btn-post:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Updates */
+    .update-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .update-week { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
+    .update-items { list-style: none; }
+    .update-items li { font-size: 14px; line-height: 1.6; color: var(--text); padding: 4px 0 4px 18px; position: relative; }
+    .update-items li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
+
+    @media (max-width: 600px) {
+      .login-box { padding: 28px 20px; }
+      #portal-screen { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/"><span>KC</span> · Kovalenko Creatives</a>
+  <div class="header-right" id="header-user" style="display:none">
+    <span>Signed in as <strong id="display-name"></strong></span>
+    <button class="btn-sm" onclick="signOut()">Sign out</button>
+  </div>
+</header>
+
+<!-- Login -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Client Portal</h1>
+    <p>Sign in with your name and the project code Ivan sent you.</p>
+    <div class="field">
+      <label>YOUR NAME</label>
+      <input id="input-name" type="text" placeholder="e.g. Craig" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>PROJECT CODE</label>
+      <input id="input-code" type="text" placeholder="e.g. JPN2026" autocomplete="off" style="font-family: var(--mono); letter-spacing: .05em;">
+    </div>
+    <button class="btn-primary" onclick="signIn()">Access My Project</button>
+    <div class="error-msg" id="login-error">That code doesn't match a project. Double-check with Ivan.</div>
+  </div>
+</div>
+
+<!-- Portal -->
+<div id="portal-screen">
+  <div class="project-header">
+    <div class="project-label">Your Project</div>
+    <div class="project-title" id="project-name"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('comments')">Comments</button>
+    <button class="tab" onclick="showTab('updates')">Updates</button>
+  </div>
+
+  <div id="tab-comments" class="tab-panel active">
+    <div class="comment-list" id="comment-list">
+      <div class="empty-state">Loading…</div>
+    </div>
+    <div class="compose">
+      <textarea id="compose-text" placeholder="Leave a note, question, or feedback…"></textarea>
+      <div class="compose-footer">
+        <button class="btn-post" id="post-btn" onclick="postComment()">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-updates" class="tab-panel">
+    <div id="updates-list">
+      <div class="empty-state">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentUser = null;
+  let currentProject = null;
+  let pollTimer = null;
+
+  // --- Auth ---
+  function restoreSession() {
+    const saved = JSON.parse(localStorage.getItem('kc-portal-session') || 'null');
+    if (saved?.name && saved?.project) {
+      currentUser = saved.name;
+      currentProject = saved.project;
+      showPortal();
+    }
+  }
+
+  async function signIn() {
+    const name = document.getElementById('input-name').value.trim();
+    const code = document.getElementById('input-code').value.trim();
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+
+    if (!name || !code) { errEl.textContent = 'Please enter your name and project code.'; errEl.style.display = 'block'; return; }
+
+    try {
+      const res = await fetch(`/api/projects?code=${encodeURIComponent(code)}`);
+      if (!res.ok) { errEl.textContent = "That code doesn't match a project. Double-check with Ivan."; errEl.style.display = 'block'; return; }
+      const project = await res.json();
+      currentUser = name;
+      currentProject = project;
+      localStorage.setItem('kc-portal-session', JSON.stringify({ name, project }));
+      showPortal();
+    } catch (e) {
+      errEl.textContent = 'Connection error. Try again.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') signIn();
+  });
+
+  function signOut() {
+    localStorage.removeItem('kc-portal-session');
+    currentUser = null; currentProject = null;
+    clearInterval(pollTimer);
+    document.getElementById('portal-screen').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('header-user').style.display = 'none';
+  }
+
+  function showPortal() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('portal-screen').style.display = 'block';
+    document.getElementById('header-user').style.display = 'flex';
+    document.getElementById('display-name').textContent = currentUser;
+    document.getElementById('project-name').textContent = currentProject.name;
+    loadComments();
+    loadUpdates();
+    pollTimer = setInterval(loadComments, 30000);
+  }
+
+  // --- Tabs ---
+  function showTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['comments','updates'][i] === tab));
+    document.getElementById('tab-comments').classList.toggle('active', tab === 'comments');
+    document.getElementById('tab-updates').classList.toggle('active', tab === 'updates');
+  }
+
+  // --- Comments ---
+  async function loadComments() {
+    try {
+      const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`);
+      const posts = await res.json();
+      renderComments(posts);
+    } catch {}
+  }
+
+  function renderComments(posts) {
+    const el = document.getElementById('comment-list');
+    if (!posts.length) { el.innerHTML = '<div class="empty-state">No messages yet. Be the first to leave a note.</div>'; return; }
+    el.innerHTML = posts.map(p => `
+      <div class="comment-item">
+        <div class="comment-meta">
+          <span class="comment-name">${esc(p.author_name)}</span>
+          <span class="comment-time">${formatDate(p.created_at)}</span>
+        </div>
+        <div class="comment-body">${esc(p.body)}</div>
+      </div>
+    `).join('');
+  }
+
+  async function postComment() {
+    const text = document.getElementById('compose-text').value.trim();
+    if (!text) return;
+    const btn = document.getElementById('post-btn');
+    btn.disabled = true;
+    try {
+      await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: currentProject.id, author_name: currentUser, body: text, kind: 'message' }),
+      });
+      document.getElementById('compose-text').value = '';
+      await loadComments();
+    } finally { btn.disabled = false; }
+  }
+
+  // --- Updates ---
+  async function loadUpdates() {
+    try {
+      const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=update`);
+      const posts = await res.json();
+      renderUpdates(posts);
+    } catch {}
+  }
+
+  function renderUpdates(posts) {
+    const el = document.getElementById('updates-list');
+    if (!posts.length) { el.innerHTML = '<div class="empty-state">No updates yet.</div>'; return; }
+    el.innerHTML = posts.reverse().map(p => {
+      let content;
+      try {
+        const d = JSON.parse(p.body);
+        content = `<ul class="update-items">${(d.items||[]).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
+        if (d.notes) content += `<p style="margin-top:10px;font-size:13px;color:var(--muted)">${esc(d.notes)}</p>`;
+      } catch { content = `<p style="font-size:14px">${esc(p.body)}</p>`; }
+      return `<div class="update-item"><div class="update-week">${esc(p.author_name)} · ${formatDate(p.created_at)}</div>${content}</div>`;
+    }).join('');
+  }
+
+  // --- Utils ---
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function formatDate(iso) {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  restoreSession();
+</script>
+</body>
+</html>
