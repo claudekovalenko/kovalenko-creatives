@@ -83,18 +83,26 @@ for (const f of readdirSync('server')) {
 if (!/sample/i.test(html.slice(html.indexOf('class="panel"'), html.indexOf('</figure>')))) fail('The hero panel must stay labelled as a sample');
 
 // 5. What goes online: build the live site and check that crawlers can reach only the website itself.
-execSync('sh tools/build.sh');
-const listFiles = dir => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? listFiles(`${dir}/${e.name}`) : [`${dir}/${e.name}`.slice('_site/'.length)]);
-const PUBLIC_FILE = /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|sw\.js|manifest\.webmanifest|_headers|portal\/(index\.html|portal\.js|portal\.css)|icons\/[\w-]+\.(png|svg)|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt))$/;
-for (const f of listFiles('_site')) {
-  if (!PUBLIC_FILE.test(f)) fail(`The live build would publish ${f}, which is not a website file`);
-  if (!/\.(html|js|css)$/.test(f)) continue;
-  const text = readFileSync(`_site/${f}`, 'utf8');
-  if (/\.(html|js)$/.test(f) && /^\s*\/\/|<!--/m.test(text)) fail(`The live build of ${f} still contains developer comments`);
-  for (const [url] of text.matchAll(/https?:\/\/[^\s"'`)<]+/g)) {
-    if (!url.startsWith('http://www.w3.org/')) fail(`The live build of ${f} links to ${url}; the site links only to its own pages and email`);
+// The members portal is a separate site (the "hub", tools/build-hub.sh) and must never ship with the public one.
+const listFiles = (dir, root = dir) => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? listFiles(`${dir}/${e.name}`, root) : [`${dir}/${e.name}`.slice(root.length + 1)]);
+function checkBuild(dir, allowed, label) {
+  for (const f of listFiles(dir)) {
+    if (!allowed.test(f)) fail(`The ${label} build would publish ${f}, which does not belong there`);
+    if (!/\.(html|js|css)$/.test(f)) continue;
+    const text = readFileSync(`${dir}/${f}`, 'utf8');
+    if (/\.(html|js)$/.test(f) && /^\s*\/\/|<!--/m.test(text)) fail(`The ${label} build of ${f} still contains developer comments`);
+    for (const [url] of text.matchAll(/https?:\/\/[^\s"'`)<]+/g)) {
+      if (!url.startsWith('http://www.w3.org/')) fail(`The ${label} build of ${f} links to ${url}; it links only to its own pages and email`);
+    }
   }
 }
+execSync('sh tools/build.sh');
+checkBuild('_site', /^(index\.html|styles\.css|app\.js|chat\.js|projects\.js|images\/[\w-]+\.webp|fonts\/[\w-]+\.(woff2|txt))$/, 'public site');
+if (/portal|\/members|manifest/i.test(html)) fail('index.html mentions the members portal; it lives on its own private address, not on the public site');
+if (existsSync('functions')) fail('A functions/ folder at the top would run server code on the public site; portal code belongs in hub/functions/');
+execSync('sh tools/build-hub.sh');
+checkBuild('hub/dist', /^(index\.html|robots\.txt|_headers|styles\.css|sw\.js|manifest\.webmanifest|portal\/(index\.html|portal\.js|portal\.css)|icons\/[\w-]+\.(png|svg)|fonts\/[\w-]+\.(woff2|txt))$/, 'portal');
+if (!/X-Robots-Tag: noindex/.test(readFileSync('hub/dist/_headers', 'utf8'))) fail('The portal must tell search engines not to index any of it');
 
 if (problems.length) {
   console.error(`Site check failed (${problems.length}):\n- ` + problems.join('\n- '));

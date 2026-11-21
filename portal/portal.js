@@ -121,8 +121,6 @@
     }
     if (u) {
       items.push(h('button', { type: 'button', class: 'cta', onclick: signOut }, 'Sign out'));
-    } else {
-      items.push(h('a', { href: '/' }, '/website'));
     }
     nav.replaceChildren(...items);
   }

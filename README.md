@@ -2,7 +2,7 @@
 
 The website for Kovalenko Creatives, a software studio that builds websites, apps and integrations for businesses. It uses the "Studio" design: a light grid, monospace labels (`/services`, `/work`, `/process`, `/company`, `/contact`), one green accent and dark code-style panels. It shows what the studio builds (with optional maintenance and upgrades), selected work with real app screenshots, how a project runs, the company background and toolkit, and how to get in touch.
 
-The public website is a plain static site: no framework, no third-party scripts. Alongside it runs the **members portal** (`/portal/`), where approved people sign in with Google to follow development plans, comment and chat, and where the owner approves people, answers and reviews proposals from agents. The portal runs on Cloudflare Pages Functions with a Cloudflare D1 database. The whole site installs as an app on a phone (PWA).
+The public website is a plain static site: no framework, no third-party scripts. The **members portal** (the "hub") is built from the same repository but published separately, on its own private address, never as part of the public website. There, approved people sign in with Google to follow development plans, comment and chat, and the owner runs client projects, agreements and payments and reviews proposals from agents. It runs on Cloudflare Pages Functions with a Cloudflare D1 database and installs as an app on a phone (PWA). The public site has no link to it and no portal code.
 
 ## Files
 
@@ -24,11 +24,12 @@ The public website is a plain static site: no framework, no third-party scripts.
 | `review/` | The review copy's feedback section (`feedback.js`, `feedback.css`), where invited reviewers comment on what each part needs. Never part of the live site |
 | `tools/build.sh` | Collects only the website files into `_site/` for Cloudflare Pages to publish |
 | `portal/` | The members portal page (`index.html`, `portal.js`, `portal.css`) |
-| `functions/` | Cloudflare Pages Functions: send `/api/*` and `/auth/*` to `server/` |
+| `hub/functions/` | The portal's Cloudflare Pages Functions: send `/api/*` and `/auth/*` to `server/` |
+| `tools/build-hub.sh` | Builds the portal into `hub/dist/` for its own Cloudflare Pages project |
 | `server/` | Portal server code: Google sign-in and sessions (`auth.js`), members and plans (`members.js`), owner dashboard (`admin.js`), agent API (`agents.js`) |
 | `migrations/0001_portal.sql` | Database tables for the portal |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Installable app: name, icons, offline shell |
-| `_headers` | Security headers Cloudflare adds to every response |
+| `_headers` | Security headers for the portal, including noindex on everything |
 | `tools/dev-server.mjs` | Local preview of site and portal with a local database: `npm run dev` |
 | `tools/agent-watch.mjs` | Agent that reads new portal activity and sends the owner proposals: `npm run agent` |
 | `tools/import-plan.mjs` | Turns a plan exported from a claude.ai artifact into SQL for the portal |
@@ -46,7 +47,7 @@ Opening `index.html` straight from disk also works.
 
 ## Members portal
 
-Open `/portal/` (or the **/members** link in the header). How it works:
+Open the portal's own address (see setup below). How it works:
 
 1. **Sign in with Google.** Anyone can sign in, but a new account sees nothing until the owner approves it. They can leave a note ("I'm with the church team").
 2. **Owner approves.** The owner dashboard (`/portal/#/owner`) lists people waiting, with a tick box per plan to approve them for. Approved members can also ask to join any plan marked "Members can ask to join"; the owner approves each request. Plans are private to their approved members.
@@ -59,12 +60,16 @@ Open `/portal/` (or the **/members** link in the header). How it works:
 
 ### Setting it up on Cloudflare (once)
 
-1. **Database.** The D1 database `kovalenko-creatives-hub` exists. Create the tables by running `migrations/0001_portal.sql` and then `migrations/0002_clients_agreements.sql` in Cloudflare (D1 > the database > Console, or `npx wrangler d1 execute kovalenko-creatives-hub --remote --file migrations/0001_portal.sql`).
-2. **Bind it.** Cloudflare Pages project > Settings > Bindings > add **D1 database**, variable name `DB`, database `kovalenko-creatives-hub` (for Production).
-3. **Google sign-in.** In Google Cloud Console > APIs & Services: configure the OAuth consent screen (External, app name Kovalenko Creatives, scopes `openid`, `email`, `profile`), then Credentials > Create OAuth client ID > Web application. Authorized redirect URI: `https://<your domain>/auth/google/callback` (add one per domain, e.g. the `pages.dev` address and the custom domain).
+The portal is its own Cloudflare Pages project, so the public website stays exactly as it is.
+
+0. **Create the portal project.** Cloudflare > Workers & Pages > Create > Pages > connect this repository again, as a second project (for example named `kovalenko-hub`, giving `kovalenko-hub.pages.dev`). Settings: production branch the same as the website's; **Root directory** `hub`; **Build command** `cd .. && npm ci --omit=dev && sh tools/build-hub.sh`; **Build output directory** `dist`. Preview deployments off. A custom subdomain (for example `hub.` on your domain) can be added later under Custom domains.
+
+1. **Database.** The D1 database `kovalenko-creatives-hub` exists, with its tables and your clients and projects already loaded. For a new database, create the tables by running `migrations/0001_portal.sql` and then `migrations/0002_clients_agreements.sql` in Cloudflare (D1 > the database > Console, or `npx wrangler d1 execute kovalenko-creatives-hub --remote --file migrations/0001_portal.sql`).
+2. **Bind it.** The portal's Pages project > Settings > Bindings > add **D1 database**, variable name `DB`, database `kovalenko-creatives-hub` (for Production).
+3. **Google sign-in.** In Google Cloud Console > APIs & Services: configure the OAuth consent screen (External, app name Kovalenko Creatives, scopes `openid`, `email`, `profile`), then Credentials > Create OAuth client ID > Web application. Authorized redirect URI: `https://<portal address>/auth/google/callback`, for example `https://kovalenko-hub.pages.dev/auth/google/callback` (add one more if you later give it a custom subdomain).
 4. **Settings.** Cloudflare Pages > Settings > Variables and secrets (Production): `GOOGLE_CLIENT_ID` (text), `GOOGLE_CLIENT_SECRET` (secret), `OWNER_EMAILS` (text: the owner's Google address; comma-separate several). Optional: `ANTHROPIC_API_KEY` (secret) for short versions of long messages.
-5. **Deploy** (push to the production branch), open `/portal/`, sign in with the owner account, and the dashboard appears.
-6. **Install on a phone.** Open `https://<your domain>/portal/` on the phone. iPhone (Safari): Share > Add to Home Screen. Android (Chrome): menu > Install app (or the "Install app" button in the portal header).
+5. **Deploy** (push to the production branch), open `https://<portal address>/portal/`, sign in with the owner account, and the dashboard appears.
+6. **Install on a phone.** Open `https://<portal address>/portal/` on the phone. iPhone (Safari): Share > Add to Home Screen. Android (Chrome): menu > Install app (or the "Install app" button in the portal header).
 
 ### Moving a plan over from a claude.ai artifact
 

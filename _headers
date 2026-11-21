@@ -1,11 +1,11 @@
 /*
   X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
+  Referrer-Policy: same-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
   X-Frame-Options: DENY
+  X-Robots-Tag: noindex, nofollow
 
 /portal/*
-  X-Robots-Tag: noindex, nofollow
   Cache-Control: no-cache
 
 /sw.js

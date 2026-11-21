@@ -9,7 +9,7 @@ This is the public website for Kovalenko Creatives, a software studio that build
 - **Screenshots:** new files in `images/` that a project's `slides` use.
 - **Assistant answers:** `TOPICS` in `chat.js`.
 - **Page copy:** `index.html`, when the owner asks for a wording change.
-- **Members portal:** `portal/`, `server/`, `functions/`, `migrations/`, when the owner asks for a portal change. Add a new numbered migration file for database changes; never edit one that has already run.
+- **Members portal:** `portal/`, `server/`, `hub/functions/`, `migrations/`, when the owner asks for a portal change. The portal is published separately (tools/build-hub.sh); never link to it from, or add it to, the public website. Add a new numbered migration file for database changes; never edit one that has already run.
 
 Keep edits as small as the request needs. Do not restructure files, rename sections, change the Studio design tokens in `styles.css`, or add libraries unless the owner asks. The hero panel shows a sample project scope and must stay labelled as a sample.
 

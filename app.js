@@ -94,9 +94,4 @@
   });
 
   document.getElementById('year').textContent = new Date().getFullYear();
-
-  // Installable app: the service worker caches the site shell (never any portal data).
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
-  }
 })();

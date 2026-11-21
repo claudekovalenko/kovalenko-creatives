@@ -1,5 +1,6 @@
 node_modules/
 _site/
+hub/dist/
 .dev-portal.db*
 .agent-state.json
 .wrangler/
