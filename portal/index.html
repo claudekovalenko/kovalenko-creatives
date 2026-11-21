@@ -156,6 +156,14 @@
     .btn-save-task { background: var(--accent); color: var(--bg); border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
     .btn-cancel-task { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: var(--sans); }
 
+    /* Pending approval */
+    .task-row.pending { border-color: #3d3010; background: #1a1600; opacity: 1; }
+    .pending-badge { font-size: 10px; font-family: var(--mono); letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; font-weight: 700; background: #3d3010; color: #f59e0b; border: 1px solid #5a4a10; flex-shrink: 0; }
+    .btn-approve { background: var(--accent-dim); border: 1px solid var(--accent); color: var(--accent); border-radius: 6px; padding: 3px 10px; font-size: 11px; font-family: var(--mono); cursor: pointer; flex-shrink: 0; }
+    .btn-approve:hover { background: var(--accent); color: var(--bg); }
+    .btn-reject { background: none; border: 1px solid #5a2a1a; color: #f97316; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-family: var(--mono); cursor: pointer; flex-shrink: 0; }
+    .btn-reject:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
     /* Plan summary */
     .plan-mvp { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 8px; }
     .plan-mvp p { font-size: 14px; line-height: 1.7; }
@@ -469,17 +477,17 @@
         <div class="add-task-row" id="add-row-${s.id}">
           <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">+ Add item</button>
           <div class="add-task-form" id="add-form-${s.id}">
-            <input type="text" placeholder="Describe the task or item…" id="add-input-${s.id}">
+            <input type="text" placeholder="Describe the task or item…" id="add-input-${s.id}" onkeydown="if(event.key==='Enter')saveTask('${s.id}')">
             <div class="add-task-form-row">
-              <label style="font-size:12px;color:var(--muted);font-family:var(--mono)">ASSIGN TO</label>
+              ${isAdmin() ? `<label style="font-size:12px;color:var(--muted);font-family:var(--mono)">ASSIGN TO</label>
               <select id="add-assign-${s.id}">
                 <option value="">No one</option>
                 <option value="client">Client</option>
                 <option value="ivan">Ivan</option>
-              </select>
+              </select>` : `<span style="font-size:12px;color:var(--muted)">Will be sent to Ivan for approval.</span><select id="add-assign-${s.id}" style="display:none"></select>`}
               <div class="add-task-form-actions">
                 <button class="btn-cancel-task" onclick="closeAddTask('${s.id}')">Cancel</button>
-                <button class="btn-save-task" onclick="saveTask('${s.id}')">Add</button>
+                <button class="btn-save-task" onclick="saveTask('${s.id}')">${isAdmin() ? 'Add' : 'Submit'}</button>
               </div>
             </div>
           </div>
@@ -534,11 +542,18 @@
     }
   }
 
+  function isAdmin() { return currentUser?.toLowerCase() === 'ivan'; }
+
   function renderTasks(stageId, tasks) {
     const el = document.getElementById(`tasks-${stageId}`);
-    if (!tasks.length) { el.innerHTML = '<div class="empty-state" style="padding:12px 0;font-size:13px">No items yet.</div>'; return; }
-    el.innerHTML = tasks.map(t => {
+    // For non-admins, only show approved tasks (open/done) + their own pending
+    const visible = tasks.filter(t =>
+      t.urgency !== 'pending' || isAdmin() || t.author_name === currentUser
+    );
+    if (!visible.length) { el.innerHTML = '<div class="empty-state" style="padding:12px 0;font-size:13px">No items yet.</div>'; return; }
+    el.innerHTML = visible.map(t => {
       const data = parseTask(t.body);
+      const pending = t.urgency === 'pending';
       const done = t.urgency === 'done';
       const comments = taskComments[t.id] || [];
       const commentLabel = comments.length ? `💬 ${comments.length}` : '+ Note';
@@ -546,6 +561,26 @@
       const assignBadge = data.assignee === 'client' ? '<span class="assign-badge assign-client">Client</span>'
                         : data.assignee === 'ivan'   ? '<span class="assign-badge assign-ivan">Ivan</span>'
                         : '';
+
+      if (pending) {
+        // Admin sees approve/reject; submitter sees "awaiting"
+        const controls = isAdmin()
+          ? `<button class="btn-approve" onclick="approveTask('${t.id}','${stageId}')">Approve</button>
+             <button class="btn-reject"  onclick="rejectTask('${t.id}','${stageId}')">Reject</button>
+             <button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete">✕</button>`
+          : `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Cancel">✕</button>`;
+        return `
+          <div class="task-row pending" id="task-row-${t.id}">
+            <div class="task-top">
+              <input type="checkbox" class="task-cb" disabled style="opacity:.3">
+              <span class="task-label" style="color:var(--muted)">${esc(data.text)}</span>
+              ${assignBadge}
+              <span class="pending-badge">Awaiting approval</span>
+              ${controls}
+            </div>
+          </div>`;
+      }
+
       return `
         <div class="task-row${done ? ' done' : ''}" id="task-row-${t.id}">
           <div class="task-top">
@@ -553,7 +588,7 @@
             <span class="task-label${done ? ' done-text' : ''}">${esc(data.text)}</span>
             ${assignBadge}
             <button class="btn-task-comments${comments.length ? ' has-comments' : ''}" onclick="toggleTaskComments('${t.id}', '${currentProject.id}')">${esc(commentLabel)}</button>
-            <button class="btn-task-delete" onclick="deleteTask('${t.id}')" title="Delete item">✕</button>
+            ${isAdmin() ? `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete item">✕</button>` : ''}
           </div>
           <div class="task-comments${isOpen ? ' open' : ''}" id="tc-${t.id}">
             <div class="task-comment-list" id="tc-list-${t.id}">${renderTaskComments(t.id)}</div>
@@ -564,6 +599,26 @@
           </div>
         </div>`;
     }).join('');
+  }
+
+  async function approveTask(taskId, stageId) {
+    await fetch(`/api/posts?id=${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urgency: 'open' }),
+    });
+    await refreshStage(stageId);
+  }
+
+  async function rejectTask(taskId, stageId) {
+    if (!confirm('Reject and remove this item?')) return;
+    await fetch(`/api/posts?id=${taskId}`, { method: 'DELETE' });
+    await refreshStage(stageId);
+  }
+
+  async function refreshStage(stageId) {
+    const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=task&task_id=${stageId}`);
+    renderTasks(stageId, await res.json());
   }
 
   function renderTaskComments(taskId) {
@@ -637,10 +692,11 @@
     document.getElementById(`tc-item-${commentId}`)?.remove();
   }
 
-  async function deleteTask(taskId) {
+  async function deleteTask(taskId, stageId) {
     if (!confirm('Remove this item?')) return;
     await fetch(`/api/posts?id=${taskId}`, { method: 'DELETE' });
-    document.getElementById(`task-row-${taskId}`)?.remove();
+    if (stageId) await refreshStage(stageId);
+    else document.getElementById(`task-row-${taskId}`)?.remove();
   }
 
   function openAddTask(stageId) {
@@ -659,7 +715,9 @@
     const text = document.getElementById(`add-input-${stageId}`).value.trim();
     if (!text) return;
     const assignee = document.getElementById(`add-assign-${stageId}`).value || null;
-    const res = await fetch('/api/posts', {
+    // Non-admins submit for approval; admins add directly
+    const urgency = isAdmin() ? 'open' : 'pending';
+    await fetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -668,14 +726,11 @@
         kind: 'task',
         author_name: currentUser,
         body: JSON.stringify({ text, assignee }),
-        urgency: 'open',
+        urgency,
       }),
     });
-    const { id } = await res.json();
     closeAddTask(stageId);
-    // Re-fetch and re-render this stage
-    const allRes = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=task&task_id=${stageId}`);
-    renderTasks(stageId, await allRes.json());
+    await refreshStage(stageId);
   }
 
   // ── Utils ─────────────────────────────────────────────────────────────────
