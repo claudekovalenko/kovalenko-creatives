@@ -74,6 +74,8 @@
     return 'just now';
   }
   const when = iso => h('time', { datetime: iso, title: new Date(iso).toLocaleString() }, ago(iso));
+  const money = cents => '$' + ((cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const day = d => (d ? new Date(`${d}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 
   function progressBar(p, label) {
     return h('div', { class: 'progress' },
@@ -218,13 +220,14 @@
       const open = p.membership === 'approved';
       return h('article', { class: 'plan-card' },
         h('div', { class: 'plan-top' },
-          h('span', { class: 'mono small' }, `// ${p.status}${isOwner && !p.listed ? ' · unlisted' : ''}`),
+          h('span', { class: 'mono small' }, `// ${[isOwner ? p.client_name || 'no client' : null, p.status, isOwner && !p.listed ? 'unlisted' : null].filter(Boolean).join(' · ')}`),
           h('h2', {}, open ? h('a', { href: `#/plan/${p.id}` }, p.title) : p.title)),
         open ? h('p', { class: 'muted' }, p.summary || 'No summary yet.') : h('p', { class: 'muted' }, 'Ask to join to see this plan.'),
         open ? progressBar(p.progress, `${p.title} progress`) : null,
+        open && p.money && p.money.total_cents ? h('p', { class: 'small money-line' }, h('b', {}, money(p.money.owed_cents)), ' balance owed', p.money.due_now_cents ? h('span', { class: 'chip due' }, `${money(p.money.due_now_cents)} due now`) : null) : null,
         h('div', { class: 'row' },
           open
-            ? h('a', { class: 'btn small', href: `#/plan/${p.id}` }, 'Open plan')
+            ? h('a', { class: 'btn small', href: `#/plan/${p.id}${p.unread ? '/chat' : ''}` }, p.unread ? `${p.unread} new message${p.unread === 1 ? '' : 's'}` : 'Open plan')
             : p.membership === 'pending'
               ? h('span', { class: 'chip' }, 'Request sent')
               : joinButton(p),
@@ -271,46 +274,57 @@
 
   /* ---------- one plan ---------- */
 
-  const TABS = [['progress', 'Progress'], ['chat', 'Chat'], ['updates', 'Updates'], ['ideas', 'Ideas']];
+  const TABS = [['progress', 'Progress'], ['chat', 'Chat'], ['updates', 'Updates'], ['ideas', 'Ideas'], ['agreement', 'Agreement']];
 
   async function planView(id, tab) {
     tab = TABS.some(t => t[0] === tab) ? tab : 'progress';
     const { plan } = await api(`/api/plans/${id}`);
     const isOwner = state.user.role === 'owner';
+    const clients = isOwner ? (await api('/api/admin/clients')).clients : [];
     const panel = h('div', { class: 'tab-panel', role: 'tabpanel', id: 'tab-panel', 'aria-labelledby': `tab-${tab}` });
     const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Plan sections' },
       TABS.map(([key, label]) => h('a', {
         href: `#/plan/${id}/${key}`, role: 'tab', id: `tab-${key}`, 'aria-selected': String(key === tab), 'aria-controls': 'tab-panel',
         class: key === tab ? 'active' : '',
-      }, label)));
+      }, label, key === 'chat' && plan.unread && tab !== 'chat' ? h('span', { class: 'badge', 'aria-label': `${plan.unread} unread` }, String(plan.unread)) : null)));
     setView(plan.title,
       h('a', { class: 'back mono small', href: '#/' }, '← all plans'),
       h('section', { class: 'plan-head' },
         h('div', {},
-          h('span', { class: 'path' }, `/plans/${plan.status}`),
+          h('span', { class: 'path' }, `/${plan.client_name ? plan.client_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'plans'}/${plan.status}`),
           h('h1', {}, plan.title),
           plan.summary ? h('p', { class: 'lede' }, plan.summary) : null),
         h('div', { class: 'plan-meter' },
           h('b', {}, `${plan.progress.percent}%`),
           progressBar(plan.progress, 'Plan progress'),
-          isOwner ? planSettings(plan) : null)),
+          isOwner ? planSettings(plan, clients) : null)),
       tabs, panel);
     if (tab === 'progress') renderProgress(panel, plan, isOwner);
     if (tab === 'chat') renderPosts(panel, plan, 'message');
     if (tab === 'updates') renderPosts(panel, plan, 'update');
     if (tab === 'ideas') renderPosts(panel, plan, 'idea');
+    if (tab === 'agreement') await renderAgreement(panel, plan, isOwner);
   }
 
-  function planSettings(plan) {
+  function planSettings(plan, clients) {
     const status = h('select', {}, ['active', 'paused', 'done'].map(s => h('option', { value: s, selected: s === plan.status }, s)));
+    const client = h('select', {}, h('option', { value: '' }, 'No client'), clients.map(c => h('option', { value: c.id, selected: c.id === plan.client_id }, c.name)));
     const listed = h('input', { type: 'checkbox', checked: plan.listed });
     const save = () => act(null, async () => {
-      await api(`/api/plans/${plan.id}`, { method: 'PATCH', body: { status: status.value, listed: listed.checked } });
+      await api(`/api/plans/${plan.id}`, { method: 'PATCH', body: { status: status.value, listed: listed.checked, client_id: client.value || null } });
       toast('Plan saved');
     });
     status.addEventListener('change', save);
     listed.addEventListener('change', save);
-    return h('div', { class: 'row small' }, field('Status', status), h('label', { class: 'check' }, listed, 'Members can ask to join'));
+    client.addEventListener('change', () => {
+      if (plan.client_id && client.value !== plan.client_id && !confirm('Move this plan to another client? People from the old client lose access.')) {
+        client.value = plan.client_id;
+        return;
+      }
+      plan.client_id = client.value || null;
+      save();
+    });
+    return h('div', { class: 'plan-settings' }, h('div', { class: 'row small' }, field('Client', client), field('Status', status)), h('label', { class: 'check small' }, listed, 'Client’s people can ask to join'));
   }
 
   const STATUS_LABEL = { todo: 'To do', doing: 'In progress', done: 'Done' };
@@ -404,6 +418,177 @@
     }, input, btn);
   }
 
+  /* ---------- agreement, payments, extra work ---------- */
+
+  const BILLING_LABEL = { unbilled: 'Not billed yet', billed: 'Billed', no_charge: 'No charge' };
+
+  async function renderAgreement(panel, plan, isOwner) {
+    const { agreement: a } = await api(`/api/plans/${plan.id}/agreement`);
+    const reload = () => route();
+    if (!isOwner && !a.shared) {
+      panel.append(h('p', { class: 'empty' }, 'The studio hasn’t shared the agreement for this project yet.'));
+      return;
+    }
+    const m = a.money;
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Where the agreement stands, and the one action that matters right now.
+    let banner;
+    if (a.status === 'accepted') {
+      banner = h('div', { class: 'agree-banner ok' }, h('b', {}, 'Agreed. '), `Accepted by ${a.accepted_by.replace(/\s*\(.*\)$/, '')} on ${new Date(a.accepted_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.`);
+    } else if (a.status === 'shared') {
+      const accept = h('button', { type: 'button', class: 'btn small' }, 'I accept this agreement');
+      accept.addEventListener('click', () => {
+        if (!confirm('Accept this agreement: what’s included, the terms and the payment plan?')) return;
+        act(accept, async () => { await api(`/api/plans/${plan.id}/agreement/accept`, { method: 'POST', body: {} }); toast('Thank you, accepted'); reload(); });
+      });
+      banner = h('div', { class: 'agree-banner wait' },
+        isOwner ? [h('b', {}, 'Shared. '), 'Waiting for the client to accept.'] : [h('b', {}, 'Please review. '), 'Read what’s included, the terms and the payments, then accept.'],
+        isOwner ? draftButton(plan) : accept);
+    } else {
+      const share = h('button', { type: 'button', class: 'btn small' }, 'Share with client');
+      share.addEventListener('click', () => act(share, async () => { await api(`/api/plans/${plan.id}/agreement`, { method: 'PATCH', body: { status: 'shared' } }); toast('Shared. The client can now read and accept it.'); reload(); }));
+      banner = h('div', { class: 'agree-banner draft' }, h('b', {}, 'Draft. '), 'Only you can see this until you share it.', share);
+    }
+
+    const stats = h('div', { class: 'money-grid' },
+      stat('Total agreed', money(m.total_cents)),
+      stat('Paid', money(m.paid_cents)),
+      stat('Balance owed', money(m.owed_cents), 'strong'),
+      stat('Due now', money(m.due_now_cents), m.due_now_cents ? 'alert' : ''),
+      m.extras_unbilled_count ? stat('Extra work not billed', m.extras_unbilled_cents ? money(m.extras_unbilled_cents) : `${m.extras_unbilled_count} item${m.extras_unbilled_count === 1 ? '' : 's'}`) : null);
+
+    // What's included
+    const scope = h('section', { class: 'phase' }, h('div', { class: 'phase-head' }, h('h2', {}, 'What’s included'), h('span', { class: 'mono small' }, String(a.scope.length))),
+      a.scope.length ? h('ol', { class: 'scope' }, a.scope.map(s => h('li', {},
+        h('div', { class: 'scope-main' }, h('b', {}, s.title), isOwner ? removeButton(`/api/scope/${s.id}`, `Remove “${s.title}”?`, reload) : null),
+        s.detail ? h('p', { class: 'muted' }, s.detail) : null))) : h('p', { class: 'muted small' }, 'Nothing listed yet.'),
+      isOwner ? scopeForm(plan, reload) : null);
+
+    // Terms
+    let terms;
+    if (isOwner) {
+      const t = h('textarea', { rows: '5', maxlength: '20000', placeholder: 'e.g. Two rounds of changes are included. Extra requests are quoted before work starts.' });
+      t.value = a.terms;
+      const save = h('button', { type: 'button', class: 'btn small ghost' }, 'Save terms');
+      save.addEventListener('click', () => act(save, async () => { await api(`/api/plans/${plan.id}/agreement`, { method: 'PATCH', body: { terms: t.value } }); toast('Terms saved'); reload(); }));
+      terms = h('section', { class: 'phase' }, h('h2', {}, 'Terms'), field('What both sides agree to', t), h('div', { class: 'row' }, save));
+    } else if (a.terms) {
+      terms = h('section', { class: 'phase' }, h('h2', {}, 'Terms'), h('p', { class: 'pre' }, a.terms));
+    }
+
+    // Payments
+    const payRows = a.payments.map(p => {
+      const state_ = p.paid_at ? 'paid' : p.due_date && p.due_date < today ? 'overdue' : p.due_date && p.due_date === today ? 'due' : 'upcoming';
+      const label = { paid: `Paid ${new Date(p.paid_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`, overdue: 'Overdue', due: 'Due today', upcoming: 'Upcoming' }[state_];
+      let statusEl = h('span', { class: `chip pay-${state_}` }, label);
+      if (isOwner) {
+        const box = h('input', { type: 'checkbox', checked: !!p.paid_at, 'aria-label': `${p.label} paid` });
+        box.addEventListener('change', () => act(box, async () => { await api(`/api/payments/${p.id}`, { method: 'PATCH', body: { paid: box.checked } }); reload(); }));
+        statusEl = h('span', { class: 'row' }, h('label', { class: 'check small' }, box, 'Paid'), statusEl);
+      }
+      return h('li', { class: `pay-row ${state_}` },
+        h('div', {}, h('b', {}, p.label), h('div', { class: 'muted small' }, p.due_date ? `Due ${day(p.due_date)}` : 'No due date')),
+        h('b', { class: 'amount' }, money(p.amount_cents)),
+        statusEl,
+        isOwner ? removeButton(`/api/payments/${p.id}`, `Remove the payment “${p.label}”?`, reload) : null);
+    });
+    const payments = h('section', { class: 'phase' }, h('div', { class: 'phase-head' }, h('h2', {}, 'Payments'), m.next_due ? h('span', { class: 'small muted' }, `Next: ${money(m.next_due.amount_cents)} on ${day(m.next_due.due_date)}`) : null),
+      payRows.length ? h('ul', { class: 'pay-list' }, payRows) : h('p', { class: 'muted small' }, 'No payments set up yet.'),
+      isOwner ? paymentForm(plan, reload) : null);
+
+    // Extra work log
+    const extras = h('section', { class: 'phase' },
+      h('div', { class: 'phase-head' }, h('h2', {}, 'Extra work'), h('span', { class: 'small muted' }, 'Outside what’s included')),
+      h('p', { class: 'muted small' }, isOwner ? 'Log anything you do beyond the agreement, even if you don’t charge for it yet. Bill it later with one tap, or mark it no charge.' : 'Work the studio did beyond the agreement. Items marked “not billed yet” aren’t part of your balance unless they are billed later.'),
+      a.extras.length ? h('ul', { class: 'extra-list' }, a.extras.map(e => extraRow(e, isOwner, reload))) : h('p', { class: 'muted small' }, 'Nothing logged yet.'),
+      isOwner ? extraForm(plan, reload) : null);
+
+    panel.append(banner, stats, scope, terms || '', payments, extras);
+  }
+
+  function stat(label, value, cls) {
+    return h('div', { class: `stat ${cls || ''}` }, h('span', { class: 'mono small' }, label), h('b', {}, value));
+  }
+
+  function draftButton(plan) {
+    const b = h('button', { type: 'button', class: 'btn small ghost' }, 'Back to draft');
+    b.addEventListener('click', () => act(b, async () => { await api(`/api/plans/${plan.id}/agreement`, { method: 'PATCH', body: { status: 'draft' } }); route(); }));
+    return b;
+  }
+
+  function removeButton(path, question, done) {
+    const b = h('button', { type: 'button', class: 'linkish small' }, 'Remove');
+    b.addEventListener('click', () => { if (confirm(question)) act(b, async () => { await api(path, { method: 'DELETE' }); done(); }); });
+    return b;
+  }
+
+  function scopeForm(plan, done) {
+    const title = h('input', { type: 'text', maxlength: '300', placeholder: 'e.g. Five-page website' });
+    const detail = h('input', { type: 'text', maxlength: '2000', placeholder: 'Optional detail' });
+    const btn = h('button', { type: 'submit', class: 'btn small ghost' }, 'Add');
+    return h('form', { class: 'grid-form', onsubmit: e => { e.preventDefault(); act(btn, async () => { await api(`/api/plans/${plan.id}/scope`, { method: 'POST', body: { title: title.value, detail: detail.value } }); done(); }); } },
+      field('Included item', title), field('Detail', detail), btn);
+  }
+
+  function paymentForm(plan, done) {
+    const label = h('input', { type: 'text', maxlength: '200', placeholder: 'e.g. Deposit' });
+    const amount = h('input', { type: 'text', inputmode: 'decimal', placeholder: '1,500' });
+    const due = h('input', { type: 'date' });
+    const btn = h('button', { type: 'submit', class: 'btn small ghost' }, 'Add payment');
+    return h('form', { class: 'grid-form', onsubmit: e => { e.preventDefault(); act(btn, async () => { await api(`/api/plans/${plan.id}/payments`, { method: 'POST', body: { label: label.value, amount: amount.value, due_date: due.value } }); done(); }); } },
+      field('Payment', label), field('Amount ($)', amount), field('Due', due), btn);
+  }
+
+  function extraRow(e, isOwner, done) {
+    const facts = [day(e.work_date), e.hours ? `${e.hours} h` : null, e.amount_cents ? money(e.amount_cents) : null].filter(Boolean).join(' · ');
+    const actions = [];
+    if (isOwner && e.billing === 'unbilled') {
+      const bill = h('button', { type: 'button', class: 'btn small ghost' }, 'Bill it');
+      bill.addEventListener('click', () => {
+        const amt = prompt('Amount to bill ($):', e.amount_cents ? (e.amount_cents / 100).toFixed(2) : '');
+        if (!amt) return;
+        act(bill, async () => { await api(`/api/extras/${e.id}/bill`, { method: 'POST', body: { amount: amt } }); toast('Added to payments'); done(); });
+      });
+      const free = h('button', { type: 'button', class: 'linkish small' }, 'No charge');
+      free.addEventListener('click', () => act(free, async () => { await api(`/api/extras/${e.id}`, { method: 'PATCH', body: { billing: 'no_charge' } }); done(); }));
+      actions.push(bill, free);
+    }
+    if (isOwner && e.billing !== 'billed') {
+      const vis = h('button', { type: 'button', class: 'linkish small' }, e.visible ? 'Hide from client' : 'Show to client');
+      vis.addEventListener('click', () => act(vis, async () => { await api(`/api/extras/${e.id}`, { method: 'PATCH', body: { visible: !e.visible } }); done(); }));
+      actions.push(vis, removeButton(`/api/extras/${e.id}`, `Remove “${e.title}” from the log?`, done));
+    }
+    return h('li', { class: 'extra' },
+      h('div', { class: 'extra-main' }, h('b', {}, e.title), h('span', { class: `chip bill-${e.billing}` }, BILLING_LABEL[e.billing]), isOwner && !e.visible ? h('span', { class: 'chip' }, 'private') : null),
+      h('div', { class: 'muted small' }, facts),
+      e.detail ? h('p', { class: 'pre small' }, e.detail) : null,
+      actions.length ? h('div', { class: 'row' }, actions) : null);
+  }
+
+  function extraForm(plan, done) {
+    const title = h('input', { type: 'text', maxlength: '300', placeholder: 'e.g. Set up their email forwarding' });
+    const detail = h('textarea', { rows: '2', maxlength: '4000', placeholder: 'Optional detail' });
+    const date = h('input', { type: 'date' });
+    date.value = new Date().toISOString().slice(0, 10);
+    const hours = h('input', { type: 'text', inputmode: 'decimal', placeholder: '1.5' });
+    const amount = h('input', { type: 'text', inputmode: 'decimal', placeholder: 'optional' });
+    const free = h('input', { type: 'checkbox' });
+    const visible = h('input', { type: 'checkbox', checked: true });
+    const btn = h('button', { type: 'submit', class: 'btn small' }, 'Log extra work');
+    return h('details', { class: 'panel-box inner' }, h('summary', {}, 'Log extra work'),
+      h('form', { class: 'stack', onsubmit: e => { e.preventDefault(); act(btn, async () => {
+        await api(`/api/plans/${plan.id}/extras`, { method: 'POST', body: { title: title.value, detail: detail.value, work_date: date.value, hours: hours.value, amount: amount.value, billing: free.checked ? 'no_charge' : 'unbilled', visible: visible.checked } });
+        toast('Logged');
+        done();
+      }); } },
+      field('What you did', title), field('Detail', detail),
+      h('div', { class: 'grid-form' }, field('Date', date), field('Hours', hours), field('Value ($)', amount)),
+      h('label', { class: 'check' }, free, 'No charge (goodwill)'),
+      h('label', { class: 'check' }, visible, 'Client can see this'),
+      h('div', {}, btn)));
+  }
+
   /* ---------- chat, updates, ideas ---------- */
 
   const KIND_TEXT = {
@@ -418,7 +603,34 @@
       h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(p.author_name)),
       h('div', { class: 'post-body' },
         h('div', { class: 'post-meta' }, h('b', {}, p.author_name), own ? h('span', { class: 'chip tiny' }, 'studio') : null, when(p.created_at)),
-        h('p', {}, p.body)));
+        postText(p)));
+  }
+
+  // Long messages stay easy to read: a short version first (when there is one), the full text a tap away.
+  const LONG = 600;
+  function postText(p) {
+    if (p.body.length < LONG) return h('p', {}, p.body);
+    const full = h('p', { class: 'full' }, p.body);
+    const words = p.body.trim().split(/\s+/).length;
+    const minutes = Math.max(1, Math.round(words / 200));
+    if (p.summary) {
+      full.hidden = true;
+      const toggle = h('button', { type: 'button', class: 'linkish small', 'aria-expanded': 'false' }, `Read the full message (${minutes} min)`);
+      toggle.addEventListener('click', () => {
+        full.hidden = !full.hidden;
+        toggle.setAttribute('aria-expanded', String(!full.hidden));
+        toggle.textContent = full.hidden ? `Read the full message (${minutes} min)` : 'Show less';
+      });
+      return h('div', {}, h('div', { class: 'short-version' }, h('span', { class: 'mono small' }, 'short version'), h('p', {}, p.summary)), full, toggle);
+    }
+    full.classList.add('clamped');
+    const more = h('button', { type: 'button', class: 'linkish small', 'aria-expanded': 'false' }, `Show more (${minutes} min read)`);
+    more.addEventListener('click', () => {
+      const open = full.classList.toggle('clamped');
+      more.setAttribute('aria-expanded', String(!open));
+      more.textContent = open ? `Show more (${minutes} min read)` : 'Show less';
+    });
+    return h('div', {}, full, more);
   }
 
   async function renderPosts(panel, plan, kind) {
@@ -487,8 +699,9 @@
   /* ---------- owner dashboard ---------- */
 
   async function ownerView() {
-    const [overview, { plans }, { agents }, { activity }, { users }] = await Promise.all([
+    const [overview, { plans }, { agents }, { activity }, { users }, board, { clients }] = await Promise.all([
       api('/api/admin/overview'), api('/api/plans'), api('/api/admin/agents'), api('/api/admin/activity?limit=30'), api('/api/admin/users'),
+      api('/api/admin/board'), api('/api/admin/clients'),
     ]);
     state.ownerCount = overview.pending_users.length + overview.pending_joins.length + overview.proposals.length;
     renderNav();
@@ -497,13 +710,52 @@
       h('div', { class: 'sec-head' },
         h('div', {}, h('span', { class: 'path' }, '/owner'), h('h1', {}, 'Owner dashboard')),
         h('p', {}, waitingCount ? `${waitingCount} thing${waitingCount === 1 ? '' : 's'} waiting on you.` : 'Nothing is waiting on you.')),
+      clientBoard(board),
       summaryBox(overview.summary),
-      waitingSection('People asking for access', overview.pending_users, u => personRequest(u, plans), 'No one is waiting.'),
+      waitingSection('People asking for access', overview.pending_users, u => personRequest(u, plans, clients), 'No one is waiting.'),
       waitingSection('Join requests', overview.pending_joins, joinRequest, 'No join requests.'),
       waitingSection('Agent proposals', overview.proposals, proposalCard, 'No proposals waiting. Agents send them here when they think they can help.'),
       agentsSection(agents),
       peopleSection(users),
       activitySection(activity));
+  }
+
+  const AGREEMENT_LABEL = { draft: 'agreement: draft', shared: 'awaiting acceptance', accepted: 'agreed' };
+
+  // Every client and their projects at a glance. Each client is its own box, so nothing mixes.
+  function clientBoard(board) {
+    const t = board.totals;
+    const name = h('input', { type: 'text', maxlength: '120', placeholder: 'Client or organization name' });
+    const add = h('button', { type: 'submit', class: 'btn small ghost' }, 'Add client');
+    return h('section', { class: 'owner-section board' },
+      h('h2', {}, 'Clients and projects'),
+      h('div', { class: 'money-grid' },
+        stat('Active projects', String(t.active_projects)),
+        stat('Owed to you', money(t.owed_cents), 'strong'),
+        stat('Due now', money(t.due_now_cents), t.due_now_cents ? 'alert' : ''),
+        stat('Extra work not billed', money(t.unbilled_cents)),
+        stat('Need a reply', String(t.needs_reply), t.needs_reply ? 'alert' : '')),
+      board.clients.length
+        ? h('div', { class: 'client-list' }, board.clients.map(c => h('article', { class: 'client' },
+          h('div', { class: 'client-head' },
+            h('h3', {}, c.name),
+            h('span', { class: 'muted small' }, `${c.projects.length} project${c.projects.length === 1 ? '' : 's'}${c.id ? ` · ${c.people} ${c.people === 1 ? 'person' : 'people'}` : ''}`),
+            c.owed_cents ? h('span', { class: 'chip' }, `${money(c.owed_cents)} owed`) : null),
+          c.projects.length
+            ? h('ul', { class: 'project-rows' }, c.projects.map(p => h('li', {},
+              h('a', { href: `#/plan/${p.id}`, class: 'project-name' }, p.title),
+              h('div', { class: 'project-progress' }, h('div', { class: 'bar', 'aria-hidden': 'true' }, h('span', { style: `width:${p.progress.percent}%` })), h('span', { class: 'mono small' }, `${p.progress.percent}%`)),
+              h('div', { class: 'project-flags' },
+                p.status !== 'active' ? h('span', { class: 'chip' }, p.status) : null,
+                h('a', { class: `chip agree-${p.agreement_status}`, href: `#/plan/${p.id}/agreement` }, AGREEMENT_LABEL[p.agreement_status]),
+                p.money.owed_cents ? h('a', { class: `chip${p.money.due_now_cents ? ' due' : ''}`, href: `#/plan/${p.id}/agreement` }, p.money.due_now_cents ? `${money(p.money.due_now_cents)} due` : `${money(p.money.owed_cents)} owed`) : null,
+                p.money.extras_unbilled_count ? h('span', { class: 'chip' }, `${p.money.extras_unbilled_count} extra unbilled`) : null,
+                p.needs_reply ? h('a', { class: 'chip due', href: `#/plan/${p.id}/chat` }, `${p.needs_reply} to reply`) : null))))
+            : h('p', { class: 'muted small' }, 'No projects yet. Open a plan and choose this client.')))
+        )
+        : h('p', { class: 'empty' }, 'Add your first client, then assign plans to them.'),
+      h('form', { class: 'inline-form', onsubmit: e => { e.preventDefault(); if (!name.value.trim()) return; act(add, async () => { await api('/api/admin/clients', { method: 'POST', body: { name: name.value } }); route(); }); } },
+        field('New client', name), add));
   }
 
   function waitingSection(title, items, render, emptyText) {
@@ -530,18 +782,28 @@
       pre);
   }
 
-  function personRequest(u, plans) {
-    const boxes = plans.map(p => h('label', { class: 'check' }, h('input', { type: 'checkbox', value: p.id }), p.title));
+  function personRequest(u, plans, clients) {
+    const client = h('select', {}, h('option', { value: '' }, 'Choose a client'), clients.map(c => h('option', { value: c.id }, c.name)));
+    const boxes = plans.map(p => h('label', { class: 'check', 'data-client': p.client_id || '' }, h('input', { type: 'checkbox', value: p.id }), p.title));
+    // Only the chosen client's plans can be ticked, so nobody is added to another client's work.
+    const filter = () => boxes.forEach(b => {
+      const ok = !b.dataset.client || b.dataset.client === client.value;
+      b.hidden = !ok;
+      if (!ok) b.querySelector('input').checked = false;
+    });
+    client.addEventListener('change', filter);
+    filter();
     const approve = h('button', { type: 'button', class: 'btn small' }, 'Approve');
     const block = h('button', { type: 'button', class: 'btn small ghost' }, 'Block');
     const card = h('article', { class: 'card' },
       h('div', { class: 'card-head' }, h('span', { class: 'avatar', 'aria-hidden': 'true' }, initials(u.name)), h('div', {}, h('b', {}, u.name), h('div', { class: 'muted small' }, u.email))),
       u.request_note ? h('blockquote', {}, u.request_note) : null,
+      clients.length ? field('Client', client) : null,
       plans.length ? h('fieldset', { class: 'plans-pick' }, h('legend', { class: 'small muted' }, 'Also approve for:'), boxes) : null,
       h('div', { class: 'row' }, approve, block, h('span', { class: 'muted small' }, 'Asked ', when(u.created_at))));
     const decide = (btn, status) => act(btn, async () => {
       const plan_ids = boxes.map(b => b.querySelector('input')).filter(i => i.checked).map(i => i.value);
-      await api(`/api/admin/users/${u.id}`, { method: 'POST', body: { status, plan_ids } });
+      await api(`/api/admin/users/${u.id}`, { method: 'POST', body: { status, plan_ids, client_id: client.value || null } });
       toast(status === 'approved' ? `${u.name} approved` : `${u.name} blocked`);
       route();
     });
@@ -655,7 +917,7 @@
       activity.length
         ? h('ol', { class: 'activity' }, activity.map(a => h('li', {},
           h('span', { class: `dot ${a.actor_type}` }),
-          h('span', {}, a.summary),
+          h('span', {}, a.summary.length > 180 ? `${a.summary.slice(0, 180)}…` : a.summary),
           h('span', { class: 'muted small' }, a.plan_title ? `${a.plan_title} · ` : '', when(a.created_at)))))
         : h('p', { class: 'muted small' }, 'Nothing yet.'));
   }

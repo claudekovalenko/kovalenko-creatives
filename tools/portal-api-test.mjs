@@ -2,7 +2,8 @@
 // sign-in, approvals, plans, chat, agents and the access rules. Run with `npm run test:portal`.
 import { startDevServer } from './dev-server.mjs';
 
-const { server, url: BASE } = await startDevServer({ port: 0 });
+// Long posts get a short version; the test stands in for Claude so nothing is sent anywhere.
+const { server, url: BASE } = await startDevServer({ port: 0, env: { SUMMARIZE_FN: async body => `Short: ${body.slice(0, 20)}` } });
 const failures = [];
 const passes = [];
 const check = (ok, label) => (ok ? passes : failures).push(label);
@@ -51,6 +52,11 @@ check(ownerMe.role === 'owner' && ownerMe.status === 'approved', 'owner: OWNER_E
 const created = await owner.send('/api/plans', { method: 'POST', body: { title: 'Demo app', summary: 'A sample plan' } });
 check(created.status === 201, 'owner: can create a plan');
 const planId = created.data.id;
+const clientA = (await owner.send('/api/admin/clients', { method: 'POST', body: { name: 'Client A' } })).data.id;
+const clientB = (await owner.send('/api/admin/clients', { method: 'POST', body: { name: 'Client B' } })).data.id;
+check((await owner.send(`/api/plans/${planId}`, { method: 'PATCH', body: { client_id: clientA } })).status === 200, 'owner: can assign a plan to a client');
+const planB = (await owner.send('/api/plans', { method: 'POST', body: { title: 'Client B secret project' } })).data.id;
+await owner.send(`/api/plans/${planB}`, { method: 'PATCH', body: { client_id: clientB } });
 const phase = (await owner.send(`/api/plans/${planId}/phases`, { method: 'POST', body: { title: 'Stage 1' } })).data.id;
 const t1 = (await owner.send(`/api/plans/${planId}/tasks`, { method: 'POST', body: { title: 'Home page', phase_id: phase } })).data.id;
 await owner.send(`/api/plans/${planId}/tasks`, { method: 'POST', body: { title: 'Sign-in', phase_id: phase } });
@@ -75,11 +81,11 @@ check((await member.send('/api/admin/overview')).status === 403, 'member: cannot
 
 const overview = (await owner.send('/api/admin/overview')).data;
 check(overview.pending_users.some(u => u.email === 'member@example.com' && u.request_note === 'From the church team'), 'owner: sees the pending person and their note');
-check((await owner.send(`/api/admin/users/${pendingMe.id}`, { method: 'POST', body: { status: 'approved' } })).status === 200, 'owner: approves the person');
+check((await owner.send(`/api/admin/users/${pendingMe.id}`, { method: 'POST', body: { status: 'approved', client_id: clientA } })).status === 200, 'owner: approves the person as part of Client A');
 
 // Approved member: sees the plan listed, must ask to join it
 const listed = (await member.send('/api/plans')).data.plans;
-check(listed.length === 1 && listed[0].membership === null && listed[0].progress === undefined, 'member: sees listed plans by title only before joining');
+check(listed.length === 1 && listed[0].id === planId && listed[0].membership === null && listed[0].progress === undefined, 'member: sees listed plans by title only before joining');
 check((await member.send(`/api/plans/${planId}`)).status === 403, 'member: cannot open a plan before joining');
 check((await member.send(`/api/plans/${planId}/join`, { method: 'POST', body: { note: 'Please add me' } })).data.status === 'pending', 'member: can ask to join a plan');
 const joins = (await owner.send('/api/admin/overview')).data.pending_joins;
@@ -135,6 +141,68 @@ check(approved.length === 1 && approved[0].owner_note === 'Yes, keep it on brand
 check((await agentCall(token, `/api/agent/proposals/${prop.data.id}`, { method: 'PATCH', body: { status: 'done', note: 'Button is 48px now' } })).status === 200, 'agents: can report approved work as done');
 await owner.send(`/api/admin/agents/${agentRes.data.id}`, { method: 'DELETE' });
 check((await agentCall(token, '/api/agent/activity')).status === 401, 'agents: a revoked token stops working');
+
+// Client silos
+check((await member.send(`/api/plans/${planB}`)).status === 403, 'silo: Client A people cannot open Client B plans');
+check((await member.send(`/api/plans/${planB}/join`, { method: 'POST', body: {} })).status === 404, 'silo: Client A people cannot even ask to join Client B plans');
+check((await owner.send('/api/admin/memberships', { method: 'POST', body: { plan_id: planB, user_id: pendingMe.id, status: 'approved' } })).status === 409, 'silo: the owner is stopped from adding a Client A person to a Client B plan');
+const boardRes = (await owner.send('/api/admin/board')).data;
+const groupA = boardRes.clients.find(c => c.id === clientA);
+check(groupA.projects.length === 1 && groupA.projects[0].progress.percent === 50 && boardRes.clients.find(c => c.id === clientB).projects[0].id === planB, 'board: each client shows its own projects and progress');
+check((await member.send('/api/admin/board')).status === 403, 'board: members cannot see the client board');
+
+// Agreement, payments and the balance owed
+check((await member.send(`/api/plans/${planId}/agreement`)).data.agreement.shared === false, 'agreement: a draft is hidden from the client');
+await owner.send(`/api/plans/${planId}/scope`, { method: 'POST', body: { title: 'Five-page website', detail: 'Home, about, services, contact, blog' } });
+await owner.send(`/api/plans/${planId}/agreement`, { method: 'PATCH', body: { terms: 'Two rounds of changes included.' } });
+const dep = (await owner.send(`/api/plans/${planId}/payments`, { method: 'POST', body: { label: 'Deposit', amount: '1,500', due_date: '2026-01-01' } })).data.id;
+await owner.send(`/api/plans/${planId}/payments`, { method: 'POST', body: { label: 'On launch', amount: 2500.5, due_date: '2099-01-01' } });
+check((await owner.send(`/api/plans/${planId}/payments`, { method: 'POST', body: { label: 'Bad', amount: 'lots' } })).status === 400, 'agreement: a nonsense amount is refused');
+check((await member.send(`/api/plans/${planId}/agreement/accept`, { method: 'POST', body: {} })).status === 409, 'agreement: cannot be accepted before it is shared');
+await owner.send(`/api/plans/${planId}/agreement`, { method: 'PATCH', body: { status: 'shared' } });
+let ag = (await member.send(`/api/plans/${planId}/agreement`)).data.agreement;
+check(ag.shared && ag.scope.length === 1 && ag.terms.includes('Two rounds') && ag.money.total_cents === 400050, 'agreement: the client sees scope, terms and the $4,000.50 total');
+check(ag.money.owed_cents === 400050 && ag.money.due_now_cents === 150000, 'agreement: balance owed and the amount due now are worked out');
+check((await member.send(`/api/plans/${planId}/agreement/accept`, { method: 'POST', body: {} })).status === 200, 'agreement: the client can accept it');
+check((await owner.send(`/api/plans/${planId}/agreement`)).data.agreement.accepted_by.startsWith('Mia Member'), 'agreement: records who accepted and when');
+check((await member.send(`/api/payments/${dep}`, { method: 'PATCH', body: { paid: true } })).status === 403, 'payments: only the owner marks payments');
+await owner.send(`/api/payments/${dep}`, { method: 'PATCH', body: { paid: true } });
+ag = (await member.send(`/api/plans/${planId}/agreement`)).data.agreement;
+check(ag.status === 'accepted' && ag.money.owed_cents === 250050 && ag.money.paid_cents === 150000, 'payments: marking the deposit paid lowers the balance and keeps the agreement accepted');
+await owner.send(`/api/plans/${planId}/scope`, { method: 'POST', body: { title: 'Logo refresh' } });
+check((await member.send(`/api/plans/${planId}/agreement`)).data.agreement.status === 'shared', 'agreement: changing the scope asks the client to accept again');
+
+// Extra work log
+const ex1 = (await owner.send(`/api/plans/${planId}/extras`, { method: 'POST', body: { title: 'Fixed their email DNS', hours: 1.5, amount: 120, work_date: '2026-11-10' } })).data.id;
+await owner.send(`/api/plans/${planId}/extras`, { method: 'POST', body: { title: 'Quick favicon swap', billing: 'no_charge' } });
+await owner.send(`/api/plans/${planId}/extras`, { method: 'POST', body: { title: 'Internal: tried a new host', visible: false } });
+ag = (await member.send(`/api/plans/${planId}/agreement`)).data.agreement;
+check(ag.extras.length === 2 && !ag.extras.some(e => e.title.startsWith('Internal')), 'extras: the client sees logged extra work, not items the owner kept private');
+check(ag.money.extras_unbilled_cents === 12000 && ag.money.owed_cents === 250050, 'extras: unbilled extra work is shown but not added to the balance');
+check((await owner.send(`/api/extras/${ex1}/bill`, { method: 'POST', body: { due_date: '2099-02-01' } })).status === 201, 'extras: the owner can bill an extra');
+ag = (await member.send(`/api/plans/${planId}/agreement`)).data.agreement;
+check(ag.money.owed_cents === 262050 && ag.payments.some(p => p.label === 'Extra: Fixed their email DNS'), 'extras: billing adds it to payments and the balance owed');
+const ownerSummary = (await owner.send('/api/admin/summary?days=7')).data.summary.text;
+check(/Money: \$2,620\.50 owed of \$4,120\.50/.test(ownerSummary), 'summary: shows money owed for the owner');
+
+// Unread messages and long posts
+const before = (await member.send('/api/plans')).data.plans.find(p => p.id === planId).unread;
+await owner.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: 'Thanks, looking at it now.' } });
+const after = (await member.send('/api/plans')).data.plans.find(p => p.id === planId).unread;
+check(after === before + 1, 'unread: a new message from the studio shows as unread');
+await member.send(`/api/plans/${planId}/posts?kind=message`);
+check((await member.send('/api/plans')).data.plans.find(p => p.id === planId).unread === 0, 'unread: opening the chat marks it read');
+const long = 'We met with the team and here is everything we think about the launch. '.repeat(15);
+const longPost = (await member.send(`/api/plans/${planId}/posts`, { method: 'POST', body: { body: long } })).data.post;
+await new Promise(r => setTimeout(r, 100));
+const withSummary = (await owner.send(`/api/plans/${planId}/posts?kind=message`)).data.posts.find(p => p.id === longPost.id);
+check(withSummary.summary === `Short: ${long.slice(0, 20)}`, 'long posts: a short version is saved alongside the full text');
+
+// Agents never see money or agreement terms
+const tok = (await owner.send('/api/admin/agents', { method: 'POST', body: { name: 'Money check' } })).data.token;
+const agentPlan = (await agentCall(tok, `/api/agent/plans/${planId}`)).data.plan;
+const agentSummary = (await agentCall(tok, '/api/agent/summary')).data.summary;
+check(agentPlan.terms === undefined && !JSON.stringify(agentPlan).includes('Two rounds') && !/Money:|\$/.test(agentSummary.text), 'agents: never see agreement terms or money');
 
 // Sign out
 check((await member.send('/auth/logout', { method: 'POST' })).status === 200, 'sign out works');

@@ -1,7 +1,7 @@
 /* Service worker: makes the site installable and lets the portal open quickly, even offline.
    Pages are fetched fresh when online (cached copy when offline). Fonts, icons and styles are
    cached. Nothing from /api or /auth is ever cached, so private plan data never sits in the cache. */
-const VERSION = 'kc-v1';
+const VERSION = 'kc-v2';
 const SHELL = ['/portal/', '/portal/portal.js', '/portal/portal.css', '/styles.css', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', event => {

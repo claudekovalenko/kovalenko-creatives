@@ -1,7 +1,7 @@
 // Owner dashboard: approvals, people, agent proposals, agent tokens, activity and the summary digest.
 import { HttpError, json, now, newId, randomToken, sha256Hex, readJson, text, oneOf } from './util.js';
 import { route } from './router.js';
-import { requireOwner, logActivity, userActor, progressOf, publicUser } from './data.js';
+import { requireOwner, logActivity, userActor, progressOf, publicUser, moneyOf, dollars, unreadOf } from './data.js';
 
 export const adminRoutes = ctx => {
   requireOwner(ctx);
@@ -17,6 +17,10 @@ export const adminRoutes = ctx => {
     ['POST', '/api/admin/agents', createAgent],
     ['DELETE', '/api/admin/agents/:id', revokeAgent],
     ['GET', '/api/admin/summary', summary],
+    ['GET', '/api/admin/board', board],
+    ['GET', '/api/admin/clients', listClients],
+    ['POST', '/api/admin/clients', createClient],
+    ['PATCH', '/api/admin/clients/:id', updateClient],
   ]);
 };
 
@@ -31,7 +35,7 @@ async function overview(ctx) {
        WHERE m.status = 'pending' AND u.status = 'approved' ORDER BY m.requested_at`,
     ).all(),
     proposalRows(db, `p.status = 'proposed'`),
-    buildSummary(db, 7),
+    buildSummary(db, 7, { money: true }),
   ]);
   return json({
     pending_users: pendingUsers.results.map(publicUser).map((u, i) => ({ ...u, created_at: pendingUsers.results[i].created_at })),
@@ -59,6 +63,15 @@ async function decideUser(ctx, { id }) {
   const user = await ctx.db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
   if (!user) throw new HttpError(404, 'Person not found');
   if (user.role === 'owner') throw new HttpError(400, 'Owner access is set with OWNER_EMAILS');
+  if (body.client_id !== undefined) {
+    const clientId = body.client_id ? (await ctx.db.prepare('SELECT id FROM clients WHERE id = ?').bind(body.client_id).first())?.id : null;
+    if (body.client_id && !clientId) throw new HttpError(400, 'Unknown client');
+    if (clientId !== user.client_id) {
+      // Moving someone to another client ends their access to the old client's plans.
+      await ctx.db.prepare('UPDATE users SET client_id = ? WHERE id = ?').bind(clientId, id).run();
+      await ctx.db.prepare(`UPDATE plan_members SET status = 'declined' WHERE user_id = ? AND plan_id IN (SELECT id FROM plans WHERE client_id IS NOT NULL AND client_id IS NOT ?)`).bind(id, clientId).run();
+    }
+  }
   const t = now();
   await ctx.db.prepare('UPDATE users SET status = ?, approved_at = ? WHERE id = ?').bind(status, status === 'approved' ? t : null, id).run();
   if (status === 'blocked') await ctx.db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
@@ -69,9 +82,16 @@ async function decideUser(ctx, { id }) {
   return json({ ok: true });
 }
 
+// Client silo: a person can only be approved for plans of their own client. Someone with no
+// client yet joins the plan's client the first time they are approved for one of its plans.
 async function setMembership(db, planId, userId, status) {
-  const plan = await db.prepare('SELECT id FROM plans WHERE id = ?').bind(planId).first();
+  const plan = await db.prepare('SELECT id, client_id, title FROM plans WHERE id = ?').bind(planId).first();
   if (!plan) throw new HttpError(400, 'Unknown plan');
+  if (status === 'approved' && plan.client_id) {
+    const user = await db.prepare('SELECT client_id, name FROM users WHERE id = ?').bind(userId).first();
+    if (user.client_id && user.client_id !== plan.client_id) throw new HttpError(409, `${user.name} belongs to another client, so they can't be added to ${plan.title}`);
+    if (!user.client_id) await db.prepare('UPDATE users SET client_id = ? WHERE id = ?').bind(plan.client_id, userId).run();
+  }
   const t = now();
   await db.prepare(
     `INSERT INTO plan_members (plan_id, user_id, status, requested_at, decided_at) VALUES (?, ?, ?, ?, ?)
@@ -153,12 +173,82 @@ async function revokeAgent(ctx, { id }) {
 
 async function summary(ctx) {
   const days = Math.min(Math.max(Number(ctx.url.searchParams.get('days')) || 7, 1), 90);
-  return json({ summary: await buildSummary(ctx.db, days) });
+  return json({ summary: await buildSummary(ctx.db, days, { money: true }) });
+}
+
+async function listClients(ctx) {
+  return json({ clients: (await ctx.db.prepare('SELECT * FROM clients ORDER BY name').all()).results });
+}
+
+async function createClient(ctx) {
+  const body = await readJson(ctx.request);
+  const id = newId();
+  const name = text(body.name, 'Client name', { max: 120 });
+  await ctx.db.prepare('INSERT INTO clients (id, name, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, name, text(body.notes, 'Notes', { max: 4000, required: false }), now(), now()).run();
+  await logActivity(ctx.db, { ...userActor(ctx.user), action: 'client_created', refType: 'client', refId: id, summary: `New client: ${name}` });
+  return json({ id }, 201);
+}
+
+async function updateClient(ctx, { id }) {
+  const row = await ctx.db.prepare('SELECT * FROM clients WHERE id = ?').bind(id).first();
+  if (!row) throw new HttpError(404, 'Client not found');
+  const body = await readJson(ctx.request);
+  await ctx.db.prepare('UPDATE clients SET name = ?, notes = ?, updated_at = ? WHERE id = ?').bind(
+    body.name !== undefined ? text(body.name, 'Client name', { max: 120 }) : row.name,
+    body.notes !== undefined ? text(body.notes, 'Notes', { max: 4000, required: false }) : row.notes,
+    now(), id,
+  ).run();
+  return json({ ok: true });
+}
+
+// Every client with every project: progress, money, agreement and conversation status at a glance.
+async function board(ctx) {
+  const db = ctx.db;
+  const [clients, plans, people] = await Promise.all([
+    db.prepare('SELECT id, name, notes FROM clients ORDER BY name').all(),
+    db.prepare('SELECT * FROM plans ORDER BY status = \'done\', updated_at DESC').all(),
+    db.prepare(`SELECT client_id, COUNT(*) AS n FROM users WHERE client_id IS NOT NULL AND status = 'approved' GROUP BY client_id`).all(),
+  ]);
+  const projects = [];
+  for (const p of plans.results) {
+    const tasks = (await db.prepare('SELECT status FROM tasks WHERE plan_id = ?').bind(p.id).all()).results;
+    const lastOwner = await db.prepare(`SELECT MAX(p.created_at) AS t FROM posts p JOIN users u ON u.id = p.user_id WHERE p.plan_id = ? AND u.role = 'owner'`).bind(p.id).first();
+    const needsReply = (await db.prepare(
+      `SELECT COUNT(*) AS n FROM posts p JOIN users u ON u.id = p.user_id WHERE p.plan_id = ? AND p.kind IN ('message', 'idea') AND u.role != 'owner' AND p.created_at > ?`,
+    ).bind(p.id, lastOwner?.t || '').first()).n;
+    projects.push({
+      id: p.id, title: p.title, status: p.status, client_id: p.client_id, updated_at: p.updated_at,
+      agreement_status: p.agreement_status, accepted_at: p.accepted_at,
+      progress: progressOf(tasks), money: await moneyOf(db, p.id), needs_reply: needsReply, unread: await unreadOf(db, p.id, ctx.user.id),
+    });
+  }
+  const peopleBy = Object.fromEntries(people.results.map(r => [r.client_id, r.n]));
+  const group = (client, list) => ({
+    ...client, people: client.id ? peopleBy[client.id] || 0 : 0, projects: list,
+    owed_cents: list.reduce((n, p) => n + p.money.owed_cents, 0),
+    due_now_cents: list.reduce((n, p) => n + p.money.due_now_cents, 0),
+    unbilled_cents: list.reduce((n, p) => n + p.money.extras_unbilled_cents, 0),
+  });
+  const groups = clients.results.map(c => group(c, projects.filter(p => p.client_id === c.id)));
+  const loose = projects.filter(p => !p.client_id || !clients.results.some(c => c.id === p.client_id));
+  if (loose.length) groups.push(group({ id: null, name: 'No client yet', notes: '' }, loose));
+  const active = projects.filter(p => p.status === 'active');
+  return json({
+    clients: groups,
+    totals: {
+      active_projects: active.length,
+      owed_cents: projects.reduce((n, p) => n + p.money.owed_cents, 0),
+      due_now_cents: projects.reduce((n, p) => n + p.money.due_now_cents, 0),
+      unbilled_cents: projects.reduce((n, p) => n + p.money.extras_unbilled_cents, 0),
+      needs_reply: projects.reduce((n, p) => n + p.needs_reply, 0),
+    },
+  });
 }
 
 // A plain digest of the last N days across every plan: progress, what got done, what people said,
 // what is waiting on the owner. Shown on the dashboard and copyable as text.
-export async function buildSummary(db, days) {
+export async function buildSummary(db, days, { money = false } = {}) {
   const since = new Date(Date.now() - days * 86400_000).toISOString();
   const plans = (await db.prepare(`SELECT * FROM plans WHERE status != 'done' OR updated_at > ? ORDER BY updated_at DESC`).bind(since).all()).results;
   const out = [];
@@ -186,6 +276,7 @@ export async function buildSummary(db, days) {
       messages: memberPosts.filter(x => x.kind === 'message').length,
       ideas: memberPosts.filter(x => x.kind === 'idea').map(x => `${x.author_name}: ${x.body.slice(0, 160)}`),
       needs_reply: needsReply,
+      money: money ? await moneyOf(db, p.id) : null,
     });
   }
   const [pendingPeople, pendingJoins, waitingProposals, approvedWork] = await Promise.all([
@@ -210,6 +301,13 @@ function summaryText(days, plans, waiting) {
     lines.push('', `${p.title}: ${p.progress.done}/${p.progress.total} tasks done (${p.progress.percent}%)${p.status !== 'active' ? `, ${p.status}` : ''}`);
     if (p.completed.length) lines.push(`  Done: ${p.completed.join('; ')}`);
     if (p.in_progress.length) lines.push(`  In progress: ${p.in_progress.join('; ')}`);
+    if (p.money && (p.money.total_cents || p.money.extras_count)) {
+      const m = p.money;
+      const bits = [`${dollars(m.owed_cents)} owed of ${dollars(m.total_cents)}`];
+      if (m.due_now_cents) bits.push(`${dollars(m.due_now_cents)} due now`);
+      if (m.extras_unbilled_count) bits.push(`${m.extras_unbilled_count} extra item${m.extras_unbilled_count === 1 ? '' : 's'} not billed yet${m.extras_unbilled_cents ? ` (${dollars(m.extras_unbilled_cents)})` : ''}`);
+      lines.push(`  Money: ${bits.join(', ')}`);
+    }
     if (p.messages) lines.push(`  ${p.messages} message${p.messages === 1 ? '' : 's'} from members${p.needs_reply ? `, ${p.needs_reply} since your last reply` : ''}`);
     for (const idea of p.ideas) lines.push(`  Idea from ${idea}`);
     if (!p.completed.length && !p.in_progress.length && !p.messages && !p.ideas.length) lines.push('  No activity.');

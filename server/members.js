@@ -2,7 +2,9 @@
 // Owner-only plan editing (phases, tasks, updates) also lives here because it uses the same plan routes.
 import { HttpError, json, now, newId, readJson, text, oneOf } from './util.js';
 import { route } from './router.js';
-import { requireUser, requireApproved, requireOwner, requirePlanAccess, isOwner, logActivity, userActor, loadPlan, progressOf, publicUser } from './data.js';
+import { requireUser, requireApproved, requireOwner, requirePlanAccess, isOwner, logActivity, userActor, loadPlan, progressOf, publicUser, moneyOf, unreadOf, markRead } from './data.js';
+import { summarizeLater } from './summarize.js';
+import { agreementRoutes } from './agreements.js';
 
 export const memberRoutes = ctx => route(ctx, [
   ['GET', '/api/me', me],
@@ -20,6 +22,7 @@ export const memberRoutes = ctx => route(ctx, [
   ['GET', '/api/plans/:id/posts', listPosts],
   ['POST', '/api/plans/:id/posts', createPost],
   ['DELETE', '/api/posts/:id', deletePost],
+  ...agreementRoutes,
 ]);
 
 async function me(ctx) {
@@ -38,19 +41,33 @@ async function requestAccess(ctx) {
 
 async function listPlans(ctx) {
   const user = requireApproved(ctx);
+  // Members only ever see plans of their own client (or plans with no client they were approved for).
   const plans = isOwner(user)
-    ? (await ctx.db.prepare(`SELECT p.*, 'approved' AS membership FROM plans p ORDER BY p.status = 'done', p.updated_at DESC`).all()).results
+    ? (await ctx.db.prepare(
+      `SELECT p.*, 'approved' AS membership, c.name AS client_name FROM plans p LEFT JOIN clients c ON c.id = p.client_id
+       ORDER BY p.status = 'done', p.updated_at DESC`,
+    ).all()).results
     : (await ctx.db.prepare(
-      `SELECT p.*, m.status AS membership FROM plans p LEFT JOIN plan_members m ON m.plan_id = p.id AND m.user_id = ?
-       WHERE m.status = 'approved' OR (p.listed = 1 AND p.status != 'done') ORDER BY p.updated_at DESC`,
-    ).bind(user.id).all()).results;
+      `SELECT p.*, m.status AS membership, c.name AS client_name FROM plans p
+       LEFT JOIN plan_members m ON m.plan_id = p.id AND m.user_id = ? LEFT JOIN clients c ON c.id = p.client_id
+       WHERE (p.client_id IS NULL OR p.client_id = ?)
+         AND (m.status = 'approved' OR (p.listed = 1 AND p.status != 'done' AND p.client_id IS NOT NULL))
+       ORDER BY p.updated_at DESC`,
+    ).bind(user.id, user.client_id || '').all()).results;
   const out = [];
   for (const p of plans) {
     const canSee = p.membership === 'approved';
-    const item = { id: p.id, title: p.title, status: p.status, listed: !!p.listed, membership: p.membership || null, updated_at: p.updated_at };
+    const item = { id: p.id, title: p.title, status: p.status, listed: !!p.listed, membership: p.membership || null, updated_at: p.updated_at, client_id: p.client_id, client_name: p.client_name || null };
     if (canSee) {
       const tasks = (await ctx.db.prepare('SELECT status FROM tasks WHERE plan_id = ?').bind(p.id).all()).results;
-      Object.assign(item, { summary: p.summary, progress: progressOf(tasks) });
+      const showMoney = isOwner(user) || p.agreement_status !== 'draft';
+      Object.assign(item, {
+        summary: p.summary,
+        progress: progressOf(tasks),
+        unread: await unreadOf(ctx.db, p.id, user.id),
+        agreement_status: p.agreement_status,
+        money: showMoney ? await moneyOf(ctx.db, p.id, { includeHidden: isOwner(user) }) : null,
+      });
     }
     out.push(item);
   }
@@ -70,7 +87,8 @@ async function createPlan(ctx) {
 
 async function getPlan(ctx, { id }) {
   const plan = await requirePlanAccess(ctx, id);
-  return json({ plan: await loadPlan(ctx.db, plan) });
+  const client = plan.client_id ? await ctx.db.prepare('SELECT name FROM clients WHERE id = ?').bind(plan.client_id).first() : null;
+  return json({ plan: { ...(await loadPlan(ctx.db, plan)), client_name: client?.name || null, unread: await unreadOf(ctx.db, id, ctx.user.id) } });
 }
 
 async function updatePlan(ctx, { id }) {
@@ -82,9 +100,10 @@ async function updatePlan(ctx, { id }) {
     summary: body.summary !== undefined ? text(body.summary, 'Summary', { max: 2000, required: false }) : plan.summary,
     status: body.status !== undefined ? oneOf(body.status, ['active', 'paused', 'done'], 'Status') : plan.status,
     listed: body.listed !== undefined ? (body.listed ? 1 : 0) : plan.listed,
+    client_id: body.client_id !== undefined ? await clientOrNull(ctx.db, body.client_id) : plan.client_id,
   };
-  await ctx.db.prepare('UPDATE plans SET title = ?, summary = ?, status = ?, listed = ?, updated_at = ? WHERE id = ?')
-    .bind(next.title, next.summary, next.status, next.listed, now(), id).run();
+  await ctx.db.prepare('UPDATE plans SET title = ?, summary = ?, status = ?, listed = ?, client_id = ?, updated_at = ? WHERE id = ?')
+    .bind(next.title, next.summary, next.status, next.listed, next.client_id, now(), id).run();
   await logActivity(ctx.db, { planId: id, ...userActor(user), action: 'plan_updated', refType: 'plan', refId: id, summary: `Plan details updated: ${next.title}` });
   return json({ ok: true });
 }
@@ -93,7 +112,8 @@ async function updatePlan(ctx, { id }) {
 async function joinPlan(ctx, { id }) {
   const user = requireApproved(ctx);
   const plan = await ctx.db.prepare('SELECT * FROM plans WHERE id = ?').bind(id).first();
-  if (!plan || (!plan.listed && !isOwner(user))) throw new HttpError(404, 'Plan not found');
+  // Only listed plans of the person's own client can be asked for, so clients never see each other's work.
+  if (!plan || (!isOwner(user) && (!plan.listed || !plan.client_id || plan.client_id !== user.client_id))) throw new HttpError(404, 'Plan not found');
   const existing = await ctx.db.prepare('SELECT status FROM plan_members WHERE plan_id = ? AND user_id = ?').bind(id, user.id).first();
   if (existing?.status === 'approved') return json({ status: 'approved' });
   const note = text((await readJson(ctx.request)).note, 'Note', { max: 500, required: false });
@@ -188,11 +208,12 @@ async function listPosts(ctx, { id }) {
   const task = ctx.url.searchParams.get('task');
   const after = ctx.url.searchParams.get('after') || '';
   const rows = (await ctx.db.prepare(
-    `SELECT p.id, p.task_id, p.kind, p.user_id, p.author_name, p.body, p.created_at, u.role AS author_role
+    `SELECT p.id, p.task_id, p.kind, p.user_id, p.author_name, p.body, p.summary, p.created_at, u.role AS author_role
      FROM posts p LEFT JOIN users u ON u.id = p.user_id
      WHERE p.plan_id = ? AND p.kind = ? AND ${task ? 'p.task_id = ?' : 'p.task_id IS NULL'} AND p.created_at > ?
      ORDER BY p.created_at DESC LIMIT 200`,
   ).bind(...[id, kind, task, after].filter(v => v !== null)).all()).results.reverse();
+  if (kind === 'message' && !task) await markRead(ctx.db, id, ctx.user.id);
   return json({ posts: rows.map(r => ({ ...r, mine: r.user_id === ctx.user.id })) });
 }
 
@@ -224,6 +245,7 @@ async function createPost(ctx, { id }) {
     planId: id, ...userActor(user), action: taskId ? 'task_comment' : `post_${kind}`, refType: 'post', refId: postId,
     summary: `${user.name} ${taskId ? 'commented' : KIND_WORDS[kind]}${where}: ${text_.slice(0, 300)}`,
   });
+  summarizeLater(ctx, postId, text_);
   return json({ post: { id: postId, task_id: taskId, kind, user_id: user.id, author_name: user.name, author_role: user.role, body: text_, created_at: t, mine: true } }, 201);
 }
 
@@ -235,6 +257,13 @@ async function deletePost(ctx, { id }) {
   await requirePlanAccess(ctx, post.plan_id);
   await ctx.db.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
   return json({ ok: true });
+}
+
+async function clientOrNull(db, clientId) {
+  if (!clientId) return null;
+  const c = await db.prepare('SELECT id FROM clients WHERE id = ?').bind(clientId).first();
+  if (!c) throw new HttpError(400, 'Unknown client');
+  return c.id;
 }
 
 const touchPlan = (db, id) => db.prepare('UPDATE plans SET updated_at = ? WHERE id = ?').bind(now(), id).run();

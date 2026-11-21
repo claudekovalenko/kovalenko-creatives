@@ -8,7 +8,7 @@ import { startDevServer } from './dev-server.mjs';
 
 const require = createRequire(import.meta.url);
 const AXE = await readFile(require.resolve('axe-core/axe.min.js'), 'utf8');
-const { server, url: BASE } = await startDevServer({ port: 0 });
+const { server, url: BASE } = await startDevServer({ port: 0, env: { SUMMARIZE_FN: async () => 'We would like to launch before the holidays. Can you confirm the date?' } });
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const failures = [];
 const passes = [];
@@ -33,10 +33,20 @@ const { id: taskId } = await call(seed.page, `/api/plans/${planId}/tasks`, 'POST
 await call(seed.page, `/api/tasks/${taskId}`, 'PATCH', { status: 'done' });
 await call(seed.page, `/api/plans/${planId}/tasks`, 'POST', { title: 'Sign-in', phase_id: phaseId });
 await call(seed.page, `/api/plans/${planId}/posts`, 'POST', { body: 'Welcome to the plan chat.' });
+const { id: clientId } = await call(seed.page, '/api/admin/clients', 'POST', { name: 'Sample client' });
+await call(seed.page, `/api/plans/${planId}`, 'PATCH', { client_id: clientId });
+await call(seed.page, `/api/plans/${planId}/scope`, 'POST', { title: 'Five-page website', detail: 'Home, about, services, contact, blog' });
+await call(seed.page, `/api/plans/${planId}/agreement`, 'PATCH', { terms: 'Two rounds of changes are included.' });
+const { id: depositId } = await call(seed.page, `/api/plans/${planId}/payments`, 'POST', { label: 'Deposit', amount: 1500, due_date: '2026-01-01' });
+await call(seed.page, `/api/payments/${depositId}`, 'PATCH', { paid: true });
+await call(seed.page, `/api/plans/${planId}/payments`, 'POST', { label: 'On launch', amount: 2500, due_date: '2026-02-01' });
+await call(seed.page, `/api/plans/${planId}/extras`, 'POST', { title: 'Set up email forwarding', hours: 1, amount: 75 });
+await call(seed.page, `/api/plans/${planId}/agreement`, 'PATCH', { status: 'shared' });
+await call(seed.page, `/api/plans/${planId}/posts`, 'POST', { body: 'A long note about the launch, with all the details we discussed. '.repeat(14) });
 const pending = await signedIn('waiting@example.com', 'Wren Waiting');
 const memberSeed = await signedIn('member@example.com', 'Mia Member');
 const users = (await call(seed.page, '/api/admin/users')).users;
-await call(seed.page, `/api/admin/users/${users.find(u => u.email === 'member@example.com').id}`, 'POST', { status: 'approved', plan_ids: [planId] });
+await call(seed.page, `/api/admin/users/${users.find(u => u.email === 'member@example.com').id}`, 'POST', { status: 'approved', client_id: clientId, plan_ids: [planId] });
 await Promise.all([seed.ctx.close(), pending.ctx.close(), memberSeed.ctx.close()]);
 
 const SIZES = [
@@ -51,6 +61,9 @@ const VIEWS = [
   ['member chat', ['member@example.com', 'Mia Member'], `/portal/#/plan/${planId}/chat`, '.post'],
   ['owner dashboard', ['owner@example.com', 'Owner'], '/portal/#/owner', '.summary-text'],
   ['owner plan', ['owner@example.com', 'Owner'], `/portal/#/plan/${planId}`, '.status-select'],
+  ['member agreement', ['member@example.com', 'Mia Member'], `/portal/#/plan/${planId}/agreement`, '.pay-row'],
+  ['owner agreement', ['owner@example.com', 'Owner'], `/portal/#/plan/${planId}/agreement`, '.extra'],
+  ['owner clients board', ['owner@example.com', 'Owner'], '/portal/#/owner', '.client .project-rows'],
 ];
 
 for (const [size, opts] of SIZES) {
@@ -102,6 +115,32 @@ for (const [size, opts] of SIZES) {
   await owner.page.goto(`${BASE}/portal/#/owner`);
   await owner.page.waitForSelector('.summary-text');
   check(/1 message from members/.test(await owner.page.textContent('.summary-text')), 'summary: shows the new message waiting for a reply');
+  await member.ctx.close();
+  await owner.ctx.close();
+}
+
+// The client sees the balance and accepts the agreement; long messages show their short version.
+{
+  const member = await signedIn('member@example.com', 'Mia Member', { viewport: { width: 390, height: 844 } });
+  await member.page.goto(`${BASE}/portal/#/plan/${planId}/agreement`);
+  await member.page.waitForSelector('.money-grid');
+  const grid = await member.page.textContent('.money-grid');
+  check(grid.includes('$4,000.00') && grid.includes('$2,500.00') && grid.includes('$75.00'), 'agreement: client sees total, balance owed and unbilled extra work');
+  member.page.once('dialog', d => d.accept());
+  await member.page.click('text=I accept this agreement');
+  const accepted = await member.page.waitForSelector('.agree-banner.ok', { timeout: 5000 }).then(() => true, () => false);
+  check(accepted, 'agreement: client accepts with one tap and sees it recorded');
+  await member.page.goto(`${BASE}/portal/#/plan/${planId}/chat`);
+  await member.page.waitForSelector('.short-version');
+  const full = member.page.locator('.post .full').first();
+  check(await full.isHidden(), 'long posts: the short version shows first and the full text is folded');
+  await member.page.click('text=/Read the full message/');
+  check(await full.isVisible(), 'long posts: the full text opens with one tap');
+  const owner = await signedIn('owner@example.com', 'Owner');
+  await owner.page.goto(`${BASE}/portal/#/owner`);
+  await owner.page.waitForSelector('.client');
+  const board = await owner.page.textContent('.board');
+  check(board.includes('Sample client') && board.includes('agreed') && board.includes('$2,500.00'), 'board: the owner sees each client, agreement status and money owed');
   await member.ctx.close();
   await owner.ctx.close();
 }

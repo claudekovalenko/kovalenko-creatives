@@ -6,7 +6,7 @@ import { memberRoutes } from './members.js';
 import { adminRoutes } from './admin.js';
 import { agentRoutes, currentAgent } from './agents.js';
 
-export async function handle(request, env) {
+export async function handle(request, env, waitUntil) {
   const url = new URL(request.url);
   try {
     if (!env.DB) throw new HttpError(503, 'The portal database is not connected yet');
@@ -21,7 +21,7 @@ export async function handle(request, env) {
     if (url.pathname.startsWith('/api/')) {
       if (!['GET', 'HEAD'].includes(request.method)) checkSameOrigin(request, url);
       const user = await currentUser(request, env);
-      const ctx = { request, env, url, user, db: env.DB };
+      const ctx = { request, env, url, user, db: env.DB, waitUntil };
       if (url.pathname.startsWith('/api/admin/')) return await adminRoutes(ctx);
       return await memberRoutes(ctx);
     }
