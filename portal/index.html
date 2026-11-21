@@ -21,7 +21,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
 
-    /* Header */
     .header { border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
     .header a { color: var(--text); text-decoration: none; font-weight: 600; font-size: 15px; }
     .header a span { color: var(--accent); }
@@ -30,7 +29,6 @@
     .btn-sm { background: var(--surface); border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-family: var(--sans); }
     .btn-sm:hover { color: var(--text); border-color: var(--muted); }
 
-    /* Login screen */
     #login-screen { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 57px); padding: 24px; }
     .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; }
     .login-box h1 { font-size: 20px; margin-bottom: 6px; }
@@ -43,51 +41,40 @@
     .btn-primary:hover { opacity: .9; }
     .error-msg { color: var(--danger); font-size: 13px; margin-top: 12px; display: none; }
 
-    /* Portal */
     #portal-screen { display: none; max-width: 860px; margin: 0 auto; padding: 32px 24px; }
     .project-header { margin-bottom: 32px; }
     .project-label { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
     .project-title { font-size: 26px; font-weight: 700; }
 
-    /* Tabs */
     .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 28px; }
     .tab { padding: 10px 18px; font-size: 13px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; border-top: none; border-left: none; border-right: none; font-family: var(--sans); }
     .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* Comments */
+    /* Comments tab */
     .comment-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; min-height: 60px; }
     .comment-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
     .comment-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
     .comment-name { font-weight: 600; font-size: 14px; }
     .comment-time { font-size: 12px; color: var(--muted); font-family: var(--mono); }
-    .comment-body { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .comment-body { font-size: 14px; line-height: 1.6; }
     .btn-delete { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; margin-left: auto; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .btn-delete:hover { background: var(--danger); color: #fff; }
     .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
 
-    /* Tag badges */
-    .tag-badge {
-      display: inline-block; font-size: 10px; font-family: var(--mono); letter-spacing: .04em;
-      text-transform: uppercase; padding: 2px 7px; border-radius: 20px; font-weight: 700;
-    }
+    .tag-badge { display: inline-block; font-size: 10px; font-family: var(--mono); letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; font-weight: 700; }
     .tag-question { background: #1c2e4a; color: #58a6ff; border: 1px solid #1f3a5f; }
     .tag-feedback { background: #2a1f4a; color: #c084fc; border: 1px solid #3d2b6e; }
     .tag-urgent   { background: #3d1a1a; color: #f97316; border: 1px solid #5a2a1a; }
     .tag-idea     { background: #1f3020; color: #4ade80; border: 1px solid #2a4a2f; }
 
-    /* Compose */
     .compose { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
     .compose textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); resize: vertical; min-height: 90px; outline: none; }
     .compose textarea:focus { border-color: var(--accent); }
     .compose-tags { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
     .compose-tags-label { font-size: 11px; font-family: var(--mono); color: var(--muted); letter-spacing: .04em; margin-right: 2px; }
-    .tag-pill {
-      border: 1px solid var(--border); background: var(--bg); color: var(--muted);
-      border-radius: 20px; padding: 3px 10px; font-size: 11px; font-family: var(--mono);
-      cursor: pointer; letter-spacing: .03em; transition: all .15s;
-    }
+    .tag-pill { border: 1px solid var(--border); background: var(--bg); color: var(--muted); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-family: var(--mono); cursor: pointer; letter-spacing: .03em; }
     .tag-pill:hover { border-color: var(--muted); color: var(--text); }
     .tag-pill.selected-question { background: #1c2e4a; color: #58a6ff; border-color: #1f3a5f; }
     .tag-pill.selected-feedback { background: #2a1f4a; color: #c084fc; border-color: #3d2b6e; }
@@ -98,45 +85,91 @@
     .btn-post:hover { opacity: .9; }
     .btn-post:disabled { opacity: .4; cursor: not-allowed; }
 
-    /* Updates */
+    /* Updates tab */
     .update-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
     .update-week { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 10px; }
     .update-items { list-style: none; }
-    .update-items li { font-size: 14px; line-height: 1.6; color: var(--text); padding: 4px 0 4px 18px; position: relative; }
+    .update-items li { font-size: 14px; line-height: 1.6; padding: 4px 0 4px 18px; position: relative; }
     .update-items li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
 
     /* Plan tab */
-    .plan-logo { text-align: center; padding: 32px 0 24px; }
-    .plan-logo img { max-width: 220px; max-height: 120px; object-fit: contain; }
-    .plan-logo-fallback { display: none; }
-    .plan-section { margin-bottom: 28px; }
-    .plan-section-title {
+    .plan-logo { text-align: center; padding: 28px 0 20px; }
+    .plan-logo img { max-width: 220px; max-height: 110px; object-fit: contain; }
+
+    .plan-stage { margin-bottom: 32px; }
+    .plan-stage-header {
       font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .1em;
       text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
     }
-    .plan-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-    .plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 12px; }
-    .plan-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .plan-card .plan-sp-label { font-size: 11px; font-family: var(--mono); color: var(--accent); margin-bottom: 10px; }
-    .plan-items { list-style: none; margin-bottom: 14px; }
-    .plan-items li { font-size: 13px; line-height: 1.6; color: var(--text); padding: 3px 0 3px 18px; position: relative; }
-    .plan-items li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-size: 11px; top: 5px; }
-    .plan-accepted { background: var(--accent-dim); border: 1px solid #2a5c3f; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: #a7f3d0; margin-top: 4px; }
-    .plan-accepted strong { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+    .plan-stage-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .plan-stage-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 10px; }
+
+    /* Task rows */
+    .task-row { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
+    .task-row.done { opacity: .6; }
+    .task-top { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+    .task-cb { width: 16px; height: 16px; flex-shrink: 0; cursor: pointer; accent-color: var(--accent); }
+    .task-label { flex: 1; font-size: 14px; line-height: 1.4; cursor: pointer; }
+    .task-label.done-text { text-decoration: line-through; color: var(--muted); }
+    .assign-badge {
+      font-size: 10px; font-family: var(--mono); letter-spacing: .04em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 20px; font-weight: 700; flex-shrink: 0;
+    }
+    .assign-client { background: #1c2e4a; color: #58a6ff; border: 1px solid #1f3a5f; }
+    .assign-ivan   { background: #1f3020; color: #4ade80; border: 1px solid #2a4a2f; }
+    .btn-task-comments {
+      background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px;
+      padding: 3px 9px; font-size: 11px; font-family: var(--mono); cursor: pointer; flex-shrink: 0;
+    }
+    .btn-task-comments:hover { border-color: var(--muted); color: var(--text); }
+    .btn-task-comments.has-comments { border-color: var(--accent); color: var(--accent); }
+    .btn-task-delete { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; }
+    .btn-task-delete:hover { background: var(--danger); color: #fff; }
+
+    /* Task comment area */
+    .task-comments { display: none; border-top: 1px solid var(--border); padding: 12px 14px 14px; background: var(--bg); }
+    .task-comments.open { display: block; }
+    .task-comment-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .tc-item { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px; }
+    .tc-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; flex-wrap: wrap; }
+    .tc-name { font-size: 13px; font-weight: 600; }
+    .tc-time { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+    .tc-del { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px; padding: 1px 5px; border-radius: 4px; }
+    .tc-del:hover { background: var(--danger); color: #fff; }
+    .tc-body { font-size: 13px; line-height: 1.5; }
+    .task-compose { display: flex; gap: 8px; }
+    .task-compose input { flex: 1; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 7px; font-size: 13px; font-family: var(--sans); outline: none; }
+    .task-compose input:focus { border-color: var(--accent); }
+    .task-compose button { background: var(--accent); color: var(--bg); border: none; padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); white-space: nowrap; }
+
+    /* Add task row */
+    .add-task-row { margin-top: 8px; }
+    .add-task-form { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+    .add-task-form.open { display: block; }
+    .add-task-form input[type=text] { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 7px; font-size: 13px; font-family: var(--sans); outline: none; margin-bottom: 10px; }
+    .add-task-form input[type=text]:focus { border-color: var(--accent); }
+    .add-task-form-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .add-task-form select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 7px; font-size: 12px; font-family: var(--sans); outline: none; }
+    .add-task-form-actions { display: flex; gap: 6px; margin-left: auto; }
+    .btn-add-task-open { background: none; border: 1px dashed var(--border); color: var(--muted); border-radius: 7px; padding: 8px 14px; font-size: 12px; font-family: var(--mono); cursor: pointer; width: 100%; text-align: center; }
+    .btn-add-task-open:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-save-task { background: var(--accent); color: var(--bg); border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
+    .btn-cancel-task { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: var(--sans); }
+
+    /* Plan summary */
+    .plan-mvp { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-top: 8px; }
+    .plan-mvp p { font-size: 14px; line-height: 1.7; }
     .plan-timeline { width: 100%; border-collapse: collapse; font-size: 13px; }
     .plan-timeline th { text-align: left; font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid var(--border); }
     .plan-timeline td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
     .plan-timeline tr:last-child td { border-bottom: none; }
-    .plan-timeline tr:hover td { background: var(--accent-dim); }
     .plan-timeline td:first-child { font-weight: 600; }
-    .plan-mvp { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
-    .plan-mvp p { font-size: 14px; line-height: 1.7; color: var(--text); }
 
     @media (max-width: 600px) {
       .login-box { padding: 28px 20px; }
       #portal-screen { padding: 20px 16px; }
-      .plan-timeline { font-size: 12px; }
-      .plan-timeline th, .plan-timeline td { padding: 7px 8px; }
+      .add-task-form-row { flex-direction: column; align-items: stretch; }
+      .add-task-form-actions { margin-left: 0; }
     }
   </style>
 </head>
@@ -150,7 +183,6 @@
   </div>
 </header>
 
-<!-- Login -->
 <div id="login-screen">
   <div class="login-box">
     <h1>Client Portal</h1>
@@ -161,14 +193,13 @@
     </div>
     <div class="field">
       <label>PROJECT CODE</label>
-      <input id="input-code" type="text" placeholder="e.g. JPN2026" autocomplete="off" style="font-family: var(--mono); letter-spacing: .05em;">
+      <input id="input-code" type="text" placeholder="e.g. JPN2026" autocomplete="off" style="font-family:var(--mono);letter-spacing:.05em">
     </div>
     <button class="btn-primary" onclick="signIn()">Access My Project</button>
     <div class="error-msg" id="login-error">That code doesn't match a project. Double-check with Ivan.</div>
   </div>
 </div>
 
-<!-- Portal -->
 <div id="portal-screen">
   <div class="project-header">
     <div class="project-label">Your Project</div>
@@ -181,19 +212,17 @@
     <button class="tab" onclick="showTab('plan')">Plan</button>
   </div>
 
-  <!-- Comments tab -->
+  <!-- Comments -->
   <div id="tab-comments" class="tab-panel active">
-    <div class="comment-list" id="comment-list">
-      <div class="empty-state">Loading…</div>
-    </div>
+    <div class="comment-list" id="comment-list"><div class="empty-state">Loading…</div></div>
     <div class="compose">
       <textarea id="compose-text" placeholder="Leave a note, question, or feedback…"></textarea>
       <div class="compose-tags">
         <span class="compose-tags-label">TAG</span>
         <button class="tag-pill" data-tag="question" onclick="toggleTag('question')">Question</button>
         <button class="tag-pill" data-tag="feedback" onclick="toggleTag('feedback')">Feedback</button>
-        <button class="tag-pill" data-tag="urgent" onclick="toggleTag('urgent')">Urgent</button>
-        <button class="tag-pill" data-tag="idea" onclick="toggleTag('idea')">Idea</button>
+        <button class="tag-pill" data-tag="urgent"   onclick="toggleTag('urgent')">Urgent</button>
+        <button class="tag-pill" data-tag="idea"     onclick="toggleTag('idea')">Idea</button>
       </div>
       <div class="compose-footer">
         <button class="btn-post" id="post-btn" onclick="postComment()">Post</button>
@@ -201,110 +230,25 @@
     </div>
   </div>
 
-  <!-- Updates tab -->
+  <!-- Updates -->
   <div id="tab-updates" class="tab-panel">
-    <div id="updates-list">
-      <div class="empty-state">Loading…</div>
-    </div>
+    <div id="updates-list"><div class="empty-state">Loading…</div></div>
   </div>
 
-  <!-- Plan tab -->
+  <!-- Plan -->
   <div id="tab-plan" class="tab-panel">
     <div class="plan-logo">
-      <img id="jpn-logo" src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
-           onerror="this.style.display='none'; document.getElementById('jpn-logo-svg').style.display='block'">
-      <svg id="jpn-logo-svg" style="display:none" width="180" height="80" viewBox="0 0 180 80" xmlns="http://www.w3.org/2000/svg">
-        <rect width="180" height="80" rx="10" fill="#161b22"/>
-        <circle cx="90" cy="40" r="22" fill="none" stroke="#4fd1a1" stroke-width="2"/>
-        <circle cx="90" cy="40" r="6" fill="#4fd1a1"/>
-        <circle cx="58" cy="24" r="4" fill="#4fd1a1" opacity=".7"/>
-        <circle cx="122" cy="24" r="4" fill="#4fd1a1" opacity=".7"/>
-        <circle cx="58" cy="56" r="4" fill="#4fd1a1" opacity=".7"/>
-        <circle cx="122" cy="56" r="4" fill="#4fd1a1" opacity=".7"/>
-        <line x1="68" y1="40" x2="84" y2="40" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
-        <line x1="96" y1="40" x2="112" y2="40" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
-        <line x1="90" y1="18" x2="90" y2="34" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
-        <line x1="90" y1="46" x2="90" y2="62" stroke="#4fd1a1" stroke-width="1.5" opacity=".6"/>
-        <line x1="62" y1="27" x2="74" y2="34" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
-        <line x1="106" y1="34" x2="118" y2="27" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
-        <line x1="62" y1="53" x2="74" y2="46" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
-        <line x1="106" y1="46" x2="118" y2="53" stroke="#4fd1a1" stroke-width="1" opacity=".4"/>
-        <text x="90" y="74" font-family="system-ui,sans-serif" font-size="9" fill="#4fd1a1" text-anchor="middle" letter-spacing="2" font-weight="700">JESUS PEOPLE NETWORK</text>
-      </svg>
+      <img src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
+           onerror="this.style.display='none'">
     </div>
 
-    <div class="plan-section">
-      <div class="plan-section-title">Stopping Point 1 — Foundation</div>
-      <div class="plan-card">
-        <div class="plan-sp-label">SP1 · 6–8 weeks · Late Nov – Mid Dec 2026</div>
-        <h3>Foundation + Live Journey Pages</h3>
-        <ul class="plan-items">
-          <li>Discovery session confirmed and documented</li>
-          <li>Data model defined (creators, journeys, responses)</li>
-          <li>Network site scaffolded and deployed</li>
-          <li>Creator site with unique URL slug live</li>
-          <li>Three-step journey structure working</li>
-          <li>Response form collecting and saving submissions</li>
-        </ul>
-        <div class="plan-accepted">
-          <strong>Accepted when</strong>
-          A visitor can open a creator's link, go through all three steps, submit a response, and that response is saved under that creator.
-        </div>
-      </div>
-    </div>
+    <div id="stages-container"><!-- stages rendered by JS --></div>
 
-    <div class="plan-section">
-      <div class="plan-section-title">Stopping Point 2 — Creator Platform</div>
-      <div class="plan-card">
-        <div class="plan-sp-label">SP2 · 5–7 weeks · End Dec 2026 – Late Jan 2027</div>
-        <h3>Creator Registration + Dashboard</h3>
-        <ul class="plan-items">
-          <li>Creator registration flow (name, email, org)</li>
-          <li>Google sign-in integrated</li>
-          <li>Creator dashboard with journey editor</li>
-          <li>Content blocks: text, image, video, call-to-action</li>
-          <li>Publish / unpublish toggle</li>
-          <li>Response analytics per creator</li>
-          <li>CSV export of responses</li>
-        </ul>
-        <div class="plan-accepted">
-          <strong>Accepted when</strong>
-          A creator can register, configure their three journey sections, publish, and see their own responses and basic analytics.
-        </div>
-      </div>
-    </div>
-
-    <div class="plan-section">
-      <div class="plan-section-title">Stopping Point 3 — Network CRM + Launch</div>
-      <div class="plan-card">
-        <div class="plan-sp-label">SP3 · 6–8 weeks · Mid Feb – Late Mar 2027</div>
-        <h3>Admin, Follow-up &amp; Handoff</h3>
-        <ul class="plan-items">
-          <li>Network admin: manage creators, view all responses</li>
-          <li>Aggregated analytics across all creators</li>
-          <li>Follow-up email system (manual trigger)</li>
-          <li>QA across devices and browsers</li>
-          <li>Staging environment sign-off</li>
-          <li>Handoff: docs, training, DNS, production launch</li>
-        </ul>
-        <div class="plan-accepted">
-          <strong>Accepted when</strong>
-          MVP acceptance statement is fully met in production.
-        </div>
-      </div>
-    </div>
-
-    <div class="plan-section">
-      <div class="plan-section-title">Timeline</div>
-      <div class="plan-card" style="padding: 0; overflow: hidden;">
+    <div style="margin-bottom:32px">
+      <div class="plan-stage-header">Timeline</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
         <table class="plan-timeline">
-          <thead>
-            <tr>
-              <th>Phase</th>
-              <th>Duration</th>
-              <th>Window</th>
-            </tr>
-          </thead>
+          <thead><tr><th>Phase</th><th>Duration</th><th>Window</th></tr></thead>
           <tbody>
             <tr><td>SP1 — Foundation</td><td>6–8 weeks</td><td>Late Nov – Mid Dec 2026</td></tr>
             <tr><td>SP2 — Creator Platform</td><td>5–7 weeks</td><td>End Dec 2026 – Late Jan 2027</td></tr>
@@ -315,8 +259,8 @@
       </div>
     </div>
 
-    <div class="plan-section">
-      <div class="plan-section-title">MVP Acceptance Statement</div>
+    <div style="margin-bottom:32px">
+      <div class="plan-stage-header">MVP Acceptance</div>
       <div class="plan-mvp">
         <p>A new creator can register, receive a unique URL, configure three journey sections, publish, receive trackable responses, see their own data and analytics, and the network can see aggregated responses across all creators and trigger a follow-up email.</p>
       </div>
@@ -325,13 +269,60 @@
 </div>
 
 <script>
+  const TABS = ['comments','updates','plan'];
   let currentUser = null;
   let currentProject = null;
   let pollTimer = null;
   let selectedTag = null;
-  const TABS = ['comments', 'updates', 'plan'];
+  // taskComments: { taskId: post[] }
+  let taskComments = {};
+  // openCommentPanels: Set of task IDs currently expanded
+  let openPanels = new Set();
 
-  // --- Auth ---
+  const STAGES = [
+    {
+      id: 'sp1',
+      label: 'Stopping Point 1 — Foundation',
+      meta: 'SP1 · 6–8 weeks · Late Nov – Mid Dec 2026',
+      defaults: [
+        { id: 'jpn-sp1-t1', text: 'Discovery session confirmed and documented' },
+        { id: 'jpn-sp1-t2', text: 'Data model defined (creators, journeys, responses)' },
+        { id: 'jpn-sp1-t3', text: 'Network site scaffolded and deployed' },
+        { id: 'jpn-sp1-t4', text: 'Creator site with unique URL slug live' },
+        { id: 'jpn-sp1-t5', text: 'Three-step journey structure working' },
+        { id: 'jpn-sp1-t6', text: 'Response form collecting and saving submissions' },
+      ],
+    },
+    {
+      id: 'sp2',
+      label: 'Stopping Point 2 — Creator Platform',
+      meta: 'SP2 · 5–7 weeks · End Dec 2026 – Late Jan 2027',
+      defaults: [
+        { id: 'jpn-sp2-t1', text: 'Creator registration flow (name, email, org)' },
+        { id: 'jpn-sp2-t2', text: 'Google sign-in integrated' },
+        { id: 'jpn-sp2-t3', text: 'Creator dashboard with journey editor' },
+        { id: 'jpn-sp2-t4', text: 'Content blocks: text, image, video, call-to-action' },
+        { id: 'jpn-sp2-t5', text: 'Publish / unpublish toggle' },
+        { id: 'jpn-sp2-t6', text: 'Response analytics per creator' },
+        { id: 'jpn-sp2-t7', text: 'CSV export of responses' },
+      ],
+    },
+    {
+      id: 'sp3',
+      label: 'Stopping Point 3 — Network CRM + Launch',
+      meta: 'SP3 · 6–8 weeks · Mid Feb – Late Mar 2027',
+      defaults: [
+        { id: 'jpn-sp3-t1', text: 'Network admin: manage creators, view all responses' },
+        { id: 'jpn-sp3-t2', text: 'Aggregated analytics across all creators' },
+        { id: 'jpn-sp3-t3', text: 'Follow-up email system (manual trigger)' },
+        { id: 'jpn-sp3-t4', text: 'QA across devices and browsers' },
+        { id: 'jpn-sp3-t5', text: 'Staging environment sign-off' },
+        { id: 'jpn-sp3-t6', text: 'Handoff: docs, training, DNS, production launch' },
+      ],
+    },
+  ];
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
   function restoreSession() {
     const saved = JSON.parse(localStorage.getItem('kc-portal-session') || 'null');
     if (saved?.name && saved?.project) {
@@ -346,21 +337,16 @@
     const code = document.getElementById('input-code').value.trim();
     const errEl = document.getElementById('login-error');
     errEl.style.display = 'none';
-
     if (!name || !code) { errEl.textContent = 'Please enter your name and project code.'; errEl.style.display = 'block'; return; }
-
     try {
       const res = await fetch(`/api/projects?code=${encodeURIComponent(code)}`);
-      if (!res.ok) { errEl.textContent = "That code doesn't match a project. Double-check with Ivan."; errEl.style.display = 'block'; return; }
+      if (!res.ok) { errEl.textContent = "That code doesn't match a project."; errEl.style.display = 'block'; return; }
       const project = await res.json();
       currentUser = name;
       currentProject = project;
       localStorage.setItem('kc-portal-session', JSON.stringify({ name, project }));
       showPortal();
-    } catch (e) {
-      errEl.textContent = 'Connection error. Try again.';
-      errEl.style.display = 'block';
-    }
+    } catch { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
   }
 
   document.addEventListener('keydown', e => {
@@ -384,29 +370,30 @@
     document.getElementById('project-name').textContent = currentProject.name;
     loadComments();
     loadUpdates();
+    renderStagesSkeleton();
+    loadPlanTasks();
     pollTimer = setInterval(loadComments, 30000);
   }
 
-  // --- Tabs ---
+  // ── Tabs ──────────────────────────────────────────────────────────────────
   function showTab(tab) {
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', TABS[i] === tab));
     TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === tab));
   }
 
-  // --- Tags ---
+  // ── Comment tags ──────────────────────────────────────────────────────────
   function toggleTag(tag) {
     selectedTag = selectedTag === tag ? null : tag;
     document.querySelectorAll('.tag-pill').forEach(p => {
-      const t = p.dataset.tag;
-      p.className = 'tag-pill' + (selectedTag === t ? ' selected-' + t : '');
+      p.className = 'tag-pill' + (selectedTag === p.dataset.tag ? ' selected-' + p.dataset.tag : '');
     });
   }
 
-  // --- Comments ---
+  // ── Comments tab ──────────────────────────────────────────────────────────
   async function loadComments() {
     try {
       const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`);
-      const posts = await res.json();
+      const posts = (await res.json()).filter(p => !p.task_id); // global comments only
       renderComments(posts);
     } catch {}
   }
@@ -417,17 +404,10 @@
     el.innerHTML = posts.map(p => {
       const tag = p.urgency && p.urgency !== 'normal' ? `<span class="tag-badge tag-${esc(p.urgency)}">${esc(p.urgency)}</span>` : '';
       const del = p.author_name === currentUser ? `<button class="btn-delete" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
-      return `
-        <div class="comment-item" id="comment-${p.id}">
-          <div class="comment-meta">
-            <span class="comment-name">${esc(p.author_name)}</span>
-            ${tag}
-            <span class="comment-time">${formatDate(p.created_at)}</span>
-            ${del}
-          </div>
-          <div class="comment-body">${esc(p.body)}</div>
-        </div>
-      `;
+      return `<div class="comment-item" id="comment-${p.id}">
+        <div class="comment-meta"><span class="comment-name">${esc(p.author_name)}</span>${tag}<span class="comment-time">${fmt(p.created_at)}</span>${del}</div>
+        <div class="comment-body">${esc(p.body)}</div>
+      </div>`;
     }).join('');
   }
 
@@ -446,13 +426,7 @@
       await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan_id: currentProject.id,
-          author_name: currentUser,
-          body: text,
-          kind: 'message',
-          urgency: selectedTag || 'normal',
-        }),
+        body: JSON.stringify({ plan_id: currentProject.id, author_name: currentUser, body: text, kind: 'message', urgency: selectedTag || 'normal' }),
       });
       document.getElementById('compose-text').value = '';
       selectedTag = null;
@@ -461,7 +435,7 @@
     } finally { btn.disabled = false; }
   }
 
-  // --- Updates ---
+  // ── Updates tab ───────────────────────────────────────────────────────────
   async function loadUpdates() {
     try {
       const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=update`);
@@ -480,15 +454,237 @@
         content = `<ul class="update-items">${(d.items||[]).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
         if (d.notes) content += `<p style="margin-top:10px;font-size:13px;color:var(--muted)">${esc(d.notes)}</p>`;
       } catch { content = `<p style="font-size:14px">${esc(p.body)}</p>`; }
-      return `<div class="update-item"><div class="update-week">${esc(p.author_name)} · ${formatDate(p.created_at)}</div>${content}</div>`;
+      return `<div class="update-item"><div class="update-week">${esc(p.author_name)} · ${fmt(p.created_at)}</div>${content}</div>`;
     }).join('');
   }
 
-  // --- Utils ---
-  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function formatDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  // ── Plan: tasks ───────────────────────────────────────────────────────────
+  function renderStagesSkeleton() {
+    const container = document.getElementById('stages-container');
+    container.innerHTML = STAGES.map(s => `
+      <div class="plan-stage" id="stage-${s.id}">
+        <div class="plan-stage-header">${esc(s.label)}</div>
+        <div class="plan-stage-meta">${esc(s.meta)}</div>
+        <div class="task-list" id="tasks-${s.id}"><div class="empty-state" style="padding:16px 0">Loading…</div></div>
+        <div class="add-task-row" id="add-row-${s.id}">
+          <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">+ Add item</button>
+          <div class="add-task-form" id="add-form-${s.id}">
+            <input type="text" placeholder="Describe the task or item…" id="add-input-${s.id}">
+            <div class="add-task-form-row">
+              <label style="font-size:12px;color:var(--muted);font-family:var(--mono)">ASSIGN TO</label>
+              <select id="add-assign-${s.id}">
+                <option value="">No one</option>
+                <option value="client">Client</option>
+                <option value="ivan">Ivan</option>
+              </select>
+              <div class="add-task-form-actions">
+                <button class="btn-cancel-task" onclick="closeAddTask('${s.id}')">Cancel</button>
+                <button class="btn-save-task" onclick="saveTask('${s.id}')">Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
   }
+
+  async function loadPlanTasks() {
+    // Fetch all tasks for this project
+    const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=task`);
+    const allTasks = await res.json();
+
+    // Seed default items that don't exist yet
+    for (const stage of STAGES) {
+      for (const def of stage.defaults) {
+        const exists = allTasks.find(t => t.id === def.id);
+        if (!exists) {
+          await fetch('/api/posts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: def.id,
+              plan_id: currentProject.id,
+              task_id: stage.id,
+              kind: 'task',
+              author_name: 'Ivan',
+              body: JSON.stringify({ text: def.text, assignee: null }),
+              urgency: 'open',
+            }),
+          });
+          allTasks.push({ id: def.id, task_id: stage.id, kind: 'task', author_name: 'Ivan', body: JSON.stringify({ text: def.text, assignee: null }), urgency: 'open', created_at: new Date().toISOString() });
+        }
+      }
+    }
+
+    // Also fetch all task-level comments
+    const msgRes = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`);
+    const allMessages = await msgRes.json();
+    taskComments = {};
+    for (const m of allMessages) {
+      if (m.task_id) {
+        if (!taskComments[m.task_id]) taskComments[m.task_id] = [];
+        taskComments[m.task_id].push(m);
+      }
+    }
+
+    // Render each stage
+    for (const stage of STAGES) {
+      const tasks = allTasks.filter(t => t.task_id === stage.id);
+      renderTasks(stage.id, tasks);
+    }
+  }
+
+  function renderTasks(stageId, tasks) {
+    const el = document.getElementById(`tasks-${stageId}`);
+    if (!tasks.length) { el.innerHTML = '<div class="empty-state" style="padding:12px 0;font-size:13px">No items yet.</div>'; return; }
+    el.innerHTML = tasks.map(t => {
+      const data = parseTask(t.body);
+      const done = t.urgency === 'done';
+      const comments = taskComments[t.id] || [];
+      const commentLabel = comments.length ? `💬 ${comments.length}` : '+ Note';
+      const isOpen = openPanels.has(t.id);
+      const assignBadge = data.assignee === 'client' ? '<span class="assign-badge assign-client">Client</span>'
+                        : data.assignee === 'ivan'   ? '<span class="assign-badge assign-ivan">Ivan</span>'
+                        : '';
+      return `
+        <div class="task-row${done ? ' done' : ''}" id="task-row-${t.id}">
+          <div class="task-top">
+            <input type="checkbox" class="task-cb" ${done ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)">
+            <span class="task-label${done ? ' done-text' : ''}">${esc(data.text)}</span>
+            ${assignBadge}
+            <button class="btn-task-comments${comments.length ? ' has-comments' : ''}" onclick="toggleTaskComments('${t.id}', '${currentProject.id}')">${esc(commentLabel)}</button>
+            <button class="btn-task-delete" onclick="deleteTask('${t.id}')" title="Delete item">✕</button>
+          </div>
+          <div class="task-comments${isOpen ? ' open' : ''}" id="tc-${t.id}">
+            <div class="task-comment-list" id="tc-list-${t.id}">${renderTaskComments(t.id)}</div>
+            <div class="task-compose">
+              <input placeholder="Add a note…" id="tc-input-${t.id}" onkeydown="if(event.key==='Enter')postTaskComment('${t.id}')">
+              <button onclick="postTaskComment('${t.id}')">Post</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderTaskComments(taskId) {
+    const list = taskComments[taskId] || [];
+    if (!list.length) return '<div style="font-size:12px;color:var(--muted);padding:4px 0 8px">No notes yet.</div>';
+    return list.map(c => `
+      <div class="tc-item" id="tc-item-${c.id}">
+        <div class="tc-meta">
+          <span class="tc-name">${esc(c.author_name)}</span>
+          <span class="tc-time">${fmt(c.created_at)}</span>
+          ${c.author_name === currentUser ? `<button class="tc-del" onclick="deleteTaskComment('${c.id}','${taskId}')">✕</button>` : ''}
+        </div>
+        <div class="tc-body">${esc(c.body)}</div>
+      </div>`).join('');
+  }
+
+  async function toggleTask(id, checked) {
+    const urgency = checked ? 'done' : 'open';
+    await fetch(`/api/posts?id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urgency }),
+    });
+    const row = document.getElementById(`task-row-${id}`);
+    const label = row?.querySelector('.task-label');
+    if (row) row.classList.toggle('done', checked);
+    if (label) label.classList.toggle('done-text', checked);
+  }
+
+  async function toggleTaskComments(taskId, planId) {
+    const panel = document.getElementById(`tc-${taskId}`);
+    if (!panel) return;
+    if (!openPanels.has(taskId)) {
+      openPanels.add(taskId);
+      panel.classList.add('open');
+      // Refresh comments for this task
+      const res = await fetch(`/api/posts?plan_id=${planId}&kind=message&task_id=${taskId}`);
+      taskComments[taskId] = await res.json();
+      document.getElementById(`tc-list-${taskId}`).innerHTML = renderTaskComments(taskId);
+    } else {
+      openPanels.delete(taskId);
+      panel.classList.remove('open');
+    }
+  }
+
+  async function postTaskComment(taskId) {
+    const input = document.getElementById(`tc-input-${taskId}`);
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: currentProject.id, task_id: taskId, author_name: currentUser, body: text, kind: 'message', urgency: 'normal' }),
+    });
+    const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message&task_id=${taskId}`);
+    taskComments[taskId] = await res.json();
+    document.getElementById(`tc-list-${taskId}`).innerHTML = renderTaskComments(taskId);
+    // Update comment button label
+    const btn = document.querySelector(`#task-row-${taskId} .btn-task-comments`);
+    if (btn) { const c = taskComments[taskId].length; btn.textContent = c ? `💬 ${c}` : '+ Note'; btn.classList.toggle('has-comments', c > 0); }
+  }
+
+  async function deleteTaskComment(commentId, taskId) {
+    if (!confirm('Delete this note?')) return;
+    await fetch(`/api/posts?id=${commentId}`, { method: 'DELETE' });
+    taskComments[taskId] = (taskComments[taskId] || []).filter(c => c.id !== commentId);
+    document.getElementById(`tc-list-${taskId}`).innerHTML = renderTaskComments(taskId);
+    const btn = document.querySelector(`#task-row-${taskId} .btn-task-comments`);
+    if (btn) { const c = taskComments[taskId].length; btn.textContent = c ? `💬 ${c}` : '+ Note'; btn.classList.toggle('has-comments', c > 0); }
+    document.getElementById(`tc-item-${commentId}`)?.remove();
+  }
+
+  async function deleteTask(taskId) {
+    if (!confirm('Remove this item?')) return;
+    await fetch(`/api/posts?id=${taskId}`, { method: 'DELETE' });
+    document.getElementById(`task-row-${taskId}`)?.remove();
+  }
+
+  function openAddTask(stageId) {
+    document.querySelector(`#add-row-${stageId} .btn-add-task-open`).style.display = 'none';
+    document.getElementById(`add-form-${stageId}`).classList.add('open');
+    document.getElementById(`add-input-${stageId}`).focus();
+  }
+
+  function closeAddTask(stageId) {
+    document.querySelector(`#add-row-${stageId} .btn-add-task-open`).style.display = '';
+    document.getElementById(`add-form-${stageId}`).classList.remove('open');
+    document.getElementById(`add-input-${stageId}`).value = '';
+  }
+
+  async function saveTask(stageId) {
+    const text = document.getElementById(`add-input-${stageId}`).value.trim();
+    if (!text) return;
+    const assignee = document.getElementById(`add-assign-${stageId}`).value || null;
+    const res = await fetch('/api/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan_id: currentProject.id,
+        task_id: stageId,
+        kind: 'task',
+        author_name: currentUser,
+        body: JSON.stringify({ text, assignee }),
+        urgency: 'open',
+      }),
+    });
+    const { id } = await res.json();
+    closeAddTask(stageId);
+    // Re-fetch and re-render this stage
+    const allRes = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=task&task_id=${stageId}`);
+    renderTasks(stageId, await allRes.json());
+  }
+
+  // ── Utils ─────────────────────────────────────────────────────────────────
+  function parseTask(body) {
+    try { const d = JSON.parse(body); return { text: d.text || body, assignee: d.assignee || null }; }
+    catch { return { text: body, assignee: null }; }
+  }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmt(iso) { return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
 
   restoreSession();
 </script>

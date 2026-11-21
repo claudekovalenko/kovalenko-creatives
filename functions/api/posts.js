@@ -1,6 +1,6 @@
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -21,7 +21,7 @@ export async function onRequest(context) {
     const params = [plan_id];
     if (kind) { sql += ' AND kind = ?'; params.push(kind); }
     if (task_id) { sql += ' AND task_id = ?'; params.push(task_id); }
-    sql += ' ORDER BY created_at ASC LIMIT 200';
+    sql += ' ORDER BY created_at ASC LIMIT 500';
 
     const result = await env.DB.prepare(sql).bind(...params).all();
     return new Response(JSON.stringify(result.results), {
@@ -33,18 +33,31 @@ export async function onRequest(context) {
     let data;
     try { data = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
 
-    const { plan_id, author_name, body, kind, task_id, urgency } = data;
+    const { plan_id, author_name, body, kind, task_id, urgency, id: clientId } = data;
     if (!plan_id || !author_name || !body || !kind) return json({ error: 'Missing fields' }, 400);
-    if (!['message', 'update', 'idea'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
+    if (!['message', 'update', 'idea', 'task'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
 
-    const id = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = clientId || `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const created_at = new Date().toISOString();
 
+    // INSERT OR IGNORE so pre-seeded tasks with deterministic IDs don't duplicate
     await env.DB.prepare(
-      'INSERT INTO posts (id, plan_id, task_id, kind, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(id, plan_id, task_id || null, kind, author_name, body, urgency || 'normal', created_at).run();
+      'INSERT OR IGNORE INTO posts (id, plan_id, task_id, kind, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(id, plan_id, task_id || null, kind, author_name, body, urgency || 'open', created_at).run();
 
     return json({ id, created_at }, 201);
+  }
+
+  if (request.method === 'PATCH') {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    if (!id) return json({ error: 'Missing id' }, 400);
+    let data;
+    try { data = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
+    const { urgency } = data;
+    if (!urgency) return json({ error: 'Missing urgency' }, 400);
+    await env.DB.prepare('UPDATE posts SET urgency = ? WHERE id = ?').bind(urgency, id).run();
+    return json({ updated: id });
   }
 
   if (request.method === 'DELETE') {
@@ -52,6 +65,8 @@ export async function onRequest(context) {
     const id = url.searchParams.get('id');
     if (!id) return json({ error: 'Missing id' }, 400);
     await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
+    // Also delete comments on this task
+    await env.DB.prepare('DELETE FROM posts WHERE task_id = ?').bind(id).run();
     return json({ deleted: id });
   }
 
