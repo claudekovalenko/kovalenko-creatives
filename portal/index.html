@@ -63,6 +63,8 @@
     .comment-name { font-weight: 600; font-size: 14px; }
     .comment-time { font-size: 12px; color: var(--muted); font-family: var(--mono); }
     .comment-body { font-size: 14px; line-height: 1.6; color: var(--text); }
+    .btn-delete { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; margin-left: auto; padding: 2px 6px; border-radius: 4px; }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
     .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
 
     /* Compose */
@@ -227,14 +229,21 @@
     const el = document.getElementById('comment-list');
     if (!posts.length) { el.innerHTML = '<div class="empty-state">No messages yet. Be the first to leave a note.</div>'; return; }
     el.innerHTML = posts.map(p => `
-      <div class="comment-item">
+      <div class="comment-item" id="comment-${p.id}">
         <div class="comment-meta">
           <span class="comment-name">${esc(p.author_name)}</span>
           <span class="comment-time">${formatDate(p.created_at)}</span>
+          ${p.author_name === currentUser ? `<button class="btn-delete" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : ''}
         </div>
         <div class="comment-body">${esc(p.body)}</div>
       </div>
     `).join('');
+  }
+
+  async function deleteComment(id) {
+    if (!confirm('Delete this comment?')) return;
+    await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
+    document.getElementById(`comment-${id}`)?.remove();
   }
 
   async function postComment() {

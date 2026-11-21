@@ -1,6 +1,6 @@
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -45,6 +45,14 @@ export async function onRequest(context) {
     ).bind(id, plan_id, task_id || null, kind, author_name, body, urgency || 'normal', created_at).run();
 
     return json({ id, created_at }, 201);
+  }
+
+  if (request.method === 'DELETE') {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+    if (!id) return json({ error: 'Missing id' }, 400);
+    await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
+    return json({ deleted: id });
   }
 
   return new Response('Method not allowed', { status: 405, headers: CORS });
