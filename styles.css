@@ -229,7 +229,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   .stats > div:nth-child(n+3) { border-top: 1px solid var(--line); }
 }
 @media (max-width: 640px) {
-  .site-header nav a:not(.cta) { display: none; }
+  .site-header nav a:not(.cta):not(.portal-link) { display: none; }
+  .site-header nav { gap: 14px; }
+  .site-header nav .cta { white-space: nowrap; }
   .hero { padding-block: 48px 56px; }
   .section, .contact { padding-block: 64px; }
   .toolkit div { grid-template-columns: 1fr; gap: 4px; }
@@ -243,4 +245,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   .proj:hover { transform: none; }
   .slides { scroll-behavior: auto; }
   .chat-panel { animation: none; }
+}
+@media (max-width: 400px) {
+  .site-header .wrap { gap: 10px; }
+  .site-header nav { gap: 10px; }
+  .site-header nav .cta { padding: 7px 10px; font-size: 12px; }
+  .logo { font-size: 15px; gap: 8px; }
 }

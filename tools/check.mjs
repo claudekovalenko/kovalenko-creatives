@@ -34,7 +34,7 @@ for (const p of PROJECTS) {
 // 2. Every local file the page loads must exist, and every in-page link must have a target.
 const html = readFileSync('index.html', 'utf8');
 for (const [, src] of html.matchAll(/(?:src|href)="(?!https?:|mailto:|#|data:)([^"]+)"/g)) {
-  if (!existsSync(src)) fail(`index.html loads a missing file: ${src}`);
+  if (!existsSync(src.replace(/^\//, "") || ".")) fail(`index.html loads a missing file: ${src}`);
 }
 const ids = new Set([...html.matchAll(/\sid="([^"]+)"/g)].map(m => m[1]));
 for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) {
