@@ -277,6 +277,11 @@
     <div class="project-label">Admin</div>
     <div class="project-title">All projects</div>
   </div>
+  <div class="top-card highlight">
+    <div class="top-card-label">Incoming changes <span class="top-card-sub">everything waiting on you across all projects</span></div>
+    <div id="inbox"><div class="empty-state" style="padding:12px 0">Loading…</div></div>
+  </div>
+  <div class="plan-sub">Projects</div>
   <div id="projects-list"><div class="empty-state">Loading…</div></div>
 </div>
 
@@ -634,6 +639,31 @@
       </div>`;
     }).join('') || '<div class="empty-state">No projects yet.</div>';
     window._allProjects = projects;
+    loadInbox();
+  }
+
+  async function loadInbox() {
+    const el = document.getElementById('inbox');
+    const r = await fetch('/api/projects?inbox=1');
+    if (!r.ok) { el.innerHTML = '<div class="empty-state" style="padding:12px 0">Could not load.</div>'; return; }
+    const { items } = await r.json();
+    const text = i => {
+      try { const d = JSON.parse(i.body); return d.text || i.body; } catch { return i.body; }
+    };
+    const groups = [
+      ['Needs your approval', items.filter(i => i.urgency === 'pending'), i => i.kind === 'idea' ? 'idea' : 'plan item'],
+      ['Open edits & notes', items.filter(i => i.kind === 'sitenote'), i => { try { return JSON.parse(i.body).path ? 'on ' + JSON.parse(i.body).path : 'edit'; } catch { return 'edit'; } }],
+      ['Recent client messages', items.filter(i => i.kind === 'message'), i => i.task_id ? 'reply' : 'chat'],
+    ];
+    const total = groups.reduce((a, g) => a + g[1].length, 0);
+    if (!total) { el.innerHTML = '<div class="empty-state" style="padding:12px 0">Nothing waiting. All caught up.</div>'; return; }
+    el.innerHTML = groups.filter(g => g[1].length).map(([title, list, tag]) => `
+      <div class="plan-sub">${esc(title)} · ${list.length}</div>
+      ${list.map(i => `<div class="idea-row" style="cursor:pointer" onclick="openProject('${esc(i.plan_id)}')">
+        <div class="idea-meta"><b>${esc(i.author_name)}</b><span class="tc-time">${fmt(i.created_at)} · ${esc(i.project)}</span>
+          <span class="tag-badge tag-question" style="margin-left:auto">${esc(tag(i))}</span></div>
+        <div class="idea-body">${esc(String(text(i)).slice(0, 240))}</div>
+      </div>`).join('')}`).join('');
   }
 
   function openProject(id) {

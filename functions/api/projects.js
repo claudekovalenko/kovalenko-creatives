@@ -21,6 +21,19 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
   const url = new URL(request.url);
+  if (url.searchParams.get('inbox') === '1') {
+    if (!(await isAdminRequest(request, context.env))) return json({ error: 'unauthorized' }, 401);
+    const since = new Date(Date.now() - 21 * 86400000).toISOString();
+    const rows = (await context.env.DB.prepare(
+      `SELECT id, plan_id, task_id, kind, author_name, body, urgency, created_at FROM portal_posts
+       WHERE (urgency = 'pending' AND kind IN ('task','idea'))
+          OR (kind = 'sitenote' AND urgency != 'done')
+          OR (kind = 'message' AND lower(author_name) != 'ivan' AND created_at > ?)
+       ORDER BY created_at DESC LIMIT 200`
+    ).bind(since).all()).results;
+    const names = Object.fromEntries(Object.values(PROJECTS).map(p => [p.id, p.name]));
+    return json({ items: rows.filter(r => names[r.plan_id]).map(r => ({ ...r, project: names[r.plan_id] })) });
+  }
   if (url.searchParams.get('all') === '1') {
     if (!(await isAdminRequest(request, context.env))) return json({ error: 'unauthorized' }, 401);
     const DB = context.env.DB;

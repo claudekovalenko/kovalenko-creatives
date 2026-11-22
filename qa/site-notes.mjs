@@ -120,6 +120,8 @@ try {
   {
     const r = await fetch(`${PORTAL}/api/projects?all=1`);
     check('all-projects list is blocked without admin sign-in', r.status === 401, String(r.status));
+    const r2 = await fetch(`${PORTAL}/api/projects?inbox=1`);
+    check('incoming-changes summary is blocked without admin sign-in', r2.status === 401, String(r2.status));
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     await page.goto(`${PORTAL}/portal/`);
