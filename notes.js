@@ -20,7 +20,8 @@
         session = { code: codeParam, projectId: p.id, name: session && session.name || '' };
         save();
         start();
-      });
+      })
+      .catch(function () {});
     return;
   }
   if (session && session.projectId) start();
@@ -84,6 +85,10 @@
     renderBtn();
 
     document.addEventListener('click', onPick, true);
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || (!mode && !document.getElementById('kcn-card'))) return;
+      e.stopPropagation(); setMode(false); closeCard();
+    }, true);
     window.addEventListener('resize', placePins);
     load();
     setInterval(load, 15000);
@@ -106,7 +111,6 @@
     renderBtn();
   }
 
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setMode(false); closeCard(); } });
 
   function onPick(e) {
     if (!mode) return;
@@ -161,15 +165,17 @@
       post({
         plan_id: session.projectId, kind: 'sitenote', author_name: session.name, urgency: 'open',
         body: JSON.stringify({ text: text, url: location.origin + location.pathname, path: location.pathname, title: document.title, anchor: anchor })
-      }).then(function () { closeCard(); load(); });
+      }).then(function () { closeCard(); load(); }, function () { failed(ok); });
     };
     row.appendChild(cancel); row.appendChild(ok); c.appendChild(row);
     (n || t).focus();
   }
 
   function post(data) {
-    return fetch(API + '/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    return fetch(API + '/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Portal-Name': session.name || '' }, body: JSON.stringify(data) })
+      .then(function (r) { if (!r.ok) throw new Error('save failed'); return r; });
   }
+  function failed(btn) { btn.disabled = false; btn.textContent = 'Could not save, try again'; }
 
   function load() {
     Promise.all([
@@ -236,14 +242,14 @@
     var res = el('button', null, n.urgency === 'done' ? 'Reopen' : 'Resolve');
     res.onclick = function () {
       fetch(API + '/api/posts?id=' + encodeURIComponent(n.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urgency: n.urgency === 'done' ? 'open' : 'done' }) })
-        .then(function () { closeCard(); load(); });
+        .then(function () { closeCard(); load(); }, function () {});
     };
     var send = el('button', 'primary', 'Reply');
     send.onclick = function () {
       if (nIn) { if (!nIn.value.trim()) { nIn.focus(); return; } session.name = nIn.value.trim(); save(); }
       if (!t.value.trim()) { t.focus(); return; }
       post({ plan_id: session.projectId, task_id: n.id, kind: 'message', author_name: session.name, body: t.value.trim(), urgency: 'normal' })
-        .then(function () { closeCard(); load(); });
+        .then(function () { closeCard(); load(); }, function () { failed(send); });
     };
     t.onkeydown = function (e) { if (e.key === 'Enter') send.click(); };
     row.appendChild(close); row.appendChild(res); row.appendChild(send); c.appendChild(row);
