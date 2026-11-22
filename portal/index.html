@@ -124,6 +124,23 @@
     .plan-stage-info { flex: 1; padding-top: 4px; }
     .plan-stage-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .plan-stage-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+    .plan-sub { font-size: 10px; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 8px; }
+    .scope-list { list-style: none; margin-bottom: 6px; }
+    .scope-list li { font-size: 14px; line-height: 1.55; padding: 3px 0 3px 20px; position: relative; }
+    .scope-list li::before { content: '○'; position: absolute; left: 2px; color: var(--accent); font-size: 11px; top: 5px; }
+    .task-date { font-size: 11px; font-family: var(--mono); color: var(--muted); flex-shrink: 0; }
+    .top-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+    .top-card.highlight { border-left: 3px solid var(--accent); }
+    .top-card.waiting { border-color: #1f3a5f; border-left: 3px solid #58a6ff; }
+    .top-card-label { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .top-card.waiting .top-card-label { color: #58a6ff; }
+    .top-card-sub { text-transform: none; letter-spacing: 0; color: var(--muted); margin-left: 6px; }
+    .link-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; margin: 0 8px 8px 0; color: var(--text); text-decoration: none; font-size: 13px; }
+    .link-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .link-pill button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px; }
+    .link-add { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .link-add input { flex: 1; min-width: 140px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 7px; font-size: 13px; outline: none; }
+    .tc-body a, .chat-bubble a { color: inherit; text-decoration: underline; word-break: break-all; }
 
     /* Task rows */
     .task-row { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; overflow: hidden; }
@@ -274,10 +291,43 @@
            onerror="this.style.display='none'">
     </div>
 
+    <div class="top-card" id="links-card">
+      <div class="top-card-label">Project links</div>
+      <div id="links-list"></div>
+      <div id="links-admin" style="display:none" class="link-add">
+        <input id="link-label" placeholder="Label, e.g. Live preview">
+        <input id="link-url" placeholder="https://…">
+        <button class="btn-save-task" onclick="addLink()">Add link</button>
+      </div>
+    </div>
+
+    <div class="top-card highlight" id="highlights-card">
+      <div class="top-card-label">Last week's highlights <span id="highlights-week" class="top-card-sub"></span></div>
+      <ul class="update-items" id="highlights-list"><li>Loading…</li></ul>
+    </div>
+
+    <div class="top-card waiting" id="client-card">
+      <div class="top-card-label">Waiting on you <span class="top-card-sub">things Ivan needs back from you · tick when done, use Note to reply or paste a link</span></div>
+      <div class="task-list" id="tasks-client"><div class="empty-state" style="padding:12px 0">Loading…</div></div>
+      <div class="add-task-row" id="add-row-client" style="display:none">
+        <button class="btn-add-task-open" onclick="openAddTask('client')">+ Add something they need to do</button>
+        <div class="add-task-form" id="add-form-client">
+          <input type="text" placeholder="What do you need from them?" id="add-input-client" onkeydown="if(event.key==='Enter')saveTask('client')">
+          <div class="add-task-form-row">
+            <select id="add-assign-client" style="display:none"><option value="client" selected>client</option></select>
+            <div class="add-task-form-actions">
+              <button class="btn-cancel-task" onclick="closeAddTask('client')">Cancel</button>
+              <button class="btn-save-task" onclick="saveTask('client')">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="stages-container"><!-- stages rendered by JS --></div>
 
     <div style="margin-bottom:32px">
-      <div class="plan-stage-header">Timeline</div>
+      <div class="plan-sub">Timeline</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
         <table class="plan-timeline">
           <thead><tr><th>Phase</th><th>Duration</th><th>Window</th></tr></thead>
@@ -292,7 +342,7 @@
     </div>
 
     <div style="margin-bottom:32px">
-      <div class="plan-stage-header">MVP Acceptance</div>
+      <div class="plan-sub">MVP acceptance statement</div>
       <div class="plan-mvp">
         <p>A new creator can register, receive a unique URL, configure three journey sections, publish, receive trackable responses, see their own data and analytics, and the network can see aggregated responses across all creators and trigger a follow-up email.</p>
       </div>
@@ -321,12 +371,28 @@
       title: 'Foundation + live journey pages',
       meta: '6–8 weeks · Late Nov – Mid Dec 2026',
       accepted: 'A visitor can open a creator\'s link, go through the three steps and submit a response that is saved under that creator.',
+      scope: [
+        'Discovery confirmed',
+        'Data model and Supabase/PostgreSQL schema with creator/admin permissions',
+        'Network/creator recruitment site, Statement of Faith and legal pages',
+        'Unique creator URL/slug and the public 3-step mobile journey page',
+        'Response forms with consent and spam protection, saving to the database with creator attribution',
+      ],
       defaults: [
-        { id: 'jpn-sp1-t1', text: 'Discovery confirmed', section: 'agreed', done: true },
-        { id: 'jpn-sp1-t2', text: 'Data model and Supabase/PostgreSQL schema with creator/admin permissions', section: 'agreed' },
-        { id: 'jpn-sp1-t3', text: 'Network/creator recruitment site, Statement of Faith and legal pages', section: 'agreed' },
-        { id: 'jpn-sp1-t4', text: 'Unique creator URL/slug and the public 3-step mobile journey page', section: 'agreed' },
-        { id: 'jpn-sp1-t5', text: 'Response forms with consent and spam protection, saving to the database with creator attribution', section: 'agreed' },
+        { id: 'task-07', text: 'Creator accounts with unique shareable links', done: 'Sep 25, 2026' },
+        { id: 'task-02', text: 'Home page desktop layout', done: 'Sep 29, 2026' },
+        { id: 'task-01', text: 'Sliding journey form — commitment, course sign-up, confirmation email', done: 'Oct 1, 2026' },
+        { id: 'task-03', text: 'Home page redesign — same branding, fuller layout', done: 'Oct 20, 2026' },
+        { id: 'task-08', text: 'Google sign-in button', done: 'Oct 20, 2026' },
+        { id: 'task-09', text: 'Straight to dashboard after Google sign-in', done: 'Oct 20, 2026' },
+        { id: 'task-10', text: 'Role-based routing after sign-in', done: 'Oct 20, 2026' },
+        { id: 'task-04', text: 'Mobile-friendly home page — single column', done: 'Oct 24, 2026' },
+        { id: 'task-05', text: 'New site icon and FAQ with smooth expand/collapse', done: 'Oct 26, 2026' },
+        { id: 'task-06', text: 'Clean system font styling (Instagram-style)', done: 'Oct 26, 2026' },
+        { id: 'task-11', text: 'Sign-in page — works on phones and desktop', done: 'Oct 27, 2026' },
+        { id: 'task-24', text: 'Statement of Faith page' },
+        { id: 'task-25', text: 'Legal pages (Terms of Service, Privacy Policy)' },
+        { id: 'task-26', text: 'Spam and bot protection' },
       ],
     },
     {
@@ -335,12 +401,24 @@
       title: 'Creator platform',
       meta: '5–7 weeks · End Dec 2026 – Late Jan 2027',
       accepted: 'A new creator can register, configure and publish their three sections, and see and export their own responses and analytics.',
+      scope: [
+        'Open registration with configurable approval mode',
+        '"Sign in with Google" for creators and admins, alongside email sign-in, using the OAuth support built into Supabase Auth',
+        'Creator dashboard and editor with preview',
+        'Content blocks: text, video embed, image, PDF/file, link/button, approved embed',
+        'Creator people/responses view with CSV export, and creator analytics',
+      ],
       defaults: [
-        { id: 'jpn-sp2-t1', text: 'Open registration with configurable approval mode', section: 'agreed' },
-        { id: 'jpn-sp2-t2', text: '"Sign in with Google" for creators and admins, alongside email sign-in, using the OAuth support built into Supabase Auth', section: 'agreed' },
-        { id: 'jpn-sp2-t3', text: 'Creator dashboard and editor with preview', section: 'agreed' },
-        { id: 'jpn-sp2-t4', text: 'Content blocks: text, video embed, image, PDF/file, link/button, approved embed', section: 'agreed' },
-        { id: 'jpn-sp2-t5', text: 'Creator people/responses view with CSV export, and creator analytics', section: 'agreed' },
+        { id: 'task-13', text: 'Share-your-link and follow-up dashboard', done: 'Oct 24, 2026' },
+        { id: 'task-12', text: 'Creator dashboard — engagement as visitor percentages', done: 'Oct 26, 2026' },
+        { id: 'task-16', text: 'Creators directory — one card per creator', done: 'Oct 26, 2026' },
+        { id: 'task-14', text: 'Dashboard shows what visitors clicked', done: 'Oct 28, 2026' },
+        { id: 'task-15', text: 'Dashboard cards — one per step, with people behind each', done: 'Oct 30, 2026' },
+        { id: 'task-17', text: 'Admin page with sign-out and step overview', done: 'Nov 2, 2026' },
+        { id: 'task-27', text: 'Apple sign-in' },
+        { id: 'task-28', text: 'Creator dashboard and editor — remaining features' },
+        { id: 'task-29', text: 'Content blocks: finalize text, video, image, PDF, link/button' },
+        { id: 'task-30', text: 'Interest form — collect signups and maintain a subscriber list' },
       ],
     },
     {
@@ -349,14 +427,53 @@
       title: 'Network CRM, follow-up + launch',
       meta: '6–8 weeks · Mid Feb – Late Mar 2027',
       accepted: 'The MVP acceptance statement is met in production.',
+      scope: [
+        'Admin creator management, settings, templates and basic audit log',
+        'Network admin analytics',
+        'Immediate network-sent follow-up email with creator-specific content/CTA, plus email logging and suppression',
+        'VisitorReach outbound link tracking (how contacts are handed to VisitorReach has not been clarified yet)',
+        'Responsive/accessibility QA, staging + production deployment and handoff documentation',
+      ],
       defaults: [
-        { id: 'jpn-sp3-t1', text: 'Admin creator management, settings, templates and basic audit log', section: 'agreed' },
-        { id: 'jpn-sp3-t2', text: 'Network admin analytics', section: 'agreed' },
-        { id: 'jpn-sp3-t3', text: 'Immediate network-sent follow-up email with creator-specific content/CTA, plus email logging and suppression', section: 'agreed' },
-        { id: 'jpn-sp3-t4', text: 'VisitorReach outbound link tracking (how contacts are handed to VisitorReach has not been clarified yet; see below)', section: 'agreed' },
-        { id: 'jpn-sp3-t5', text: 'Responsive/accessibility QA, staging + production deployment and handoff documentation', section: 'agreed' },
+        { id: 'task-18', text: 'Admin creator management, settings, templates and audit log' },
+        { id: 'task-19', text: 'Network-wide admin analytics' },
+        { id: 'task-20', text: 'Follow-up email with creator-specific content and CTA' },
+        { id: 'task-21', text: 'VisitorReach outbound link tracking' },
+        { id: 'task-22', text: 'Responsive/accessibility QA across devices' },
+        { id: 'task-31', text: 'Database stress test — review schema integrity, indexes, constraints, and RLS policies' },
+        { id: 'task-32', text: 'TCPA compliance testing — consent capture, opt-in records, disclosure language, audit trail' },
+        { id: 'task-33', text: 'Code integrity stress test — XSS, injection, input validation, error handling' },
+        { id: 'task-34', text: 'Security stress test — auth bypass, API exposure, secret leaks, RLS enforcement' },
+        { id: 'task-35', text: 'High-volume lead test — simulate large lead batches, verify performance and data integrity' },
+        { id: 'task-23', text: 'Production deployment and handoff documentation' },
       ],
     },
+  ];
+
+  // Things the client needs to do or get back to Ivan on
+  const CLIENT_TODOS = [
+    { id: 'client-01', text: 'Statement of Faith — review and approve the final wording' },
+    { id: 'client-02', text: 'Legal — have a lawyer review the Terms of Use and Privacy Policy' },
+    { id: 'client-03', text: 'Approve the consent checkbox wording and the follow-up email wording' },
+    { id: 'client-04', text: 'Give Ivan access to jesuspeoplenetwork.com in Cloudflare so the domain and hello@ email can be set up' },
+    { id: 'client-05', text: 'Decide how contacts should be handed to VisitorReach' },
+  ];
+
+  const BUILTIN_UPDATES = [
+    { id: 'update-2026-11-16', created_at: '2026-11-17T12:00:00Z', label: 'Week of Nov 16, 2026', items: [
+      'Renamed Digital Collective to Jesus People Network on the live site, the design preview and the plan',
+      'Terms, Privacy, the Statement of Faith and the consent checkboxes use the new name; consent records are versioned, so older ones keep the wording people agreed to',
+      'Contact address is now hello@jesuspeoplenetwork.com, and example links use jesuspeoplenetwork.com (the domain still needs to be connected in Cloudflare)',
+    ] },
+    { id: 'update-2026-11-09', created_at: '2026-11-10T12:00:00Z', label: 'Week of Nov 9, 2026', items: [
+      'Added five stress-testing tasks to Stopping Point 3: database, TCPA compliance, code integrity, security and high-volume leads',
+      'Added the Updates tab for weekly meeting notes',
+      'Drafted a "Faith is already on the screen" section for the Why page with Pew Research and Luminate figures (not on the preview yet)',
+    ] },
+  ];
+
+  const DEFAULT_LINKS = [
+    { id: 'link-devplan', label: 'Development plan', url: 'https://development-plan.pages.dev' },
   ];
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -405,9 +522,14 @@
     document.getElementById('header-user').style.display = 'flex';
     document.getElementById('display-name').textContent = currentUser;
     document.getElementById('project-name').textContent = currentProject.name;
-    if (isAdmin()) document.getElementById('admin-tools').style.display = 'block';
+    if (isAdmin()) {
+      document.getElementById('admin-tools').style.display = 'block';
+      document.getElementById('links-admin').style.display = 'flex';
+      document.getElementById('add-row-client').style.display = '';
+    }
     loadComments();
-    loadUpdates();
+    loadHighlights();
+    loadLinks();
     renderStagesSkeleton();
     loadPlanTasks();
     pollTimer = setInterval(loadComments, 5000);
@@ -469,7 +591,7 @@
       const edit = mine ? `<button class="chat-edit" onclick="startEditComment('${p.id}')" title="Edit">✎</button>` : '';
       return `<div class="chat-row ${mine ? 'mine' : 'theirs'}" id="comment-${p.id}">
         ${!mine ? `<div class="chat-sender">${esc(p.author_name)}</div>` : ''}
-        <div class="chat-bubble" id="bubble-${p.id}">${esc(p.body)}</div>
+        <div class="chat-bubble" id="bubble-${p.id}">${linkify(p.body)}</div>
         <div class="chat-meta" id="meta-${p.id}">
           ${tag}
           <span class="chat-time">${fmt(p.created_at)}</span>
@@ -614,7 +736,9 @@
         content = `<ul class="update-items">${(d.items||[]).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
         if (d.notes) content += `<p style="margin-top:10px;font-size:13px;color:var(--muted)">${esc(d.notes)}</p>`;
       } catch { content = `<p style="font-size:14px">${esc(p.body)}</p>`; }
-      return `<div class="update-item"><div class="update-week">${esc(p.author_name)} · ${fmt(p.created_at)}</div>${content}</div>`;
+      let label = fmt(p.created_at);
+      try { label = JSON.parse(p.body).label || label; } catch {}
+      return `<div class="update-item"><div class="update-week">${esc(label)} · ${esc(p.author_name)}</div>${content}</div>`;
     }).join('');
   }
 
@@ -630,7 +754,9 @@
             <div class="plan-stage-meta">${esc(s.meta)}</div>
           </div>
         </div>
+        <ul class="scope-list">${s.scope.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
         ${s.accepted ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;line-height:1.5"><span style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px">Accepted when</span>${esc(s.accepted)}</div>` : ''}
+        <div class="plan-sub">Progress</div>
         <div class="task-list" id="tasks-${s.id}"><div class="empty-state" style="padding:16px 0">Loading…</div></div>
         <div class="add-task-row" id="add-row-${s.id}">
           <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">${isAdmin() ? '+ Add item' : '+ Request an item'}</button>
@@ -661,28 +787,22 @@
     const allTasks = await res.json();
 
     // Seed default items that don't exist yet
-    for (const stage of STAGES) {
-      for (const def of stage.defaults) {
-        const exists = allTasks.find(t => t.id === def.id);
-        if (!exists) {
-          const urgency = def.done ? 'done' : 'open';
-          await fetch('/api/posts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: def.id,
-              plan_id: currentProject.id,
-              task_id: stage.id,
-              kind: 'task',
-              author_name: 'Ivan',
-              body: JSON.stringify({ text: def.text, assignee: null }),
-              urgency,
-            }),
-          });
-          allTasks.push({ id: def.id, task_id: stage.id, kind: 'task', author_name: 'Ivan', body: JSON.stringify({ text: def.text, assignee: null }), urgency, created_at: new Date().toISOString() });
-        }
+    const groups = STAGES.map(s => ({ id: s.id, defaults: s.defaults, assignee: null }))
+      .concat([{ id: 'client', defaults: CLIENT_TODOS, assignee: 'client' }]);
+    for (const g of groups) {
+      for (const def of g.defaults) {
+        if (allTasks.find(t => t.id === def.id)) continue;
+        const urgency = def.done ? 'done' : 'open';
+        const body = JSON.stringify({ text: def.text, assignee: g.assignee, date: def.done || null });
+        await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: def.id, plan_id: currentProject.id, task_id: g.id, kind: 'task', author_name: 'Ivan', body, urgency }),
+        });
+        allTasks.push({ id: def.id, task_id: g.id, kind: 'task', author_name: 'Ivan', body, urgency, created_at: new Date().toISOString() });
       }
     }
+    renderTasks('client', allTasks.filter(t => t.task_id === 'client'));
 
     // Also fetch all task-level comments
     const msgRes = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`);
@@ -705,6 +825,7 @@
   function isAdmin() { return currentUser?.toLowerCase() === 'ivan'; }
 
   function getDefaultSection(taskId) {
+    if (CLIENT_TODOS.some(d => d.id === taskId)) return 'agreed';
     for (const stage of STAGES) {
       const def = stage.defaults.find(d => d.id === taskId);
       if (def) return def.section || 'agreed';
@@ -739,7 +860,8 @@
       <div class="task-top">
         <input type="checkbox" class="task-cb" ${done ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)">
         <span class="task-label${done ? ' done-text' : ''}">${esc(data.text)}</span>
-        ${assignBadge}
+        ${done && data.date ? `<span class="task-date">${esc(data.date)}</span>` : ''}
+        ${stageId === 'client' ? '' : assignBadge}
         <button class="btn-task-comments${comments.length ? ' has-comments' : ''}" onclick="toggleTaskComments('${t.id}', '${currentProject.id}')">${esc(commentLabel)}</button>
         ${isAdmin() ? `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete item">✕</button>` : ''}
       </div>
@@ -798,21 +920,82 @@
           <span class="tc-time">${fmt(c.created_at)}</span>
           ${(c.author_name === currentUser || isAdmin()) ? `<button class="tc-del" onclick="deleteTaskComment('${c.id}','${taskId}')">✕</button>` : ''}
         </div>
-        <div class="tc-body">${esc(c.body)}</div>
+        <div class="tc-body">${linkify(c.body)}</div>
       </div>`).join('');
   }
 
   async function toggleTask(id, checked) {
     const urgency = checked ? 'done' : 'open';
+    const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=task`);
+    const t = (await res.json()).find(x => x.id === id);
+    const data = t ? parseTask(t.body) : null;
+    const patch = { urgency };
+    if (data) patch.body = JSON.stringify({ text: data.text, assignee: data.assignee,
+      date: checked ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null });
     await fetch(`/api/posts?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ urgency }),
+      body: JSON.stringify(patch),
     });
-    const row = document.getElementById(`task-row-${id}`);
-    const label = row?.querySelector('.task-label');
-    if (row) row.classList.toggle('done', checked);
-    if (label) label.classList.toggle('done-text', checked);
+    if (t) await refreshStage(t.task_id);
+  }
+
+  // ── Highlights, links ─────────────────────────────────────────────────────
+  async function loadHighlights() {
+    const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=update`);
+    let posts = await res.json();
+    for (const u of BUILTIN_UPDATES) {
+      if (posts.find(p => p.id === u.id)) continue;
+      const body = JSON.stringify({ label: u.label, items: u.items });
+      await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: u.id, plan_id: currentProject.id, kind: 'update', author_name: 'Build log', body, created_at: u.created_at }) });
+      posts.push({ id: u.id, author_name: 'Build log', body, created_at: u.created_at });
+    }
+    posts.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    renderUpdates(posts.slice());
+    const latest = posts[posts.length - 1];
+    let d = {}; try { d = JSON.parse(latest.body); } catch { d = { items: [latest.body] }; }
+    document.getElementById('highlights-week').textContent = d.label || fmt(latest.created_at);
+    document.getElementById('highlights-list').innerHTML = (d.items || []).map(i => `<li>${esc(i)}</li>`).join('');
+  }
+
+  async function loadLinks() {
+    const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=link`);
+    let links = await res.json();
+    for (const l of DEFAULT_LINKS) {
+      if (links.find(x => x.id === l.id)) continue;
+      const body = JSON.stringify({ label: l.label, url: l.url });
+      await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: l.id, plan_id: currentProject.id, kind: 'link', author_name: 'Ivan', body }) });
+      links.push({ id: l.id, body });
+    }
+    document.getElementById('links-list').innerHTML = links.map(l => {
+      let d = {}; try { d = JSON.parse(l.body); } catch {}
+      if (!/^https?:\/\//.test(d.url || '')) return '';
+      return `<a class="link-pill" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label || d.url)} ↗${isAdmin() ? `<button onclick="event.preventDefault();deleteLink('${l.id}')" title="Remove">✕</button>` : ''}</a>`;
+    }).join('');
+  }
+
+  async function addLink() {
+    const label = document.getElementById('link-label').value.trim();
+    let url = document.getElementById('link-url').value.trim();
+    if (!url) return;
+    if (!/^https?:\/\//.test(url)) url = 'https://' + url;
+    await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan_id: currentProject.id, kind: 'link', author_name: currentUser, body: JSON.stringify({ label, url }) }) });
+    document.getElementById('link-label').value = '';
+    document.getElementById('link-url').value = '';
+    loadLinks();
+  }
+
+  async function deleteLink(id) {
+    if (!confirm('Remove this link?')) return;
+    await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
+    loadLinks();
+  }
+
+  function linkify(text) {
+    return esc(text).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   }
 
   async function toggleTaskComments(taskId, planId) {
@@ -902,8 +1085,8 @@
 
   // ── Utils ─────────────────────────────────────────────────────────────────
   function parseTask(body) {
-    try { const d = JSON.parse(body); return { text: d.text || body, assignee: d.assignee || null }; }
-    catch { return { text: body, assignee: null }; }
+    try { const d = JSON.parse(body); return { text: d.text || body, assignee: d.assignee || null, date: d.date || null }; }
+    catch { return { text: body, assignee: null, date: null }; }
   }
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function fmt(iso) { return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
