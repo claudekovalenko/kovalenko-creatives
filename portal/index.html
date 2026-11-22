@@ -153,6 +153,12 @@
     .idea-compose { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
     .idea-compose textarea { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 7px; font-size: 13px; font-family: var(--sans); resize: none; outline: none; }
     .idea-compose textarea:focus { border-color: #c084fc; }
+    .project-card { cursor: pointer; }
+    .project-card:hover { border-color: var(--accent); }
+    .progress-bar { height: 6px; background: var(--bg); border-radius: 4px; margin: 14px 0 6px; overflow: hidden; }
+    .progress-bar span { display: block; height: 100%; background: var(--accent); }
+    .project-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 600px) { .project-stats { grid-template-columns: repeat(2, 1fr); } }
     .link-add { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
     .link-add input { flex: 1; min-width: 140px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 7px; font-size: 13px; outline: none; }
     .tc-body a, .chat-bubble a { color: inherit; text-decoration: underline; word-break: break-all; }
@@ -240,6 +246,7 @@
   <a href="/"><span>KC</span> · Kovalenko Creatives</a>
   <div class="header-right" id="header-user" style="display:none">
     <span>Signed in as <strong id="display-name"></strong></span>
+    <button class="btn-sm" id="all-projects-btn" style="display:none" onclick="showProjects()">All projects</button>
     <button class="btn-sm" onclick="signOut()">Sign out</button>
   </div>
 </header>
@@ -247,7 +254,7 @@
 <div id="login-screen">
   <div class="login-box">
     <h1>Client Portal</h1>
-    <p>Sign in with your name and the project code Ivan sent you.</p>
+    <p>Sign in with your name and the project code Ivan sent you. Ivan: your password is enough, no code needed.</p>
     <div class="field">
       <label>YOUR NAME</label>
       <input id="input-name" type="text" placeholder="Your name" autocomplete="off" oninput="document.getElementById('pw-field').style.display = this.value.trim().toLowerCase() === 'ivan' ? 'block' : 'none'">
@@ -263,6 +270,14 @@
     <button class="btn-primary" onclick="signIn()">Access My Project</button>
     <div class="error-msg" id="login-error">That code doesn't match a project. Double-check with Ivan.</div>
   </div>
+</div>
+
+<div id="projects-screen" style="display:none;max-width:860px;margin:0 auto;padding:32px 24px">
+  <div class="project-header">
+    <div class="project-label">Admin</div>
+    <div class="project-title">All projects</div>
+  </div>
+  <div id="projects-list"><div class="empty-state">Loading…</div></div>
 </div>
 
 <div id="portal-screen">
@@ -543,15 +558,15 @@
   // ── Auth ──────────────────────────────────────────────────────────────────
   function restoreSession() {
     const saved = JSON.parse(localStorage.getItem('kc-portal-session') || 'null');
-    if (saved?.name && saved?.project) {
+    if (saved?.name && (saved?.project || saved?.adminToken)) {
       if (saved.name.trim().toLowerCase() === 'ivan' && !(saved.adminToken && Number(saved.adminToken.split('.')[0]) > Date.now())) {
         localStorage.removeItem('kc-portal-session');
         return;
       }
       adminToken = saved.adminToken || null;
       currentUser = saved.name;
-      currentProject = saved.project;
-      showPortal();
+      currentProject = saved.project || null;
+      if (currentProject) showPortal(); else showProjects();
     }
   }
 
@@ -560,11 +575,15 @@
     const code = document.getElementById('input-code').value.trim();
     const errEl = document.getElementById('login-error');
     errEl.style.display = 'none';
-    if (!name || !code) { errEl.textContent = 'Please enter your name and project code.'; errEl.style.display = 'block'; return; }
+    const wantsAdmin = name.toLowerCase() === 'ivan';
+    if (!name || (!code && !wantsAdmin)) { errEl.textContent = 'Please enter your name and project code.'; errEl.style.display = 'block'; return; }
     try {
-      const res = await fetch(`/api/projects?code=${encodeURIComponent(code)}`);
-      if (!res.ok) { errEl.textContent = "That code doesn't match a project."; errEl.style.display = 'block'; return; }
-      const project = await res.json();
+      let project = null;
+      if (code) {
+        const res = await fetch(`/api/projects?code=${encodeURIComponent(code)}`);
+        if (!res.ok) { errEl.textContent = "That code doesn't match a project."; errEl.style.display = 'block'; return; }
+        project = await res.json();
+      }
       let token = null;
       if (name.toLowerCase() === 'ivan') {
         const pw = document.getElementById('input-password').value;
@@ -576,8 +595,8 @@
       currentUser = name;
       currentProject = project;
       adminToken = token;
-      localStorage.setItem('kc-portal-session', JSON.stringify({ name, project, adminToken: token }));
-      showPortal();
+      saveSession();
+      if (project) showPortal(); else showProjects();
     } catch { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
   }
 
@@ -585,11 +604,53 @@
     if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') signIn();
   });
 
+  function saveSession() {
+    localStorage.setItem('kc-portal-session', JSON.stringify({ name: currentUser, project: currentProject, adminToken }));
+  }
+
+  async function showProjects() {
+    clearInterval(pollTimer);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('portal-screen').style.display = 'none';
+    document.getElementById('projects-screen').style.display = 'block';
+    document.getElementById('header-user').style.display = 'flex';
+    document.getElementById('display-name').textContent = currentUser;
+    document.getElementById('all-projects-btn').style.display = 'none';
+    const el = document.getElementById('projects-list');
+    const r = await fetch('/api/projects?all=1');
+    if (!r.ok) { el.innerHTML = '<div class="empty-state">Could not load projects. Sign out and sign in again.</div>'; return; }
+    const { projects } = await r.json();
+    el.innerHTML = projects.map(p => {
+      const pct = p.tasksTotal ? Math.round(p.tasksDone / p.tasksTotal * 100) : 0;
+      const stat = (n, label, warn) => `<div><b style="font-size:20px;${warn && n ? 'color:#f59e0b' : ''}">${n}</b><div class="tc-time">${label}</div></div>`;
+      return `<div class="top-card project-card" onclick="openProject('${esc(p.id)}')">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <div><div style="font-size:18px;font-weight:700">${esc(p.name)}</div><div class="tc-time">${esc(p.client)} · code ${esc(p.code)}${p.lastActivity ? ' · last activity ' + fmt(p.lastActivity) : ''}</div></div>
+          <span class="btn-task-comments">Open →</span>
+        </div>
+        <div class="progress-bar"><span style="width:${pct}%"></span></div>
+        <div class="tc-time" style="margin-bottom:10px">${p.tasksDone} of ${p.tasksTotal} plan items done (${pct}%)</div>
+        <div class="project-stats">${stat(p.pending, 'awaiting your approval', true)}${stat(p.openNotes, 'open edits & notes', true)}${stat(p.waitingOnClient, 'waiting on client')}${stat(p.messages, 'messages')}</div>
+      </div>`;
+    }).join('') || '<div class="empty-state">No projects yet.</div>';
+    window._allProjects = projects;
+  }
+
+  function openProject(id) {
+    const p = (window._allProjects || []).find(x => x.id === id);
+    if (!p) return;
+    currentProject = { id: p.id, name: p.name, client: p.client, code: p.code };
+    saveSession();
+    document.getElementById('projects-screen').style.display = 'none';
+    showPortal();
+  }
+
   function signOut() {
     localStorage.removeItem('kc-portal-session');
     currentUser = null; currentProject = null; adminToken = null;
     clearInterval(pollTimer);
     document.getElementById('portal-screen').style.display = 'none';
+    document.getElementById('projects-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('header-user').style.display = 'none';
   }
@@ -600,6 +661,8 @@
     document.getElementById('header-user').style.display = 'flex';
     document.getElementById('display-name').textContent = currentUser;
     document.getElementById('project-name').textContent = currentProject.name;
+    clearInterval(pollTimer);
+    document.getElementById('all-projects-btn').style.display = isAdmin() ? '' : 'none';
     if (isAdmin()) {
       document.getElementById('admin-tools').style.display = 'block';
       document.getElementById('links-admin').style.display = 'flex';

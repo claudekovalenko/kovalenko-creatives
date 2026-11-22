@@ -116,6 +116,20 @@ try {
     await ctx.close();
   }
 
+  // 3b. All-projects list is admin-only; clients still need a code.
+  {
+    const r = await fetch(`${PORTAL}/api/projects?all=1`);
+    check('all-projects list is blocked without admin sign-in', r.status === 401, String(r.status));
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.goto(`${PORTAL}/portal/`);
+    await page.fill('#input-name', 'QA Bot');
+    await page.click('.btn-primary');
+    await page.waitForTimeout(800);
+    check('client without a code is asked for one', (await page.locator('#login-error').innerText()).includes('project code'));
+    await ctx.close();
+  }
+
   // 4. Portal Site notes tab lists the note and links to the site in note mode.
   {
     const ctx = await browser.newContext();
