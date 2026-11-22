@@ -36,7 +36,7 @@ async function leaveNote(page, name, text) {
   return err;
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROME ? { executablePath: process.env.CHROME } : {});
 try {
   // 1. Normal visitor: nothing shows, no errors, Escape is harmless.
   {
