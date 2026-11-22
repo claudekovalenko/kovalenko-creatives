@@ -454,7 +454,7 @@
     el.innerHTML = posts.map(p => {
       const mine = p.author_name === currentUser;
       const tag = p.urgency && p.urgency !== 'normal' ? `<span class="tag-badge tag-${esc(p.urgency)}">${esc(p.urgency)}</span>` : '';
-      const del = mine ? `<button class="chat-del" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
+      const del = (mine || isAdmin()) ? `<button class="chat-del" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
       return `<div class="chat-row ${mine ? 'mine' : 'theirs'}" id="comment-${p.id}">
         ${!mine ? `<div class="chat-sender">${esc(p.author_name)}</div>` : ''}
         <div class="chat-bubble">${esc(p.body)}</div>
@@ -579,19 +579,20 @@
         <div class="plan-stage-meta">${esc(s.meta)}</div>
         <div class="task-list" id="tasks-${s.id}"><div class="empty-state" style="padding:16px 0">Loading…</div></div>
         <div class="add-task-row" id="add-row-${s.id}">
-          <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">+ Add item</button>
+          <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">${isAdmin() ? '+ Add item' : '+ Request an item'}</button>
           <div class="add-task-form" id="add-form-${s.id}">
-            <input type="text" placeholder="Describe the task or item…" id="add-input-${s.id}" onkeydown="if(event.key==='Enter')saveTask('${s.id}')">
+            ${!isAdmin() ? `<div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:8px;letter-spacing:.03em">SUGGEST AN ITEM — Ivan will review and approve</div>` : ''}
+            <input type="text" placeholder="${isAdmin() ? 'Describe the task or item…' : 'What would you like added?'}" id="add-input-${s.id}" onkeydown="if(event.key==='Enter')saveTask('${s.id}')">
             <div class="add-task-form-row">
               ${isAdmin() ? `<label style="font-size:12px;color:var(--muted);font-family:var(--mono)">ASSIGN TO</label>
               <select id="add-assign-${s.id}">
                 <option value="">No one</option>
                 <option value="client">Client</option>
                 <option value="ivan">Ivan</option>
-              </select>` : `<span style="font-size:12px;color:var(--muted)">Will be sent to Ivan for approval.</span><select id="add-assign-${s.id}" style="display:none"></select>`}
+              </select>` : `<select id="add-assign-${s.id}" style="display:none"></select>`}
               <div class="add-task-form-actions">
                 <button class="btn-cancel-task" onclick="closeAddTask('${s.id}')">Cancel</button>
-                <button class="btn-save-task" onclick="saveTask('${s.id}')">${isAdmin() ? 'Add' : 'Submit'}</button>
+                <button class="btn-save-task" onclick="saveTask('${s.id}')">${isAdmin() ? 'Add' : 'Send request'}</button>
               </div>
             </div>
           </div>
@@ -740,7 +741,7 @@
         <div class="tc-meta">
           <span class="tc-name">${esc(c.author_name)}</span>
           <span class="tc-time">${fmt(c.created_at)}</span>
-          ${c.author_name === currentUser ? `<button class="tc-del" onclick="deleteTaskComment('${c.id}','${taskId}')">✕</button>` : ''}
+          ${(c.author_name === currentUser || isAdmin()) ? `<button class="tc-del" onclick="deleteTaskComment('${c.id}','${taskId}')">✕</button>` : ''}
         </div>
         <div class="tc-body">${esc(c.body)}</div>
       </div>`).join('');
