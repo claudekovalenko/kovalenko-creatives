@@ -93,6 +93,13 @@
     .feed-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
     .btn-copy-claude { background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-family: var(--mono); letter-spacing: .04em; }
     .btn-copy-claude:hover { color: var(--accent); border-color: var(--accent); }
+    /* Unread badge */
+    .tab { position: relative; }
+    .unread-dot { position: absolute; top: 6px; right: 4px; min-width: 16px; height: 16px; background: var(--danger); color: #fff; border-radius: 20px; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; }
+    /* Plan sections */
+    .plan-section-label { font-size: 11px; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .plan-section-label.agreed { color: var(--accent); border-color: var(--accent-dim); }
+    .plan-section-label.extra { color: #c084fc; border-color: #3d2b6e; }
 
     /* Updates tab */
     .update-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
@@ -231,9 +238,6 @@
 
   <!-- Comments -->
   <div id="tab-comments" class="tab-panel active">
-    <div class="feed-toolbar">
-      <button class="btn-copy-claude" onclick="copyForClaude()" title="Copy the full conversation for pasting into Claude">Copy for Claude</button>
-    </div>
     <div class="chat-feed" id="comment-list"><div class="empty-state">Loading…</div></div>
     <div class="compose">
       <div class="compose-input-row">
@@ -247,6 +251,9 @@
         <button class="tag-pill" data-tag="urgent"   onclick="toggleTag('urgent')">Urgent</button>
         <button class="tag-pill" data-tag="idea"     onclick="toggleTag('idea')">Idea</button>
       </div>
+    </div>
+    <div id="admin-tools" style="display:none;margin-top:10px;text-align:right">
+      <button class="btn-copy-claude" onclick="copyForClaude()">Copy for Claude</button>
     </div>
   </div>
 
@@ -294,50 +301,49 @@
   let currentProject = null;
   let pollTimer = null;
   let selectedTag = null;
+  let _lastSeenCount = 0;
+  let _activeTab = 'comments';
   // taskComments: { taskId: post[] }
   let taskComments = {};
   // openCommentPanels: Set of task IDs currently expanded
   let openPanels = new Set();
 
+  // section: 'agreed' = in the signed development plan; 'extra' = additional work Ivan is tracking
   const STAGES = [
     {
       id: 'sp1',
-      label: 'Stopping Point 1 — Foundation',
+      label: 'Stopping Point 1 — Foundation + live journey pages',
       meta: 'SP1 · 6–8 weeks · Late Nov – Mid Dec 2026',
       defaults: [
-        { id: 'jpn-sp1-t1', text: 'Discovery session confirmed and documented' },
-        { id: 'jpn-sp1-t2', text: 'Data model defined (creators, journeys, responses)' },
-        { id: 'jpn-sp1-t3', text: 'Network site scaffolded and deployed' },
-        { id: 'jpn-sp1-t4', text: 'Creator site with unique URL slug live' },
-        { id: 'jpn-sp1-t5', text: 'Three-step journey structure working' },
-        { id: 'jpn-sp1-t6', text: 'Response form collecting and saving submissions' },
+        { id: 'jpn-sp1-t1', text: 'Discovery confirmed', section: 'agreed' },
+        { id: 'jpn-sp1-t2', text: 'Data model and Supabase/PostgreSQL schema with creator/admin permissions', section: 'agreed' },
+        { id: 'jpn-sp1-t3', text: 'Network/creator recruitment site, Statement of Faith and legal pages', section: 'agreed' },
+        { id: 'jpn-sp1-t4', text: 'Unique creator URL/slug and the public 3-step mobile journey page', section: 'agreed' },
+        { id: 'jpn-sp1-t5', text: 'Response forms with consent and spam protection, saving to the database with creator attribution', section: 'agreed' },
       ],
     },
     {
       id: 'sp2',
-      label: 'Stopping Point 2 — Creator Platform',
+      label: 'Stopping Point 2 — Creator platform',
       meta: 'SP2 · 5–7 weeks · End Dec 2026 – Late Jan 2027',
       defaults: [
-        { id: 'jpn-sp2-t1', text: 'Creator registration flow (name, email, org)' },
-        { id: 'jpn-sp2-t2', text: 'Google sign-in integrated' },
-        { id: 'jpn-sp2-t3', text: 'Creator dashboard with journey editor' },
-        { id: 'jpn-sp2-t4', text: 'Content blocks: text, image, video, call-to-action' },
-        { id: 'jpn-sp2-t5', text: 'Publish / unpublish toggle' },
-        { id: 'jpn-sp2-t6', text: 'Response analytics per creator' },
-        { id: 'jpn-sp2-t7', text: 'CSV export of responses' },
+        { id: 'jpn-sp2-t1', text: 'Open registration with configurable approval mode', section: 'agreed' },
+        { id: 'jpn-sp2-t2', text: 'Sign in with Google for creators and admins, alongside email sign-in (Supabase Auth)', section: 'agreed' },
+        { id: 'jpn-sp2-t3', text: 'Creator dashboard and editor with preview', section: 'agreed' },
+        { id: 'jpn-sp2-t4', text: 'Content blocks: text, video embed, image, PDF/file, link/button, approved embed', section: 'agreed' },
+        { id: 'jpn-sp2-t5', text: 'Creator people/responses view with CSV export, and creator analytics', section: 'agreed' },
       ],
     },
     {
       id: 'sp3',
-      label: 'Stopping Point 3 — Network CRM + Launch',
+      label: 'Stopping Point 3 — Network CRM, follow-up + launch',
       meta: 'SP3 · 6–8 weeks · Mid Feb – Late Mar 2027',
       defaults: [
-        { id: 'jpn-sp3-t1', text: 'Network admin: manage creators, view all responses' },
-        { id: 'jpn-sp3-t2', text: 'Aggregated analytics across all creators' },
-        { id: 'jpn-sp3-t3', text: 'Follow-up email system (manual trigger)' },
-        { id: 'jpn-sp3-t4', text: 'QA across devices and browsers' },
-        { id: 'jpn-sp3-t5', text: 'Staging environment sign-off' },
-        { id: 'jpn-sp3-t6', text: 'Handoff: docs, training, DNS, production launch' },
+        { id: 'jpn-sp3-t1', text: 'Admin creator management, settings, templates and basic audit log', section: 'agreed' },
+        { id: 'jpn-sp3-t2', text: 'Network admin analytics', section: 'agreed' },
+        { id: 'jpn-sp3-t3', text: 'Immediate network-sent follow-up email with creator-specific content/CTA, plus email logging and suppression', section: 'agreed' },
+        { id: 'jpn-sp3-t4', text: 'VisitorReach outbound link tracking (method TBD)', section: 'agreed' },
+        { id: 'jpn-sp3-t5', text: 'Responsive/accessibility QA, staging + production deployment and handoff documentation', section: 'agreed' },
       ],
     },
   ];
@@ -388,6 +394,7 @@
     document.getElementById('header-user').style.display = 'flex';
     document.getElementById('display-name').textContent = currentUser;
     document.getElementById('project-name').textContent = currentProject.name;
+    if (isAdmin()) document.getElementById('admin-tools').style.display = 'block';
     loadComments();
     loadUpdates();
     renderStagesSkeleton();
@@ -397,8 +404,24 @@
 
   // ── Tabs ──────────────────────────────────────────────────────────────────
   function showTab(tab) {
+    _activeTab = tab;
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', TABS[i] === tab));
     TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === tab));
+    if (tab === 'comments') clearUnreadBadge();
+  }
+
+  function setUnreadBadge(n) {
+    const tab = document.querySelector('.tab');
+    if (!tab) return;
+    let badge = tab.querySelector('.unread-dot');
+    if (!badge) { badge = document.createElement('span'); badge.className = 'unread-dot'; tab.appendChild(badge); }
+    badge.textContent = n > 9 ? '9+' : n;
+    badge.style.display = 'inline-flex';
+  }
+
+  function clearUnreadBadge() {
+    document.querySelector('.unread-dot')?.remove();
+    _lastSeenCount = document.querySelectorAll('.chat-row').length;
   }
 
   // ── Comment tags ──────────────────────────────────────────────────────────
@@ -443,6 +466,14 @@
       </div>`;
     }).join('');
     if (wasAtBottom) el.scrollTop = el.scrollHeight;
+    // Unread badge: only when Comments tab is not active
+    if (_activeTab !== 'comments') {
+      const newCount = posts.filter(p => p.author_name !== currentUser).length;
+      const unseen = newCount - _lastSeenCount;
+      if (unseen > 0) setUnreadBadge(unseen);
+    } else {
+      _lastSeenCount = posts.filter(p => p.author_name !== currentUser).length;
+    }
   }
 
   async function deleteComment(id) {
@@ -617,61 +648,68 @@
 
   function isAdmin() { return currentUser?.toLowerCase() === 'ivan'; }
 
+  function getDefaultSection(taskId) {
+    for (const stage of STAGES) {
+      const def = stage.defaults.find(d => d.id === taskId);
+      if (def) return def.section || 'agreed';
+    }
+    return 'extra';
+  }
+
+  function renderTaskRow(t, stageId) {
+    const data = parseTask(t.body);
+    const pending = t.urgency === 'pending';
+    const done = t.urgency === 'done';
+    const comments = taskComments[t.id] || [];
+    const commentLabel = comments.length ? `💬 ${comments.length}` : '+ Note';
+    const isOpen = openPanels.has(t.id);
+    const assignBadge = data.assignee === 'client' ? '<span class="assign-badge assign-client">Client</span>'
+                      : data.assignee === 'ivan'   ? '<span class="assign-badge assign-ivan">Ivan</span>'
+                      : '';
+    if (pending) {
+      const controls = isAdmin()
+        ? `<button class="btn-approve" onclick="approveTask('${t.id}','${stageId}')">Approve</button>
+           <button class="btn-reject"  onclick="rejectTask('${t.id}','${stageId}')">Reject</button>
+           <button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete">✕</button>`
+        : `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Cancel">✕</button>`;
+      return `<div class="task-row pending" id="task-row-${t.id}">
+        <div class="task-top">
+          <input type="checkbox" class="task-cb" disabled style="opacity:.3">
+          <span class="task-label" style="color:var(--muted)">${esc(data.text)}</span>
+          ${assignBadge}<span class="pending-badge">Awaiting approval</span>${controls}
+        </div></div>`;
+    }
+    return `<div class="task-row${done ? ' done' : ''}" id="task-row-${t.id}">
+      <div class="task-top">
+        <input type="checkbox" class="task-cb" ${done ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)">
+        <span class="task-label${done ? ' done-text' : ''}">${esc(data.text)}</span>
+        ${assignBadge}
+        <button class="btn-task-comments${comments.length ? ' has-comments' : ''}" onclick="toggleTaskComments('${t.id}', '${currentProject.id}')">${esc(commentLabel)}</button>
+        ${isAdmin() ? `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete item">✕</button>` : ''}
+      </div>
+      <div class="task-comments${isOpen ? ' open' : ''}" id="tc-${t.id}">
+        <div class="task-comment-list" id="tc-list-${t.id}">${renderTaskComments(t.id)}</div>
+        <div class="task-compose">
+          <input placeholder="Add a note…" id="tc-input-${t.id}" onkeydown="if(event.key==='Enter')postTaskComment('${t.id}')">
+          <button onclick="postTaskComment('${t.id}')">Post</button>
+        </div>
+      </div></div>`;
+  }
+
   function renderTasks(stageId, tasks) {
     const el = document.getElementById(`tasks-${stageId}`);
-    // For non-admins, only show approved tasks (open/done) + their own pending
     const visible = tasks.filter(t =>
       t.urgency !== 'pending' || isAdmin() || t.author_name === currentUser
     );
     if (!visible.length) { el.innerHTML = '<div class="empty-state" style="padding:12px 0;font-size:13px">No items yet.</div>'; return; }
-    el.innerHTML = visible.map(t => {
-      const data = parseTask(t.body);
-      const pending = t.urgency === 'pending';
-      const done = t.urgency === 'done';
-      const comments = taskComments[t.id] || [];
-      const commentLabel = comments.length ? `💬 ${comments.length}` : '+ Note';
-      const isOpen = openPanels.has(t.id);
-      const assignBadge = data.assignee === 'client' ? '<span class="assign-badge assign-client">Client</span>'
-                        : data.assignee === 'ivan'   ? '<span class="assign-badge assign-ivan">Ivan</span>'
-                        : '';
-
-      if (pending) {
-        // Admin sees approve/reject; submitter sees "awaiting"
-        const controls = isAdmin()
-          ? `<button class="btn-approve" onclick="approveTask('${t.id}','${stageId}')">Approve</button>
-             <button class="btn-reject"  onclick="rejectTask('${t.id}','${stageId}')">Reject</button>
-             <button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete">✕</button>`
-          : `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Cancel">✕</button>`;
-        return `
-          <div class="task-row pending" id="task-row-${t.id}">
-            <div class="task-top">
-              <input type="checkbox" class="task-cb" disabled style="opacity:.3">
-              <span class="task-label" style="color:var(--muted)">${esc(data.text)}</span>
-              ${assignBadge}
-              <span class="pending-badge">Awaiting approval</span>
-              ${controls}
-            </div>
-          </div>`;
-      }
-
-      return `
-        <div class="task-row${done ? ' done' : ''}" id="task-row-${t.id}">
-          <div class="task-top">
-            <input type="checkbox" class="task-cb" ${done ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)">
-            <span class="task-label${done ? ' done-text' : ''}">${esc(data.text)}</span>
-            ${assignBadge}
-            <button class="btn-task-comments${comments.length ? ' has-comments' : ''}" onclick="toggleTaskComments('${t.id}', '${currentProject.id}')">${esc(commentLabel)}</button>
-            ${isAdmin() ? `<button class="btn-task-delete" onclick="deleteTask('${t.id}','${stageId}')" title="Delete item">✕</button>` : ''}
-          </div>
-          <div class="task-comments${isOpen ? ' open' : ''}" id="tc-${t.id}">
-            <div class="task-comment-list" id="tc-list-${t.id}">${renderTaskComments(t.id)}</div>
-            <div class="task-compose">
-              <input placeholder="Add a note…" id="tc-input-${t.id}" onkeydown="if(event.key==='Enter')postTaskComment('${t.id}')">
-              <button onclick="postTaskComment('${t.id}')">Post</button>
-            </div>
-          </div>
-        </div>`;
-    }).join('');
+    const agreed = visible.filter(t => getDefaultSection(t.id) === 'agreed');
+    const extra = visible.filter(t => getDefaultSection(t.id) !== 'agreed');
+    let html = agreed.map(t => renderTaskRow(t, stageId)).join('');
+    if (extra.length) {
+      html += `<div class="plan-section-label extra" style="margin-top:14px">Additional work</div>`;
+      html += extra.map(t => renderTaskRow(t, stageId)).join('');
+    }
+    el.innerHTML = html;
   }
 
   async function approveTask(taskId, stageId) {
