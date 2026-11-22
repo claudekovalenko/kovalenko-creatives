@@ -8,6 +8,8 @@
   var params = new URLSearchParams(location.search);
   var codeParam = params.get('kcnotes');
   var focusId = (location.hash.match(/^#kcnote-(.+)$/) || [])[1];
+  var adminHash = (location.hash.match(/^#kcadmin=([0-9]+\.[0-9a-f]+)$/) || [])[1];
+  if (adminHash) history.replaceState(null, '', location.pathname + location.search);
   var session = null;
   var root, pinsLayer, mode = false, notes = [];
   try { session = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
@@ -18,7 +20,8 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (p) {
         if (!p) return;
-        session = { code: codeParam, projectId: p.id, name: session && session.name || '' };
+        session = { code: codeParam, projectId: p.id, name: session && session.name || '', admin: session && session.admin || null };
+        if (adminHash) { session.admin = adminHash; session.name = 'Ivan'; }
         save();
         start();
       })
@@ -171,8 +174,13 @@
     (n || t).focus();
   }
 
+  function headers() {
+    var h = { 'Content-Type': 'application/json', 'X-Portal-Name': session.name || '' };
+    if (session.admin && Number(session.admin.split('.')[0]) > Date.now()) h.Authorization = 'Bearer ' + session.admin;
+    return h;
+  }
   function post(data) {
-    return fetch(API + '/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Portal-Name': session.name || '' }, body: JSON.stringify(data) })
+    return fetch(API + '/api/posts', { method: 'POST', headers: headers(), body: JSON.stringify(data) })
       .then(function (r) { if (!r.ok) throw new Error('save failed'); return r; });
   }
   function failed(btn) { btn.disabled = false; btn.textContent = 'Could not save, try again'; }
@@ -241,7 +249,7 @@
     var close = el('button', null, 'Close'); close.onclick = function () { closeCard(); if (pin) pin.classList.remove('focus'); };
     var res = el('button', null, n.urgency === 'done' ? 'Reopen' : 'Resolve');
     res.onclick = function () {
-      fetch(API + '/api/posts?id=' + encodeURIComponent(n.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urgency: n.urgency === 'done' ? 'open' : 'done' }) })
+      fetch(API + '/api/posts?id=' + encodeURIComponent(n.id), { method: 'PATCH', headers: headers(), body: JSON.stringify({ urgency: n.urgency === 'done' ? 'open' : 'done' }) })
         .then(function () { closeCard(); load(); }, function () {});
     };
     var send = el('button', 'primary', 'Reply');

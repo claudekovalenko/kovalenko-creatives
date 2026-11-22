@@ -1067,7 +1067,7 @@
   }
 
   async function loadSiteNotes() {
-    document.getElementById('sitenotes-open').href = noteModeUrl(SITE_URL);
+    document.getElementById('sitenotes-open').href = noteModeUrl(SITE_URL) + (isAdmin() ? '#kcadmin=' + adminToken : '');
     const [notes, msgs] = await Promise.all([
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=sitenote`).then(r => r.json()),
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`).then(r => r.json()),
