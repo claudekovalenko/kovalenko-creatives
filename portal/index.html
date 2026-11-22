@@ -239,7 +239,7 @@
     <p>Sign in with your name and the project code Ivan sent you.</p>
     <div class="field">
       <label>YOUR NAME</label>
-      <input id="input-name" type="text" placeholder="e.g. Craig" autocomplete="off" oninput="document.getElementById('pw-field').style.display = this.value.trim().toLowerCase() === 'ivan' ? 'block' : 'none'">
+      <input id="input-name" type="text" placeholder="Your name" autocomplete="off" oninput="document.getElementById('pw-field').style.display = this.value.trim().toLowerCase() === 'ivan' ? 'block' : 'none'">
     </div>
     <div class="field" id="pw-field" style="display:none">
       <label>ADMIN PASSWORD</label>
@@ -247,7 +247,7 @@
     </div>
     <div class="field">
       <label>PROJECT CODE</label>
-      <input id="input-code" type="text" placeholder="e.g. JPN2026" autocomplete="off" style="font-family:var(--mono);letter-spacing:.05em">
+      <input id="input-code" type="text" placeholder="Project code" autocomplete="off" style="font-family:var(--mono);letter-spacing:.05em">
     </div>
     <button class="btn-primary" onclick="signIn()">Access My Project</button>
     <div class="error-msg" id="login-error">That code doesn't match a project. Double-check with Ivan.</div>
