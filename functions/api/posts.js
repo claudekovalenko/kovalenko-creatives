@@ -61,7 +61,8 @@ export async function onRequest(context) {
     if (!plan_id || !author_name || !body || !kind) return json({ error: 'Missing fields' }, 400);
     if (!['message', 'update', 'idea', 'task', 'link', 'sitenote'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
 
-    const notesOk = notesAdmin && (kind === 'sitenote' || kind === 'message');
+    const siteReply = kind === 'message' && task_id && (await rowById(task_id))?.kind === 'sitenote';
+    const notesOk = (notesAdmin && kind === 'message') || kind === 'sitenote' || siteReply;
     if (!admin && !notesOk && isIvan(author_name)) return forbidden();
     if (!admin && ['update', 'link'].includes(kind)) return forbidden();
     const safeUrgency = !admin && (kind === 'task' || kind === 'idea') ? 'pending' : urgency;
@@ -107,7 +108,7 @@ export async function onRequest(context) {
     if (!admin) {
       const row = await rowById(id);
       if (!row) return json({ deleted: id });
-      const own = caller && caller === String(row.author_name).toLowerCase() && !isIvan(row.author_name);
+      const own = caller && caller === String(row.author_name).toLowerCase() && (!isIvan(row.author_name) || row.kind === 'sitenote');
       if (!own) return forbidden();
     }
     await env.DB.prepare('DELETE FROM portal_posts WHERE id = ?').bind(id).run();
