@@ -256,6 +256,7 @@
     <button class="tab active" onclick="showTab('plan')">Plan</button>
     <button class="tab" onclick="showTab('comments')">Comments</button>
     <button class="tab" onclick="showTab('updates')">Updates</button>
+    <button class="tab" onclick="showTab('sitenotes')">Site notes</button>
   </div>
 
   <!-- Comments -->
@@ -277,6 +278,16 @@
     <div id="admin-tools" style="display:none;margin-top:10px;text-align:right">
       <button class="btn-copy-claude" onclick="copyForClaude()">Copy for Claude</button>
     </div>
+  </div>
+
+  <!-- Site notes -->
+  <div id="tab-sitenotes" class="tab-panel">
+    <div class="top-card">
+      <div class="top-card-label">Leave notes right on the website</div>
+      <p style="font-size:14px;line-height:1.6;margin-bottom:10px">Open the website with this link, click <b>Leave a note</b> in the bottom corner, then click anywhere on the page to pin a note there.</p>
+      <a class="link-pill" id="sitenotes-open" target="_blank" rel="noopener">Open the website in note mode ↗</a>
+    </div>
+    <div id="sitenotes-list"><div class="empty-state">Loading…</div></div>
   </div>
 
   <!-- Updates -->
@@ -306,8 +317,10 @@
       <ul class="update-items" id="highlights-list"><li>Loading…</li></ul>
     </div>
 
+    <div id="stages-container"><!-- stages rendered by JS --></div>
+
     <div class="top-card waiting" id="client-card">
-      <div class="top-card-label">Waiting on you <span class="top-card-sub">things Ivan needs back from you · tick when done, use Note to reply or paste a link</span></div>
+      <div class="top-card-label">Waiting on client <span class="top-card-sub">things Ivan needs back from you · tick when done, use Note to reply or paste a link</span></div>
       <div class="task-list" id="tasks-client"><div class="empty-state" style="padding:12px 0">Loading…</div></div>
       <div class="add-task-row" id="add-row-client" style="display:none">
         <button class="btn-add-task-open" onclick="openAddTask('client')">+ Add something they need to do</button>
@@ -323,8 +336,6 @@
         </div>
       </div>
     </div>
-
-    <div id="stages-container"><!-- stages rendered by JS --></div>
 
     <div style="margin-bottom:32px">
       <div class="plan-sub">Timeline</div>
@@ -351,7 +362,7 @@
 </div>
 
 <script>
-  const TABS = ['plan','comments','updates'];
+  const TABS = ['plan','comments','updates','sitenotes'];
   let currentUser = null;
   let currentProject = null;
   let pollTimer = null;
@@ -382,13 +393,13 @@
         { id: 'task-07', text: 'Creator accounts with unique shareable links', done: 'Sep 25, 2026' },
         { id: 'task-02', text: 'Home page desktop layout', done: 'Sep 29, 2026' },
         { id: 'task-01', text: 'Sliding journey form — commitment, course sign-up, confirmation email', done: 'Oct 1, 2026' },
-        { id: 'task-03', text: 'Home page redesign — same branding, fuller layout', done: 'Oct 20, 2026' },
+        { id: 'task-03', text: 'Home page redesign — same branding, fuller layout', done: 'Oct 20, 2026', extra: true },
         { id: 'task-08', text: 'Google sign-in button', done: 'Oct 20, 2026' },
         { id: 'task-09', text: 'Straight to dashboard after Google sign-in', done: 'Oct 20, 2026' },
         { id: 'task-10', text: 'Role-based routing after sign-in', done: 'Oct 20, 2026' },
         { id: 'task-04', text: 'Mobile-friendly home page — single column', done: 'Oct 24, 2026' },
-        { id: 'task-05', text: 'New site icon and FAQ with smooth expand/collapse', done: 'Oct 26, 2026' },
-        { id: 'task-06', text: 'Clean system font styling (Instagram-style)', done: 'Oct 26, 2026' },
+        { id: 'task-05', text: 'New site icon and FAQ with smooth expand/collapse', done: 'Oct 26, 2026', extra: true },
+        { id: 'task-06', text: 'Clean system font styling (Instagram-style)', done: 'Oct 26, 2026', extra: true },
         { id: 'task-11', text: 'Sign-in page — works on phones and desktop', done: 'Oct 27, 2026' },
         { id: 'task-24', text: 'Statement of Faith page' },
         { id: 'task-25', text: 'Legal pages (Terms of Service, Privacy Policy)' },
@@ -411,14 +422,14 @@
       defaults: [
         { id: 'task-13', text: 'Share-your-link and follow-up dashboard', done: 'Oct 24, 2026' },
         { id: 'task-12', text: 'Creator dashboard — engagement as visitor percentages', done: 'Oct 26, 2026' },
-        { id: 'task-16', text: 'Creators directory — one card per creator', done: 'Oct 26, 2026' },
+        { id: 'task-16', text: 'Creators directory — one card per creator', done: 'Oct 26, 2026', extra: true },
         { id: 'task-14', text: 'Dashboard shows what visitors clicked', done: 'Oct 28, 2026' },
         { id: 'task-15', text: 'Dashboard cards — one per step, with people behind each', done: 'Oct 30, 2026' },
         { id: 'task-17', text: 'Admin page with sign-out and step overview', done: 'Nov 2, 2026' },
-        { id: 'task-27', text: 'Apple sign-in' },
+        { id: 'task-27', text: 'Apple sign-in', extra: true },
         { id: 'task-28', text: 'Creator dashboard and editor — remaining features' },
         { id: 'task-29', text: 'Content blocks: finalize text, video, image, PDF, link/button' },
-        { id: 'task-30', text: 'Interest form — collect signups and maintain a subscriber list' },
+        { id: 'task-30', text: 'Interest form — collect signups and maintain a subscriber list', extra: true },
       ],
     },
     {
@@ -440,11 +451,11 @@
         { id: 'task-20', text: 'Follow-up email with creator-specific content and CTA' },
         { id: 'task-21', text: 'VisitorReach outbound link tracking' },
         { id: 'task-22', text: 'Responsive/accessibility QA across devices' },
-        { id: 'task-31', text: 'Database stress test — review schema integrity, indexes, constraints, and RLS policies' },
-        { id: 'task-32', text: 'TCPA compliance testing — consent capture, opt-in records, disclosure language, audit trail' },
-        { id: 'task-33', text: 'Code integrity stress test — XSS, injection, input validation, error handling' },
-        { id: 'task-34', text: 'Security stress test — auth bypass, API exposure, secret leaks, RLS enforcement' },
-        { id: 'task-35', text: 'High-volume lead test — simulate large lead batches, verify performance and data integrity' },
+        { id: 'task-31', text: 'Database stress test — review schema integrity, indexes, constraints, and RLS policies', extra: true },
+        { id: 'task-32', text: 'TCPA compliance testing — consent capture, opt-in records, disclosure language, audit trail', extra: true },
+        { id: 'task-33', text: 'Code integrity stress test — XSS, injection, input validation, error handling', extra: true },
+        { id: 'task-34', text: 'Security stress test — auth bypass, API exposure, secret leaks, RLS enforcement', extra: true },
+        { id: 'task-35', text: 'High-volume lead test — simulate large lead batches, verify performance and data integrity', extra: true },
         { id: 'task-23', text: 'Production deployment and handoff documentation' },
       ],
     },
@@ -473,7 +484,7 @@
   ];
 
   const DEFAULT_LINKS = [
-    { id: 'link-devplan', label: 'Development plan', url: 'https://development-plan.pages.dev' },
+    { id: 'link-site', label: 'Jesus People Network website', url: 'https://jesus-people-preview.faith-journey-funnel.workers.dev/' },
   ];
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -530,6 +541,7 @@
     loadComments();
     loadHighlights();
     loadLinks();
+    loadSiteNotes();
     renderStagesSkeleton();
     loadPlanTasks();
     pollTimer = setInterval(loadComments, 5000);
@@ -541,6 +553,7 @@
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', TABS[i] === tab));
     TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('active', t === tab));
     if (tab === 'comments') clearUnreadBadge();
+    if (tab === 'sitenotes') loadSiteNotes();
   }
 
   function setUnreadBadge(n) {
@@ -709,6 +722,16 @@
         }
       }
 
+      const sn = await (await fetch(`/api/posts?plan_id=${currentProject.id}&kind=sitenote`)).json();
+      if (sn.length) {
+        out += `## Notes left on the website\n`;
+        for (const n of sn) {
+          let d = {}; try { d = JSON.parse(n.body); } catch {}
+          out += `**${n.author_name}** · ${fmt(n.created_at)} · page ${d.path || '/'}${n.urgency === 'done' ? ' [resolved]' : ''}\n${d.text || ''}\n`;
+          for (const r of taskMsgs.filter(m => m.task_id === n.id)) out += `  ↳ **${r.author_name}**: ${r.body}\n`;
+          out += `\n`;
+        }
+      }
       await navigator.clipboard.writeText(out);
       const btn = document.querySelector('.btn-copy-claude');
       const orig = btn.textContent;
@@ -756,7 +779,7 @@
         </div>
         <ul class="scope-list">${s.scope.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
         ${s.accepted ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;line-height:1.5"><span style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px">Accepted when</span>${esc(s.accepted)}</div>` : ''}
-        <div class="plan-sub">Progress</div>
+        <div class="plan-sub">Progress · in the original plan</div>
         <div class="task-list" id="tasks-${s.id}"><div class="empty-state" style="padding:16px 0">Loading…</div></div>
         <div class="add-task-row" id="add-row-${s.id}">
           <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">${isAdmin() ? '+ Add item' : '+ Request an item'}</button>
@@ -828,7 +851,7 @@
     if (CLIENT_TODOS.some(d => d.id === taskId)) return 'agreed';
     for (const stage of STAGES) {
       const def = stage.defaults.find(d => d.id === taskId);
-      if (def) return def.section || 'agreed';
+      if (def) return def.extra ? 'extra' : 'agreed';
     }
     return 'extra';
   }
@@ -884,7 +907,7 @@
     const extra = visible.filter(t => getDefaultSection(t.id) !== 'agreed');
     let html = agreed.map(t => renderTaskRow(t, stageId)).join('');
     if (extra.length) {
-      html += `<div class="plan-section-label extra" style="margin-top:14px">Additional work</div>`;
+      html += `<div class="plan-section-label extra" style="margin-top:18px">Additional work · beyond the original plan</div>`;
       html += extra.map(t => renderTaskRow(t, stageId)).join('');
     }
     el.innerHTML = html;
@@ -992,6 +1015,43 @@
     if (!confirm('Remove this link?')) return;
     await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
     loadLinks();
+  }
+
+  const SITE_URL = 'https://jesus-people-preview.faith-journey-funnel.workers.dev/';
+  function noteModeUrl(url, id) {
+    const u = new URL(url || SITE_URL);
+    if (currentProject.code) u.searchParams.set('kcnotes', currentProject.code);
+    if (id) u.hash = 'kcnote-' + id;
+    return u.toString();
+  }
+
+  async function loadSiteNotes() {
+    document.getElementById('sitenotes-open').href = noteModeUrl(SITE_URL);
+    const [notes, msgs] = await Promise.all([
+      fetch(`/api/posts?plan_id=${currentProject.id}&kind=sitenote`).then(r => r.json()),
+      fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`).then(r => r.json()),
+    ]);
+    const el = document.getElementById('sitenotes-list');
+    if (!notes.length) { el.innerHTML = '<div class="empty-state">No notes on the website yet.</div>'; return; }
+    el.innerHTML = notes.slice().reverse().map(n => {
+      let d = {}; try { d = JSON.parse(n.body); } catch {}
+      const replies = msgs.filter(m => m.task_id === n.id);
+      const done = n.urgency === 'done';
+      return `<div class="task-row${done ? ' done' : ''}" style="padding:12px 14px">
+        <div class="tc-meta"><span class="tc-name">${esc(n.author_name)}</span><span class="tc-time">${fmt(n.created_at)} · ${esc(d.path || '/')}</span>
+          ${done ? '<span class="tag-badge tag-idea">resolved</span>' : ''}
+          <a class="btn-task-comments" style="margin-left:auto;text-decoration:none" target="_blank" rel="noopener" href="${esc(noteModeUrl(d.url, n.id))}">View on page ↗</a>
+          ${isAdmin() ? `<button class="tc-del" onclick="deleteSiteNote('${n.id}')">✕</button>` : ''}</div>
+        <div class="tc-body" style="margin-top:4px">${linkify(d.text || '')}</div>
+        ${replies.map(r => `<div style="margin:8px 0 0 14px;font-size:13px"><b>${esc(r.author_name)}</b> <span class="tc-time">${fmt(r.created_at)}</span><div class="tc-body">${linkify(r.body)}</div></div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  async function deleteSiteNote(id) {
+    if (!confirm('Delete this website note?')) return;
+    await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
+    loadSiteNotes();
   }
 
   function linkify(text) {

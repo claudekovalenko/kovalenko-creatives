@@ -35,7 +35,7 @@ export async function onRequest(context) {
 
     const { plan_id, author_name, body, kind, task_id, urgency, id: clientId } = data;
     if (!plan_id || !author_name || !body || !kind) return json({ error: 'Missing fields' }, 400);
-    if (!['message', 'update', 'idea', 'task', 'link'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
+    if (!['message', 'update', 'idea', 'task', 'link', 'sitenote'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
 
     const id = clientId || `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const created_at = (typeof data.created_at === 'string' && !isNaN(Date.parse(data.created_at)))

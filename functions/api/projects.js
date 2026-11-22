@@ -24,7 +24,7 @@ export async function onRequest(context) {
   const project = Object.values(PROJECTS).find(p => p.code === code?.toUpperCase());
   if (!project) return json({ error: 'Invalid project code' }, 404);
 
-  return json({ id: project.id, name: project.name, client: project.client });
+  return json({ id: project.id, name: project.name, client: project.client, code: project.code });
 }
 
 function json(obj, status = 200) {
