@@ -3,7 +3,7 @@
   window.__kcNotes = true;
 
   var script = document.currentScript;
-  var API = new URL(script ? script.src : '/notes.js', location.href).origin;
+  var API = (script && script.dataset.api) || new URL(script ? script.src : '/notes.js', location.href).origin;
   var KEY = 'kc-notes-session';
   var params = new URLSearchParams(location.search);
   var codeParam = params.get('kcnotes');
