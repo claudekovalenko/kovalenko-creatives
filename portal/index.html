@@ -1155,7 +1155,7 @@
   }
 
   async function deleteSiteNote(id) {
-    if (!confirm('Delete this website note?')) return;
+    if (!confirm('Delete this note and its replies?')) return;
     await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
     loadSiteNotes();
   }

@@ -267,7 +267,7 @@
     var canDelete = (session.name && session.name.toLowerCase() === String(n.author).toLowerCase()) || hasNotesKey();
     var del = el('button', null, 'Delete');
     del.onclick = function () {
-      if (!confirm('Delete this note?')) return;
+      if (!confirm('Delete this note and its replies?')) return;
       fetch(API + '/api/posts?id=' + encodeURIComponent(n.id), { method: 'DELETE', headers: headers() })
         .then(function (r) { if (!r.ok) throw new Error(); closeCard(); load(); })
         .catch(function () { del.textContent = 'Could not delete'; });
