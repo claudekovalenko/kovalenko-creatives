@@ -1067,7 +1067,13 @@
   }
 
   async function loadSiteNotes() {
-    document.getElementById('sitenotes-open').href = noteModeUrl(SITE_URL) + (isAdmin() ? '#kcadmin=' + adminToken : '');
+    let notesTok = null;
+    if (isAdmin()) {
+      const r = await fetch('/api/notes-token', { method: 'POST' });
+      if (r.ok) notesTok = (await r.json()).token;
+    }
+    const withTok = (u, id) => notesTok && !id ? u + '#kcadmin=' + notesTok : u;
+    document.getElementById('sitenotes-open').href = withTok(noteModeUrl(SITE_URL));
     const [notes, msgs] = await Promise.all([
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=sitenote`).then(r => r.json()),
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`).then(r => r.json()),

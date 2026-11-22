@@ -20,8 +20,8 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (p) {
         if (!p) return;
-        session = { code: codeParam, projectId: p.id, name: session && session.name || '', admin: session && session.admin || null };
-        if (adminHash) { session.admin = adminHash; session.name = 'Ivan'; }
+        session = { code: codeParam, projectId: p.id, name: session && session.name || '' };
+        if (adminHash) { try { sessionStorage.setItem('kc-notes-admin', adminHash); } catch (e) {} session.name = 'Ivan'; }
         save();
         start();
       })
@@ -176,7 +176,8 @@
 
   function headers() {
     var h = { 'Content-Type': 'application/json', 'X-Portal-Name': session.name || '' };
-    if (session.admin && Number(session.admin.split('.')[0]) > Date.now()) h.Authorization = 'Bearer ' + session.admin;
+    var tok = null; try { tok = sessionStorage.getItem('kc-notes-admin'); } catch (e) {}
+    if (tok && Number(tok.split('.')[0]) > Date.now()) h.Authorization = 'Bearer ' + tok;
     return h;
   }
   function post(data) {

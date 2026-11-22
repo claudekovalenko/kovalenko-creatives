@@ -1,4 +1,4 @@
-import { isAdminRequest } from './_auth.js';
+import { isAdminRequest, isNotesRequest } from './_auth.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +27,7 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
   const admin = await isAdminRequest(request, env);
+  const notesAdmin = !admin && await isNotesRequest(request, env);
   const caller = (request.headers.get('x-portal-name') || '').trim().toLowerCase();
   const isIvan = n => String(n || '').trim().toLowerCase() === 'ivan';
   const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind FROM portal_posts WHERE id = ?').bind(id).first();
@@ -60,7 +61,8 @@ export async function onRequest(context) {
     if (!plan_id || !author_name || !body || !kind) return json({ error: 'Missing fields' }, 400);
     if (!['message', 'update', 'idea', 'task', 'link', 'sitenote'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
 
-    if (!admin && isIvan(author_name)) return forbidden();
+    const notesOk = notesAdmin && (kind === 'sitenote' || kind === 'message');
+    if (!admin && !notesOk && isIvan(author_name)) return forbidden();
     if (!admin && ['update', 'link'].includes(kind)) return forbidden();
     const safeUrgency = !admin && kind === 'task' ? 'pending' : urgency;
 

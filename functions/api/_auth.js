@@ -19,6 +19,19 @@ export async function makeAdminToken(env) {
   return `${exp}.${await hmac(env.ADMIN_PASSWORD, 'admin.' + exp)}`;
 }
 
+export async function makeNotesToken(env) {
+  const exp = Date.now() + 7 * 86400000;
+  return `${exp}.${await hmac(env.ADMIN_PASSWORD, 'notes.' + exp)}`;
+}
+
+export async function isNotesRequest(request, env) {
+  if (!env.ADMIN_PASSWORD) return false;
+  const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const [exp, sig] = token.split('.');
+  if (!exp || !sig || Number(exp) < Date.now()) return false;
+  return sameString(await hmac(env.ADMIN_PASSWORD, 'notes.' + exp), sig);
+}
+
 export async function isAdminRequest(request, env) {
   if (!env.ADMIN_PASSWORD) return false;
   const token = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
