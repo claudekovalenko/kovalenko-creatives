@@ -54,9 +54,10 @@ export async function onRequest(context) {
     if (!id) return json({ error: 'Missing id' }, 400);
     let data;
     try { data = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
-    const { urgency } = data;
-    if (!urgency) return json({ error: 'Missing urgency' }, 400);
-    await env.DB.prepare('UPDATE posts SET urgency = ? WHERE id = ?').bind(urgency, id).run();
+    const { urgency, body } = data;
+    if (!urgency && !body) return json({ error: 'Missing urgency or body' }, 400);
+    if (urgency) await env.DB.prepare('UPDATE posts SET urgency = ? WHERE id = ?').bind(urgency, id).run();
+    if (body) await env.DB.prepare('UPDATE posts SET body = ? WHERE id = ?').bind(body, id).run();
     return json({ updated: id });
   }
 

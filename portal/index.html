@@ -67,6 +67,12 @@
     .chat-time { font-size: 11px; color: var(--muted); font-family: var(--mono); }
     .chat-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px; padding: 1px 5px; border-radius: 4px; opacity: 0.5; }
     .chat-del:hover { background: var(--danger); color: #fff; opacity: 1; }
+    .chat-edit { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px; padding: 1px 5px; border-radius: 4px; opacity: 0.5; }
+    .chat-edit:hover { color: var(--accent); opacity: 1; }
+    .chat-edit-input { background: var(--bg); border: 1px solid var(--accent); color: var(--text); padding: 8px 12px; border-radius: 10px; font-size: 14px; font-family: var(--sans); width: 100%; outline: none; resize: none; min-height: 36px; }
+    .chat-edit-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .btn-edit-save { background: var(--accent); color: var(--bg); border: none; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .btn-edit-cancel { background: none; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
     .empty-state { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
 
     .tag-badge { display: inline-block; font-size: 10px; font-family: var(--mono); letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; font-weight: 700; }
@@ -231,13 +237,13 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('comments')">Comments</button>
-    <button class="tab" onclick="showTab('updates')">Updates</button>
+    <button class="tab active" onclick="showTab('updates')">Updates</button>
+    <button class="tab" onclick="showTab('comments')">Comments</button>
     <button class="tab" onclick="showTab('plan')">Plan</button>
   </div>
 
   <!-- Comments -->
-  <div id="tab-comments" class="tab-panel active">
+  <div id="tab-comments" class="tab-panel">
     <div class="chat-feed" id="comment-list"><div class="empty-state">Loading…</div></div>
     <div class="compose">
       <div class="compose-input-row">
@@ -258,7 +264,7 @@
   </div>
 
   <!-- Updates -->
-  <div id="tab-updates" class="tab-panel">
+  <div id="tab-updates" class="tab-panel active">
     <div id="updates-list"><div class="empty-state">Loading…</div></div>
   </div>
 
@@ -296,13 +302,13 @@
 </div>
 
 <script>
-  const TABS = ['comments','updates','plan'];
+  const TABS = ['updates','comments','plan'];
   let currentUser = null;
   let currentProject = null;
   let pollTimer = null;
   let selectedTag = null;
   let _lastSeenCount = 0;
-  let _activeTab = 'comments';
+  let _activeTab = 'updates';
   // taskComments: { taskId: post[] }
   let taskComments = {};
   // openCommentPanels: Set of task IDs currently expanded
@@ -411,7 +417,7 @@
   }
 
   function setUnreadBadge(n) {
-    const tab = document.querySelector('.tab');
+    const tab = [...document.querySelectorAll('.tab')].find(t => t.textContent.trim() === 'Comments');
     if (!tab) return;
     let badge = tab.querySelector('.unread-dot');
     if (!badge) { badge = document.createElement('span'); badge.className = 'unread-dot'; tab.appendChild(badge); }
@@ -455,13 +461,14 @@
       const mine = p.author_name === currentUser;
       const tag = p.urgency && p.urgency !== 'normal' ? `<span class="tag-badge tag-${esc(p.urgency)}">${esc(p.urgency)}</span>` : '';
       const del = (mine || isAdmin()) ? `<button class="chat-del" onclick="deleteComment('${p.id}')" title="Delete">✕</button>` : '';
+      const edit = mine ? `<button class="chat-edit" onclick="startEditComment('${p.id}')" title="Edit">✎</button>` : '';
       return `<div class="chat-row ${mine ? 'mine' : 'theirs'}" id="comment-${p.id}">
         ${!mine ? `<div class="chat-sender">${esc(p.author_name)}</div>` : ''}
-        <div class="chat-bubble">${esc(p.body)}</div>
-        <div class="chat-meta">
+        <div class="chat-bubble" id="bubble-${p.id}">${esc(p.body)}</div>
+        <div class="chat-meta" id="meta-${p.id}">
           ${tag}
           <span class="chat-time">${fmt(p.created_at)}</span>
-          ${del}
+          ${edit}${del}
         </div>
       </div>`;
     }).join('');
@@ -501,6 +508,42 @@
       const feed = document.getElementById('comment-list');
       feed.scrollTop = feed.scrollHeight;
     } finally { btn.disabled = false; }
+  }
+
+  function startEditComment(id) {
+    const bubble = document.getElementById(`bubble-${id}`);
+    const meta = document.getElementById(`meta-${id}`);
+    if (!bubble) return;
+    const current = bubble.textContent;
+    bubble.innerHTML = `<textarea class="chat-edit-input" id="edit-ta-${id}" rows="1">${esc(current)}</textarea>
+      <div class="chat-edit-actions">
+        <button class="btn-edit-save" onclick="saveEditComment('${id}')">Save</button>
+        <button class="btn-edit-cancel" onclick="cancelEditComment('${id}', ${JSON.stringify(current)})">Cancel</button>
+      </div>`;
+    meta.style.display = 'none';
+    const ta = document.getElementById(`edit-ta-${id}`);
+    ta.focus();
+    ta.style.height = ta.scrollHeight + 'px';
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEditComment(id); } if (e.key === 'Escape') cancelEditComment(id, current); });
+  }
+
+  async function saveEditComment(id) {
+    const ta = document.getElementById(`edit-ta-${id}`);
+    const text = ta?.value.trim();
+    if (!text) return;
+    await fetch(`/api/posts?id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: text }),
+    });
+    await loadComments();
+  }
+
+  function cancelEditComment(id, original) {
+    const bubble = document.getElementById(`bubble-${id}`);
+    const meta = document.getElementById(`meta-${id}`);
+    if (bubble) bubble.innerHTML = esc(original);
+    if (meta) meta.style.display = '';
   }
 
   function handleComposeKey(e) {
