@@ -142,6 +142,17 @@
     .version-history summary { cursor: pointer; font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 8px; }
     .version-row { display: flex; align-items: center; gap: 10px; }
     .version-row .task-date { min-width: 96px; }
+    .top-card.ideas { border-left: 3px solid #c084fc; }
+    .top-card.ideas .top-card-label { color: #c084fc; }
+    .idea-row { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .idea-row:last-child { border-bottom: none; }
+    .idea-row.pending { opacity: .85; }
+    .idea-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; margin-bottom: 4px; }
+    .idea-meta b { font-size: 13px; }
+    .idea-body { font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .idea-compose { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
+    .idea-compose textarea { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 7px; font-size: 13px; font-family: var(--sans); resize: none; outline: none; }
+    .idea-compose textarea:focus { border-color: #c084fc; }
     .link-add { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
     .link-add input { flex: 1; min-width: 140px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 7px; font-size: 13px; outline: none; }
     .tc-body a, .chat-bubble a { color: inherit; text-decoration: underline; word-break: break-all; }
@@ -326,6 +337,15 @@
     </div>
 
     <div id="stages-container"><!-- stages rendered by JS --></div>
+
+    <div class="top-card ideas" id="ideas-card">
+      <div class="top-card-label">Thoughts &amp; ideas <span class="top-card-sub">anything worth exploring later · suggestions from the team show once Ivan approves them</span></div>
+      <div id="ideas-list"><div class="empty-state" style="padding:12px 0">Loading…</div></div>
+      <div class="idea-compose">
+        <textarea id="idea-input" rows="2" placeholder="Share a thought or idea…" oninput="autoGrow(this)"></textarea>
+        <button class="btn-save-task" onclick="postIdea()" id="idea-btn">Add idea</button>
+      </div>
+    </div>
 
     <div class="top-card waiting" id="client-card">
       <div class="top-card-label">Waiting on client <span class="top-card-sub">things Ivan needs back from you · tick when done, use Note to reply or paste a link</span></div>
@@ -576,6 +596,7 @@
     loadHighlights();
     loadLinks();
     loadSiteNotes();
+    loadIdeas();
     renderStagesSkeleton();
     loadPlanTasks();
     pollTimer = setInterval(loadComments, 5000);
@@ -1099,6 +1120,64 @@
     if (!confirm('Delete this website note?')) return;
     await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
     loadSiteNotes();
+  }
+
+  const SEED_IDEAS = [
+    { id: 'idea-library', text: 'Build a library of all the different creator content, so creators and visitors can browse every video, course and resource in one place.' },
+  ];
+
+  async function loadIdeas() {
+    let ideas = await (await fetch(`/api/posts?plan_id=${currentProject.id}&kind=idea`)).json();
+    for (const s of isAdmin() ? SEED_IDEAS : []) {
+      if (ideas.find(i => i.id === s.id)) continue;
+      await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: s.id, plan_id: currentProject.id, kind: 'idea', author_name: 'Ivan', body: s.text, urgency: 'open' }) });
+      ideas.push({ id: s.id, author_name: 'Ivan', body: s.text, urgency: 'open', created_at: new Date().toISOString() });
+    }
+    const visible = ideas.filter(i => i.urgency !== 'pending' || isAdmin() || i.author_name === currentUser);
+    const el = document.getElementById('ideas-list');
+    if (!visible.length) { el.innerHTML = '<div class="empty-state" style="padding:12px 0">No ideas yet. Add the first one.</div>'; return; }
+    el.innerHTML = visible.map(i => {
+      const pending = i.urgency === 'pending';
+      const mine = i.author_name === currentUser;
+      const controls = pending && isAdmin()
+        ? `<button class="btn-approve" onclick="reviewIdea('${i.id}', true)">Approve</button><button class="btn-reject" onclick="reviewIdea('${i.id}', false)">Reject</button>`
+        : (isAdmin() || (mine && !isAdmin())) ? `<button class="tc-del" onclick="deleteIdea('${i.id}')" title="Delete">✕</button>` : '';
+      return `<div class="idea-row${pending ? ' pending' : ''}" id="idea-${i.id}">
+        <div class="idea-meta"><b>${esc(i.author_name)}</b><span class="tc-time">${fmt(i.created_at)}</span>
+          ${pending ? '<span class="pending-badge">Awaiting approval</span>' : ''}<span style="margin-left:auto;display:flex;gap:6px">${controls}</span></div>
+        <div class="idea-body">${linkify(i.body)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function postIdea() {
+    const input = document.getElementById('idea-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const btn = document.getElementById('idea-btn');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: currentProject.id, kind: 'idea', author_name: currentUser, body: text, urgency: isAdmin() ? 'open' : 'pending' }) });
+      if (!r.ok) throw new Error();
+      input.value = ''; autoGrow(input);
+      await loadIdeas();
+    } catch { alert('Could not save your idea. Try again.'); }
+    finally { btn.disabled = false; }
+  }
+
+  async function reviewIdea(id, approve) {
+    if (!approve && !confirm('Reject and remove this idea?')) return;
+    if (approve) await fetch(`/api/posts?id=${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ urgency: 'open' }) });
+    else await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
+    loadIdeas();
+  }
+
+  async function deleteIdea(id) {
+    if (!confirm('Delete this idea?')) return;
+    await fetch(`/api/posts?id=${id}`, { method: 'DELETE' });
+    loadIdeas();
   }
 
   function linkify(text) {

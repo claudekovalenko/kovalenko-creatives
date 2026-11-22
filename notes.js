@@ -30,6 +30,11 @@
   }
   if (session && session.projectId) start();
 
+  function hasNotesKey() {
+    try { var k = sessionStorage.getItem('kc-notes-admin'); return !!k && Number(k.split('.')[0]) > Date.now(); } catch (e) { return false; }
+  }
+  if (session && /^ivan$/i.test(session.name || '') && !adminHash && !hasNotesKey()) session.name = '';
+
   function save() { try { localStorage.setItem(KEY, JSON.stringify(session)); } catch (e) {} }
 
   function el(tag, cls, text) {

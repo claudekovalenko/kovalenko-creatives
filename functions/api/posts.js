@@ -64,7 +64,7 @@ export async function onRequest(context) {
     const notesOk = notesAdmin && (kind === 'sitenote' || kind === 'message');
     if (!admin && !notesOk && isIvan(author_name)) return forbidden();
     if (!admin && ['update', 'link'].includes(kind)) return forbidden();
-    const safeUrgency = !admin && kind === 'task' ? 'pending' : urgency;
+    const safeUrgency = !admin && (kind === 'task' || kind === 'idea') ? 'pending' : urgency;
 
     const id = clientId || `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const created_at = (typeof data.created_at === 'string' && !isNaN(Date.parse(data.created_at)))
