@@ -85,6 +85,20 @@ try {
       await page.waitForTimeout(1500);
       check('resolve saves', (await notes()).find(n => n.id === noteId)?.urgency === 'done');
     }
+    // Delete a fresh note from its pin.
+    const err2 = await leaveNote(page, 'QA Bot', `QA bot delete-me ${stamp}`);
+    const del = (await notes()).find(n => n.body.includes(`QA bot delete-me ${stamp}`));
+    check('second note saves', !err2 && !!del, err2 || '');
+    if (del) {
+      await page.waitForTimeout(500);
+      page.once('dialog', d => d.accept());
+      await page.locator(`#kcn-pin-${del.id}`).click();
+      await page.locator('#kcn-card').getByRole('button', { name: 'Delete' }).click();
+      await page.waitForTimeout(1500);
+      const still = (await notes()).some(n => n.id === del.id);
+      check('author can delete their note on the site', !still);
+      if (still) created.push([del.id, 'QA Bot']);
+    }
     check('no script errors in note mode', errors.length === 0, errors.join('; '));
     await ctx.close();
   }
@@ -110,12 +124,25 @@ try {
     await page.fill('#input-name', 'QA Bot');
     await page.fill('#input-code', CODE);
     await page.click('.btn-primary');
-    await page.getByRole('button', { name: 'Site notes' }).click();
+    await page.getByRole('button', { name: 'Edits & notes' }).click();
     await page.waitForTimeout(2500);
     const href = await page.getAttribute('#sitenotes-open', 'href');
     check('portal note-mode link is correct', href?.startsWith(SITE) && href.includes(`kcnotes=${CODE}`), href || '');
     const listText = await page.locator('#sitenotes-list').innerText();
     check('portal lists the note', listText.includes(`QA bot note ${stamp}`));
+    await page.fill('#edit-input', `QA bot quick edit ${stamp}`);
+    await page.click('#edit-btn');
+    await page.waitForTimeout(2000);
+    const edit = (await notes()).find(n => n.body.includes(`QA bot quick edit ${stamp}`));
+    check('quick edit added from portal', !!edit);
+    if (edit) {
+      page.once('dialog', d => d.accept());
+      await page.locator(`#sitenotes-list .tc-del`).first().click().catch(() => {});
+      await page.waitForTimeout(1500);
+      const still = (await notes()).some(n => n.id === edit.id);
+      check('author can delete their edit in the portal', !still);
+      if (still) created.push([edit.id, 'QA Bot']);
+    }
     await ctx.close();
   }
 } catch (e) {

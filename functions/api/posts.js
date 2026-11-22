@@ -26,8 +26,12 @@ export async function onRequest(context) {
 
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
-  const admin = await isAdminRequest(request, env);
+  let admin = await isAdminRequest(request, env);
   const notesAdmin = !admin && await isNotesRequest(request, env);
+  if (notesAdmin && request.method === 'DELETE') {
+    const r = await env.DB.prepare('SELECT kind FROM portal_posts WHERE id = ?').bind(new URL(request.url).searchParams.get('id')).first();
+    if (r && r.kind === 'sitenote') admin = true;
+  }
   const caller = (request.headers.get('x-portal-name') || '').trim().toLowerCase();
   const isIvan = n => String(n || '').trim().toLowerCase() === 'ivan';
   const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind FROM portal_posts WHERE id = ?').bind(id).first();

@@ -275,7 +275,7 @@
     <button class="tab active" onclick="showTab('plan')">Plan</button>
     <button class="tab" onclick="showTab('comments')">Comments</button>
     <button class="tab" onclick="showTab('updates')">Updates</button>
-    <button class="tab" onclick="showTab('sitenotes')">Site notes</button>
+    <button class="tab" onclick="showTab('sitenotes')">Edits &amp; notes</button>
   </div>
 
   <!-- Comments -->
@@ -305,6 +305,13 @@
       <div class="top-card-label">Leave notes right on the website</div>
       <p style="font-size:14px;line-height:1.6;margin-bottom:10px">Open the website with this link, click <b>Leave a note</b> in the bottom corner, then click anywhere on the page to pin a note there.</p>
       <a class="link-pill" id="sitenotes-open" target="_blank" rel="noopener">Open the website in note mode ↗</a>
+    </div>
+    <div class="top-card">
+      <div class="top-card-label">Add an edit <span class="top-card-sub">quick changes you want made · everyone on the project sees this list</span></div>
+      <div class="idea-compose">
+        <textarea id="edit-input" rows="2" placeholder="e.g. Make the Know God button bigger on the home page" oninput="autoGrow(this)"></textarea>
+        <button class="btn-save-task" id="edit-btn" onclick="addEdit()">Add edit</button>
+      </div>
     </div>
     <div id="sitenotes-list"><div class="empty-state">Loading…</div></div>
   </div>
@@ -367,6 +374,7 @@
 
     <div style="margin-bottom:32px">
       <div class="plan-sub">Timeline</div>
+      <div class="top-card highlight" style="margin-bottom:10px;font-size:14px;line-height:1.55">Ivan is aiming to have a first version ready by the end of 2026. That's a goal, not a guarantee; the plan below is the agreed timeline.</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
         <table class="plan-timeline">
           <thead><tr><th>Phase</th><th>Duration</th><th>Window</th></tr></thead>
@@ -809,20 +817,29 @@
     } catch {}
   }
 
+  function groupUpdates(posts) {
+    const groups = [];
+    for (const p of posts.slice().sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+      let d; try { d = JSON.parse(p.body); } catch { d = { items: [p.body] }; }
+      const label = d.label || fmt(p.created_at);
+      let g = groups.find(x => x.label === label);
+      if (!g) { g = { label, authors: new Set(), items: [], notes: [], created_at: p.created_at }; groups.push(g); }
+      g.authors.add(p.author_name);
+      g.items.push(...(d.items || []));
+      if (d.notes) g.notes.push(d.notes);
+      g.created_at = p.created_at;
+    }
+    return groups;
+  }
+
   function renderUpdates(posts) {
     const el = document.getElementById('updates-list');
     if (!posts.length) { el.innerHTML = '<div class="empty-state">No updates yet.</div>'; return; }
-    el.innerHTML = posts.reverse().map(p => {
-      let content;
-      try {
-        const d = JSON.parse(p.body);
-        content = `<ul class="update-items">${(d.items||[]).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
-        if (d.notes) content += `<p style="margin-top:10px;font-size:13px;color:var(--muted)">${esc(d.notes)}</p>`;
-      } catch { content = `<p style="font-size:14px">${esc(p.body)}</p>`; }
-      let label = fmt(p.created_at);
-      try { label = JSON.parse(p.body).label || label; } catch {}
-      return `<div class="update-item"><div class="update-week">${esc(label)} · ${esc(p.author_name)}</div>${content}</div>`;
-    }).join('');
+    el.innerHTML = groupUpdates(posts).reverse().map(g => `<div class="update-item">
+      <div class="update-week">${esc(g.label)} · ${esc([...g.authors].join(', '))}</div>
+      <ul class="update-items">${g.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      ${g.notes.map(n => `<p style="margin-top:10px;font-size:13px;color:var(--muted)">${esc(n)}</p>`).join('')}
+    </div>`).join('');
   }
 
   // ── Plan: tasks ───────────────────────────────────────────────────────────
@@ -1036,10 +1053,10 @@
     }
     posts.sort((a, b) => a.created_at.localeCompare(b.created_at));
     renderUpdates(posts.slice());
-    const latest = posts[posts.length - 1];
-    let d = {}; try { d = JSON.parse(latest.body); } catch { d = { items: [latest.body] }; }
-    document.getElementById('highlights-week').textContent = d.label || fmt(latest.created_at);
-    document.getElementById('highlights-list').innerHTML = (d.items || []).map(i => `<li>${esc(i)}</li>`).join('');
+    const groups = groupUpdates(posts);
+    const latest = groups[groups.length - 1];
+    document.getElementById('highlights-week').textContent = latest.label;
+    document.getElementById('highlights-list').innerHTML = latest.items.map(i => `<li>${esc(i)}</li>`).join('');
   }
 
   async function loadLinks() {
@@ -1111,14 +1128,30 @@
       const replies = msgs.filter(m => m.task_id === n.id);
       const done = n.urgency === 'done';
       return `<div class="task-row${done ? ' done' : ''}" style="padding:12px 14px">
-        <div class="tc-meta"><span class="tc-name">${esc(n.author_name)}</span><span class="tc-time">${fmt(n.created_at)} · ${esc(d.path || '/')}</span>
+        <div class="tc-meta"><span class="tc-name">${esc(n.author_name)}</span><span class="tc-time">${fmt(n.created_at)}${d.path ? ' · ' + esc(d.path) : ''}</span>
           ${done ? '<span class="tag-badge tag-idea">resolved</span>' : ''}
-          <a class="btn-task-comments" style="margin-left:auto;text-decoration:none" target="_blank" rel="noopener" href="${esc(noteModeUrl(d.url, n.id))}">View on page ↗</a>
-          ${isAdmin() ? `<button class="tc-del" onclick="deleteSiteNote('${n.id}')">✕</button>` : ''}</div>
+          ${d.url ? `<a class="btn-task-comments" style="margin-left:auto;text-decoration:none" target="_blank" rel="noopener" href="${esc(noteModeUrl(d.url, n.id))}">View on page ↗</a>` : `<span class="tag-badge tag-question" style="margin-left:auto">edit</span>`}
+          ${(isAdmin() || n.author_name === currentUser) ? `<button class="tc-del" onclick="deleteSiteNote('${n.id}')" title="Delete">✕</button>` : ''}</div>
         <div class="tc-body" style="margin-top:4px">${linkify(d.text || '')}</div>
         ${replies.map(r => `<div style="margin:8px 0 0 14px;font-size:13px"><b>${esc(r.author_name)}</b> <span class="tc-time">${fmt(r.created_at)}</span><div class="tc-body">${linkify(r.body)}</div></div>`).join('')}
       </div>`;
     }).join('');
+  }
+
+  async function addEdit() {
+    const input = document.getElementById('edit-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const btn = document.getElementById('edit-btn');
+    btn.disabled = true;
+    try {
+      const r = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan_id: currentProject.id, kind: 'sitenote', author_name: currentUser, urgency: 'open', body: JSON.stringify({ text }) }) });
+      if (!r.ok) throw new Error();
+      input.value = ''; autoGrow(input);
+      await loadSiteNotes();
+    } catch { alert('Could not add the edit. Try again.'); }
+    finally { btn.disabled = false; }
   }
 
   async function deleteSiteNote(id) {
