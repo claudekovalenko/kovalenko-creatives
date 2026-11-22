@@ -237,9 +237,9 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('updates')">Updates</button>
+    <button class="tab active" onclick="showTab('plan')">Plan</button>
     <button class="tab" onclick="showTab('comments')">Comments</button>
-    <button class="tab" onclick="showTab('plan')">Plan</button>
+    <button class="tab" onclick="showTab('updates')">Updates</button>
   </div>
 
   <!-- Comments -->
@@ -264,12 +264,12 @@
   </div>
 
   <!-- Updates -->
-  <div id="tab-updates" class="tab-panel active">
+  <div id="tab-updates" class="tab-panel">
     <div id="updates-list"><div class="empty-state">Loading…</div></div>
   </div>
 
   <!-- Plan -->
-  <div id="tab-plan" class="tab-panel">
+  <div id="tab-plan" class="tab-panel active">
     <div class="plan-logo">
       <img src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
            onerror="this.style.display='none'">
@@ -302,13 +302,13 @@
 </div>
 
 <script>
-  const TABS = ['updates','comments','plan'];
+  const TABS = ['plan','comments','updates'];
   let currentUser = null;
   let currentProject = null;
   let pollTimer = null;
   let selectedTag = null;
   let _lastSeenCount = 0;
-  let _activeTab = 'updates';
+  let _activeTab = 'plan';
   // taskComments: { taskId: post[] }
   let taskComments = {};
   // openCommentPanels: Set of task IDs currently expanded
