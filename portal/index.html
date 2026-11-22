@@ -138,6 +138,10 @@
     .link-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; margin: 0 8px 8px 0; color: var(--text); text-decoration: none; font-size: 13px; }
     .link-pill:hover { border-color: var(--accent); color: var(--accent); }
     .link-pill button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px; }
+    .version-history { margin-top: 4px; }
+    .version-history summary { cursor: pointer; font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 8px; }
+    .version-row { display: flex; align-items: center; gap: 10px; }
+    .version-row .task-date { min-width: 96px; }
     .link-add { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
     .link-add input { flex: 1; min-width: 140px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 7px; font-size: 13px; outline: none; }
     .tc-body a, .chat-bubble a { color: inherit; text-decoration: underline; word-break: break-all; }
@@ -235,7 +239,11 @@
     <p>Sign in with your name and the project code Ivan sent you.</p>
     <div class="field">
       <label>YOUR NAME</label>
-      <input id="input-name" type="text" placeholder="e.g. Craig" autocomplete="off">
+      <input id="input-name" type="text" placeholder="e.g. Craig" autocomplete="off" oninput="document.getElementById('pw-field').style.display = this.value.trim().toLowerCase() === 'ivan' ? 'block' : 'none'">
+    </div>
+    <div class="field" id="pw-field" style="display:none">
+      <label>ADMIN PASSWORD</label>
+      <input id="input-password" type="password" autocomplete="current-password">
     </div>
     <div class="field">
       <label>PROJECT CODE</label>
@@ -364,6 +372,15 @@
 <script>
   const TABS = ['plan','comments','updates','sitenotes'];
   let currentUser = null;
+  let adminToken = null;
+  const _fetch = window.fetch.bind(window);
+  window.fetch = (url, opts = {}) => {
+    if (typeof url === 'string' && url.startsWith('/api/')) {
+      opts.headers = Object.assign({}, opts.headers, { 'X-Portal-Name': currentUser || '' },
+        adminToken ? { Authorization: 'Bearer ' + adminToken } : {});
+    }
+    return _fetch(url, opts);
+  };
   let currentProject = null;
   let pollTimer = null;
   let selectedTag = null;
@@ -484,13 +501,21 @@
   ];
 
   const DEFAULT_LINKS = [
-    { id: 'link-site', label: 'Jesus People Network website', url: 'https://jesus-people-preview.faith-journey-funnel.workers.dev/' },
+    { id: 'link-current', label: 'Jesus People Network website', url: 'https://faith-journey-funnel.faith-journey-funnel.workers.dev/', version: 'current' },
+    { id: 'link-v3', label: 'Design preview', url: 'https://faith-journey-preview.faith-journey-funnel.workers.dev/', version: 'Nov 20, 2026' },
+    { id: 'link-v2', label: 'Digital Collective build', url: 'https://jesus-people-dev.faith-journey-funnel.workers.dev/', version: 'Sep 10, 2026' },
+    { id: 'link-v1', label: 'First Jesus People preview', url: 'https://jesus-people-preview.faith-journey-funnel.workers.dev/', version: 'Sep 6, 2026' },
   ];
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   function restoreSession() {
     const saved = JSON.parse(localStorage.getItem('kc-portal-session') || 'null');
     if (saved?.name && saved?.project) {
+      if (saved.name.trim().toLowerCase() === 'ivan' && !(saved.adminToken && Number(saved.adminToken.split('.')[0]) > Date.now())) {
+        localStorage.removeItem('kc-portal-session');
+        return;
+      }
+      adminToken = saved.adminToken || null;
       currentUser = saved.name;
       currentProject = saved.project;
       showPortal();
@@ -507,9 +532,18 @@
       const res = await fetch(`/api/projects?code=${encodeURIComponent(code)}`);
       if (!res.ok) { errEl.textContent = "That code doesn't match a project."; errEl.style.display = 'block'; return; }
       const project = await res.json();
+      let token = null;
+      if (name.toLowerCase() === 'ivan') {
+        const pw = document.getElementById('input-password').value;
+        const r = await _fetch('/api/admin-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { errEl.textContent = d.error || 'Admin sign-in failed.'; errEl.style.display = 'block'; return; }
+        token = d.token;
+      }
       currentUser = name;
       currentProject = project;
-      localStorage.setItem('kc-portal-session', JSON.stringify({ name, project }));
+      adminToken = token;
+      localStorage.setItem('kc-portal-session', JSON.stringify({ name, project, adminToken: token }));
       showPortal();
     } catch { errEl.textContent = 'Connection error. Try again.'; errEl.style.display = 'block'; }
   }
@@ -520,7 +554,7 @@
 
   function signOut() {
     localStorage.removeItem('kc-portal-session');
-    currentUser = null; currentProject = null;
+    currentUser = null; currentProject = null; adminToken = null;
     clearInterval(pollTimer);
     document.getElementById('portal-screen').style.display = 'none';
     document.getElementById('login-screen').style.display = 'flex';
@@ -812,7 +846,7 @@
     // Seed default items that don't exist yet
     const groups = STAGES.map(s => ({ id: s.id, defaults: s.defaults, assignee: null }))
       .concat([{ id: 'client', defaults: CLIENT_TODOS, assignee: 'client' }]);
-    for (const g of groups) {
+    for (const g of isAdmin() ? groups : []) {
       for (const def of g.defaults) {
         if (allTasks.find(t => t.id === def.id)) continue;
         const urgency = def.done ? 'done' : 'open';
@@ -845,7 +879,7 @@
     }
   }
 
-  function isAdmin() { return currentUser?.toLowerCase() === 'ivan'; }
+  function isAdmin() { return !!adminToken; }
 
   function getDefaultSection(taskId) {
     if (CLIENT_TODOS.some(d => d.id === taskId)) return 'agreed';
@@ -967,7 +1001,7 @@
   async function loadHighlights() {
     const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=update`);
     let posts = await res.json();
-    for (const u of BUILTIN_UPDATES) {
+    for (const u of isAdmin() ? BUILTIN_UPDATES : []) {
       if (posts.find(p => p.id === u.id)) continue;
       const body = JSON.stringify({ label: u.label, items: u.items });
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -985,18 +1019,25 @@
   async function loadLinks() {
     const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=link`);
     let links = await res.json();
-    for (const l of DEFAULT_LINKS) {
+    if (isAdmin() && links.find(x => x.id === 'link-site')) {
+      await fetch('/api/posts?id=link-site', { method: 'DELETE' });
+      links = links.filter(x => x.id !== 'link-site');
+    }
+    for (const l of isAdmin() ? DEFAULT_LINKS : []) {
       if (links.find(x => x.id === l.id)) continue;
-      const body = JSON.stringify({ label: l.label, url: l.url });
+      const body = JSON.stringify({ label: l.label, url: l.url, version: l.version });
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: l.id, plan_id: currentProject.id, kind: 'link', author_name: 'Ivan', body }) });
       links.push({ id: l.id, body });
     }
-    document.getElementById('links-list').innerHTML = links.map(l => {
-      let d = {}; try { d = JSON.parse(l.body); } catch {}
-      if (!/^https?:\/\//.test(d.url || '')) return '';
-      return `<a class="link-pill" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label || d.url)} ↗${isAdmin() ? `<button onclick="event.preventDefault();deleteLink('${l.id}')" title="Remove">✕</button>` : ''}</a>`;
-    }).join('');
+    const parsed = links.map(l => { let d = {}; try { d = JSON.parse(l.body); } catch {} return { id: l.id, ...d }; })
+      .filter(d => /^https?:\/\//.test(d.url || ''));
+    const pill = d => `<a class="link-pill" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label || d.url)} ↗${isAdmin() ? `<button onclick="event.preventDefault();deleteLink('${d.id}')" title="Remove">✕</button>` : ''}</a>`;
+    const main = parsed.filter(d => !d.version || d.version === 'current');
+    const history = parsed.filter(d => d.version && d.version !== 'current');
+    document.getElementById('links-list').innerHTML = main.map(pill).join('') +
+      (history.length ? `<details class="version-history"><summary>Version history (${history.length})</summary>${history.map(d =>
+        `<div class="version-row"><span class="task-date">${esc(d.version)}</span>${pill(d)}</div>`).join('')}</details>` : '');
   }
 
   async function addLink() {
@@ -1017,7 +1058,7 @@
     loadLinks();
   }
 
-  const SITE_URL = 'https://jesus-people-preview.faith-journey-funnel.workers.dev/';
+  const SITE_URL = 'https://faith-journey-funnel.faith-journey-funnel.workers.dev/';
   function noteModeUrl(url, id) {
     const u = new URL(url || SITE_URL);
     if (currentProject.code) u.searchParams.set('kcnotes', currentProject.code);
