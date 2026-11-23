@@ -344,7 +344,7 @@
   <!-- Plan -->
   <div id="tab-plan" class="tab-panel active">
     <div class="plan-logo">
-      <img src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
+      <img id="plan-logo-img" src="" alt=""
            onerror="this.style.display='none'">
     </div>
 
@@ -392,7 +392,8 @@
       </div>
     </div>
 
-    <div style="margin-bottom:32px">
+    <!-- Jesus People Network only: shown when that project is open -->
+    <div style="margin-bottom:32px" data-only-project="jpn-mvp">
       <div class="plan-sub">Timeline</div>
       <div class="top-card highlight" style="margin-bottom:10px;font-size:14px;line-height:1.55">Ivan is aiming to have a first version ready by the end of 2026. That's a goal, not a guarantee; the plan below is the agreed timeline.</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
@@ -408,7 +409,7 @@
       </div>
     </div>
 
-    <div style="margin-bottom:32px">
+    <div style="margin-bottom:32px" data-only-project="jpn-mvp">
       <div class="plan-sub">MVP acceptance statement</div>
       <div class="plan-mvp">
         <p>A new creator can register, receive a unique URL, configure three journey sections, publish, receive trackable responses, see their own data and analytics, and the network can see aggregated responses across all creators and trigger a follow-up email.</p>
@@ -441,7 +442,7 @@
   let openPanels = new Set();
 
   // section: 'agreed' = in the signed development plan; 'extra' = additional work Ivan is tracking
-  const STAGES = [
+  const JPN_STAGES = [
     {
       id: 'sp1',
       num: 1,
@@ -528,7 +529,7 @@
   ];
 
   // Things the client needs to do or get back to Ivan on
-  const CLIENT_TODOS = [
+  const JPN_CLIENT_TODOS = [
     { id: 'client-01', text: 'Statement of Faith — review and approve the final wording' },
     { id: 'client-02', text: 'Legal — have a lawyer review the Terms of Use and Privacy Policy' },
     { id: 'client-03', text: 'Approve the consent checkbox wording and the follow-up email wording' },
@@ -536,7 +537,7 @@
     { id: 'client-05', text: 'Decide how contacts should be handed to VisitorReach' },
   ];
 
-  const BUILTIN_UPDATES = [
+  const JPN_BUILTIN_UPDATES = [
     { id: 'update-2026-11-21', created_at: '2026-11-21T20:00:00Z', label: 'Week of Nov 16, 2026', items: [
       'Built an interactive client portal: the plan with progress checkmarks, a chat feed, weekly updates and a "Waiting on client" list of what we need from you',
       'Added "Leave a note" on the website so you can click anything on a page and pin a comment right there',
@@ -554,7 +555,7 @@
     ] },
   ];
 
-  const DEFAULT_LINKS = [
+  const JPN_DEFAULT_LINKS = [
     { id: 'link-current', label: 'Jesus People Network website', url: 'https://faith-journey-funnel.faith-journey-funnel.workers.dev/', version: 'current' },
     { id: 'link-v3', label: 'Design preview', url: 'https://faith-journey-preview.faith-journey-funnel.workers.dev/', version: 'Nov 20, 2026' },
     { id: 'link-v2', label: 'Digital Collective build', url: 'https://jesus-people-dev.faith-journey-funnel.workers.dev/', version: 'Sep 10, 2026' },
@@ -702,6 +703,13 @@
     document.getElementById('header-user').style.display = 'flex';
     document.getElementById('display-name').textContent = currentUser;
     document.getElementById('project-name').textContent = currentProject.name;
+    document.querySelectorAll('[data-only-project]').forEach(el => {
+      el.style.display = el.dataset.onlyProject === currentProject.id ? '' : 'none';
+    });
+    const logo = document.getElementById('plan-logo-img');
+    logo.style.display = plan().logo ? '' : 'none';
+    logo.src = plan().logo || '';
+    logo.alt = plan().logoAlt || '';
     clearInterval(pollTimer);
     document.getElementById('all-projects-btn').style.display = isAdmin() ? '' : 'none';
     if (isAdmin()) {
@@ -949,7 +957,7 @@
   // ── Plan: tasks ───────────────────────────────────────────────────────────
   function renderStagesSkeleton() {
     const container = document.getElementById('stages-container');
-    container.innerHTML = STAGES.map(s => `
+    container.innerHTML = plan().stages.map(s => `
       <div class="plan-stage" id="stage-${s.id}">
         <div class="plan-stage-header-block">
           <div class="plan-stage-number">${s.num}</div>
@@ -991,8 +999,8 @@
     const allTasks = await res.json();
 
     // Seed default items that don't exist yet
-    const groups = STAGES.map(s => ({ id: s.id, defaults: s.defaults, assignee: null }))
-      .concat([{ id: 'client', defaults: CLIENT_TODOS, assignee: 'client' }]);
+    const groups = plan().stages.map(s => ({ id: s.id, defaults: s.defaults, assignee: null }))
+      .concat([{ id: 'client', defaults: plan().clientTodos, assignee: 'client' }]);
     for (const g of isAdmin() ? groups : []) {
       for (const def of g.defaults) {
         if (allTasks.find(t => t.id === def.id)) continue;
@@ -1020,7 +1028,7 @@
     }
 
     // Render each stage
-    for (const stage of STAGES) {
+    for (const stage of plan().stages) {
       const tasks = allTasks.filter(t => t.task_id === stage.id);
       renderTasks(stage.id, tasks);
     }
@@ -1029,8 +1037,8 @@
   function isAdmin() { return !!adminToken; }
 
   function getDefaultSection(taskId) {
-    if (CLIENT_TODOS.some(d => d.id === taskId)) return 'agreed';
-    for (const stage of STAGES) {
+    if (plan().clientTodos.some(d => d.id === taskId)) return 'agreed';
+    for (const stage of plan().stages) {
       const def = stage.defaults.find(d => d.id === taskId);
       if (def) return def.extra ? 'extra' : 'agreed';
     }
@@ -1148,7 +1156,7 @@
   async function loadHighlights() {
     const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=update`);
     let posts = await res.json();
-    for (const u of isAdmin() ? BUILTIN_UPDATES : []) {
+    for (const u of isAdmin() ? plan().updates : []) {
       if (posts.find(p => p.id === u.id)) continue;
       const body = JSON.stringify({ label: u.label, items: u.items });
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1159,6 +1167,11 @@
     renderUpdates(posts.slice());
     const groups = groupUpdates(posts);
     const latest = groups[groups.length - 1];
+    if (!latest) {
+      document.getElementById('highlights-week').textContent = '';
+      document.getElementById('highlights-list').innerHTML = '<li>No updates yet.</li>';
+      return;
+    }
     document.getElementById('highlights-week').textContent = latest.label;
     document.getElementById('highlights-list').innerHTML = latest.items.map(i => `<li>${esc(i)}</li>`).join('');
   }
@@ -1170,7 +1183,7 @@
       await fetch('/api/posts?id=link-site', { method: 'DELETE' });
       links = links.filter(x => x.id !== 'link-site');
     }
-    for (const l of isAdmin() ? DEFAULT_LINKS : []) {
+    for (const l of isAdmin() ? plan().links : []) {
       if (links.find(x => x.id === l.id)) continue;
       const body = JSON.stringify({ label: l.label, url: l.url, version: l.version });
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1264,13 +1277,108 @@
     loadSiteNotes();
   }
 
-  const SEED_IDEAS = [
+  const JPN_SEED_IDEAS = [
     { id: 'idea-library', text: 'Build a library of all the different creator content, so creators and visitors can browse every video, course and resource in one place.' },
   ];
 
+  // ── Per-project plans ─────────────────────────────────────────────────────
+  // Each portal project has its own plan. Post ids are shared by every project in the
+  // database, so every seeded id for a new project needs its own prefix (Redeemer uses "rck-").
+  const RCK_STAGES = [
+    {
+      id: 'rck-sp1',
+      num: 1,
+      title: 'Website build',
+      meta: 'Nov 2026',
+      accepted: 'The church can review every page of the new site and confirm the content, photos and design.',
+      scope: [
+        'Content and photos carried over from the old church website',
+        'Historic Reformed design: stone and parchment tones, classic serif type, church seal',
+        'Pages: home, about and heritage, what we believe, leadership, ministries, sermons, give, plan a visit',
+        'The 1689 Confession with chapter summaries and the full text, plus the Baptist Catechism',
+        'Works on phones and desktops',
+      ],
+      defaults: [
+        { id: 'rck-01', text: 'Carry over content and photos from the old website', done: 'Nov 21, 2026' },
+        { id: 'rck-02', text: 'Historic Reformed design across every page', done: 'Nov 21, 2026' },
+        { id: 'rck-03', text: '1689 Confession: full text with search, modern or original spelling, Scripture proofs', done: 'Nov 21, 2026' },
+        { id: 'rck-04', text: 'Baptist Catechism page with a practice mode', done: 'Nov 21, 2026', extra: true },
+        { id: 'rck-05', text: 'Leadership page updated with the current elders and deacons', done: 'Nov 21, 2026' },
+        { id: 'rck-06', text: 'Softer branding and chapter summaries on the Confession page', done: 'Nov 21, 2026' },
+        { id: 'rck-07', text: 'Code saved to GitHub, ready to publish on GitHub Pages', done: 'Nov 23, 2026' },
+      ],
+    },
+    {
+      id: 'rck-sp2',
+      num: 2,
+      title: 'Member portal and launch',
+      meta: 'Next',
+      accepted: 'Members can sign in with their own account and see the directory, prayer requests and church documents.',
+      scope: [
+        'Real member sign-in (Google, emailed sign-in link or password) in place of the demo',
+        'Member directory, prayer requests and documents from real data',
+        'Contact form that delivers messages to the church',
+        'The church\'s own web address',
+      ],
+      defaults: [
+        { id: 'rck-11', text: 'Connect a real sign-in service for members' },
+        { id: 'rck-12', text: 'Member directory and prayer requests from real data' },
+        { id: 'rck-13', text: 'Contact form delivers to the church inbox' },
+        { id: 'rck-14', text: 'Point the church\'s domain at the website' },
+      ],
+    },
+  ];
+
+  const RCK_CLIENT_TODOS = [
+    { id: 'rck-c1', text: 'Switch on GitHub Pages: repository Settings, Pages, deploy from the main branch, root folder' },
+    { id: 'rck-c2', text: 'Confirm the order of worship and the Lord\'s Supper wording on the Plan a Visit page' },
+    { id: 'rck-c3', text: 'Send short bios for the two new elders and confirm the spelling of their names' },
+    { id: 'rck-c4', text: 'Send the new church email addresses, giving link and podcast links' },
+    { id: 'rck-c5', text: 'Share the constitution, membership covenant and meeting minutes for the member area' },
+    { id: 'rck-c6', text: 'Choose the web address (domain) for the church' },
+  ];
+
+  const RCK_UPDATES = [
+    { id: 'rck-update-2026-11-23', created_at: '2026-11-23T20:00:00Z', label: 'Week of Nov 23, 2026', items: [
+      'Brought back the chapter summaries on the Confession page; each chapter still opens its full text',
+      'Removed the repeated place name at the top of the home page',
+      'Saved the website to GitHub on the main branch, ready for GitHub Pages',
+      'Added this project to the client portal',
+    ] },
+    { id: 'rck-update-2026-11-21', created_at: '2026-11-21T20:00:00Z', label: 'Week of Nov 16, 2026', items: [
+      'Built the new website from the old site\'s content and photos, in a historic Reformed style',
+      'Added the full 1689 Confession with search and Scripture proofs, and the Baptist Catechism',
+      'Updated the elders and deacons on the Leadership page',
+      'Softened the branding so the site leans Reformed without leading with the label',
+    ] },
+  ];
+
+  const RCK_LINKS = [
+    { id: 'rck-link-site', label: 'Redeemer Church website', url: 'https://claudekovalenko.github.io/redeemer-church-kona/', version: 'current' },
+    { id: 'rck-link-code', label: 'Website code on GitHub', url: 'https://github.com/claudekovalenko/redeemer-church-kona', version: 'Nov 23, 2026' },
+  ];
+
+  const RCK_IDEAS = [
+    { id: 'rck-idea-topics', text: 'Group the Confession chapters by topic (Scripture and God, Christ and salvation, the church, last things).' },
+    { id: 'rck-idea-sermons', text: 'A sermon archive organized by book of the Bible.' },
+  ];
+
+  const PLANS = {
+    'jpn-mvp': {
+      logo: 'https://development-plan.pages.dev/logo.png', logoAlt: 'Jesus People Network',
+      stages: JPN_STAGES, clientTodos: JPN_CLIENT_TODOS, updates: JPN_BUILTIN_UPDATES, links: JPN_DEFAULT_LINKS, ideas: JPN_SEED_IDEAS,
+    },
+    'redeemer-kona': {
+      logo: 'redeemer-seal.svg', logoAlt: 'Redeemer Church',
+      stages: RCK_STAGES, clientTodos: RCK_CLIENT_TODOS, updates: RCK_UPDATES, links: RCK_LINKS, ideas: RCK_IDEAS,
+    },
+  };
+  const EMPTY_PLAN = { logo: '', logoAlt: '', stages: [], clientTodos: [], updates: [], links: [], ideas: [] };
+  function plan() { return (currentProject && PLANS[currentProject.id]) || EMPTY_PLAN; }
+
   async function loadIdeas() {
     let ideas = await (await fetch(`/api/posts?plan_id=${currentProject.id}&kind=idea`)).json();
-    for (const s of isAdmin() ? SEED_IDEAS : []) {
+    for (const s of isAdmin() ? plan().ideas : []) {
       if (ideas.find(i => i.id === s.id)) continue;
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: s.id, plan_id: currentProject.id, kind: 'idea', author_name: 'Ivan', body: s.text, urgency: 'open' }) });

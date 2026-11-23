@@ -14,6 +14,12 @@ const PROJECTS = {
     client: 'Craig',
     code: 'JPN2026',
   },
+  'redeemer-kona': {
+    id: 'redeemer-kona',
+    name: 'Redeemer Church Kona Website',
+    client: 'Redeemer Church',
+    code: 'REDEEMER2026',
+  },
 };
 
 export async function onRequest(context) {
