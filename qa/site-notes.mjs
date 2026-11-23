@@ -15,11 +15,13 @@ function check(name, ok, detail = '') {
   if (!ok) failed++;
 }
 
+const PASS = (await (await fetch(`${PORTAL}/api/projects?code=${CODE}`)).json()).access;
+const H = { 'X-Project-Access': PASS };
 async function notes() {
-  return (await fetch(`${API}?plan_id=jpn-mvp&kind=sitenote`, { cache: 'no-store' })).json();
+  return (await fetch(`${API}?plan_id=jpn-mvp&kind=sitenote`, { cache: 'no-store', headers: H })).json();
 }
 async function replies(id) {
-  return (await (await fetch(`${API}?plan_id=jpn-mvp&kind=message&task_id=${id}`)).json());
+  return (await (await fetch(`${API}?plan_id=jpn-mvp&kind=message&task_id=${id}`, { headers: H })).json());
 }
 
 async function leaveNote(page, name, text) {
@@ -184,7 +186,7 @@ try {
 } finally {
   // Clean up only what this run created (non-Ivan deletes are allowed by author; Ivan-authored ones need admin).
   for (const [id, author] of created) {
-    const r = await fetch(`${API}?id=${id}`, { method: 'DELETE', headers: { 'X-Portal-Name': author } });
+    const r = await fetch(`${API}?id=${id}`, { method: 'DELETE', headers: { ...H, 'X-Portal-Name': author } });
     if (!r.ok) results.push(`NOTE  could not delete ${id} (${author}) — remove it in the portal`);
   }
   await browser.close();
