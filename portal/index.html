@@ -153,37 +153,18 @@
     .idea-compose { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
     .idea-compose textarea { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 7px; font-size: 13px; font-family: var(--sans); resize: none; outline: none; }
     .idea-compose textarea:focus { border-color: #c084fc; }
-    .dash { max-width: 1180px; margin: 0 auto; padding: 32px 24px 48px; }
-    .dash-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
-    .dash-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
-    .dash-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
-    .dash-tile b { display: block; font-size: 28px; font-weight: 800; line-height: 1.1; }
-    .dash-tile span { font-size: 12px; color: var(--muted); }
-    .dash-tile.warn b { color: #f59e0b; }
-    .dash-tile.good b { color: var(--accent); }
-    .dash-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
-    .dash-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
-    .dash-panel-head { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 15px; margin-bottom: 8px; }
-    .inbox-group { font-size: 10px; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 14px 0 4px; display: flex; align-items: center; gap: 8px; }
-    .inbox-group i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .inbox-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px; margin: 0 -10px; border-radius: 8px; cursor: pointer; }
-    .inbox-item:hover { background: var(--bg); }
-    .inbox-item .who { font-size: 13px; font-weight: 600; }
-    .inbox-item .what { grid-column: 1 / -1; font-size: 13px; color: var(--text); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .proj-pill { font-size: 11px; color: var(--muted); white-space: nowrap; }
-    .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-    .project-card { cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: border-color .15s, transform .15s; }
-    .project-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-    .proj-top { display: flex; gap: 12px; align-items: center; }
-    .proj-badge { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0e1116; flex-shrink: 0; }
-    .proj-name { font-weight: 700; font-size: 15px; line-height: 1.3; }
-    .proj-sub { font-size: 12px; color: var(--muted); }
-    .proj-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .proj-chip { font-size: 11px; padding: 3px 9px; border-radius: 20px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
-    .proj-chip.warn { color: #f59e0b; border-color: #5a4a10; background: #1a1600; }
-    .proj-actions { display: flex; gap: 6px; margin-top: auto; }
-    .proj-actions button { flex: 1; }
-    @media (max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } .dash-tiles { grid-template-columns: repeat(2, 1fr); } }
+    .dash { max-width: 760px; margin: 0 auto; padding: 32px 24px 48px; }
+    .dash-section { font-size: 11px; font-family: var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 26px 0 10px; }
+    .dash-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .dash-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .dash-row:last-child { border-bottom: none; }
+    .dash-row:hover { background: var(--bg); }
+    .dash-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dash-main { flex: 1; min-width: 0; }
+    .dash-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dash-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .dash-badge { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #0e1116; flex-shrink: 0; }
+    .dash-flag { font-size: 12px; color: #f59e0b; white-space: nowrap; }
     .project-card-old { cursor: pointer; }
     .project-card:hover { border-color: var(--accent); }
     .progress-bar { height: 6px; background: var(--bg); border-radius: 4px; margin: 14px 0 6px; overflow: hidden; }
@@ -304,24 +285,14 @@
 </div>
 
 <div id="projects-screen" style="display:none" class="dash">
-  <div class="dash-head">
-    <div>
-      <div class="project-label">Admin dashboard</div>
-      <div class="project-title" id="dash-greeting">All projects</div>
-    </div>
-    <div class="tc-time" id="dash-date"></div>
+  <div class="project-header">
+    <div class="project-label">Admin</div>
+    <div class="project-title">All projects</div>
   </div>
-  <div class="dash-tiles" id="dash-tiles"></div>
-  <div class="dash-grid">
-    <section class="dash-panel">
-      <div class="dash-panel-head"><span>Incoming changes</span><span class="tc-time">across all projects</span></div>
-      <div id="inbox"><div class="empty-state" style="padding:12px 0">Loading…</div></div>
-    </section>
-    <section>
-      <div class="dash-panel-head" style="padding:0 2px 10px"><span>Projects</span><span class="tc-time" id="dash-count"></span></div>
-      <div id="projects-list" class="proj-grid"><div class="empty-state">Loading…</div></div>
-    </section>
-  </div>
+  <div class="dash-section">Needs your attention</div>
+  <div id="inbox" class="dash-list"><div class="empty-state" style="padding:12px 0">Loading…</div></div>
+  <div class="dash-section">Projects</div>
+  <div id="projects-list" class="dash-list"><div class="empty-state">Loading…</div></div>
 </div>
 
 <div id="portal-screen">
@@ -681,34 +652,17 @@
     const { projects } = await r.json();
     const COLORS = ['#4fd1a1', '#58a6ff', '#c084fc', '#f59e0b', '#f97316', '#2dd4bf'];
     const initials = n => n.replace(/&/g, ' ').split(/\s+/).filter(w => /^[A-Za-z]/.test(w)).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-    const sum = k => projects.reduce((a, p) => a + (p[k] || 0), 0);
-    const hour = new Date().getHours();
-    document.getElementById('dash-greeting').textContent = `Good ${hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening'}, ${currentUser}`;
-    document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    document.getElementById('dash-count').textContent = `${projects.length} active`;
-    const tile = (n, label, cls) => `<div class="dash-tile ${n && cls ? cls : ''}"><b>${n}</b><span>${label}</span></div>`;
-    document.getElementById('dash-tiles').innerHTML =
-      tile(projects.length, 'projects', 'good') + tile(sum('pending'), 'awaiting your approval', 'warn') +
-      tile(sum('openNotes'), 'open edits & notes', 'warn') + tile(sum('waitingOnClient'), 'waiting on clients');
     el.innerHTML = projects.map((p, idx) => {
-      const pct = p.tasksTotal ? Math.round(p.tasksDone / p.tasksTotal * 100) : 0;
-      const chip = (n, label, warn) => n ? `<span class="proj-chip${warn ? ' warn' : ''}">${n} ${label}</span>` : '';
-      const chips = chip(p.pending, 'to approve', true) + chip(p.openNotes, 'open edits', true) + chip(p.waitingOnClient, 'waiting on client') + chip(p.messages, p.messages === 1 ? 'message' : 'messages');
-      return `<div class="project-card" onclick="openProject('${esc(p.id)}')">
-        <div class="proj-top">
-          <div class="proj-badge" style="background:${COLORS[idx % COLORS.length]}">${esc(initials(p.name))}</div>
-          <div><div class="proj-name">${esc(p.name)}</div><div class="proj-sub">${esc(p.client)}${p.lastActivity ? ' · active ' + fmt(p.lastActivity) : ''}</div></div>
+      const pct = p.tasksTotal ? Math.round(p.tasksDone / p.tasksTotal * 100) : null;
+      const attention = (p.pending || 0) + (p.openNotes || 0);
+      return `<div class="dash-row" onclick="openProject('${esc(p.id)}')">
+        <div class="dash-badge" style="background:${COLORS[idx % COLORS.length]}">${esc(initials(p.name))}</div>
+        <div class="dash-main">
+          <div class="dash-title">${esc(p.name)}</div>
+          <div class="dash-sub">${pct === null ? 'Not started' : pct + '% done'}${attention ? '' : ' · all quiet'}</div>
         </div>
-        <div>
-          <div class="progress-bar" style="margin:0 0 6px"><span style="width:${pct}%;background:${COLORS[idx % COLORS.length]}"></span></div>
-          <div class="proj-sub">${p.tasksTotal ? `${p.tasksDone} of ${p.tasksTotal} plan items done · ${pct}%` : 'No plan items yet'}</div>
-        </div>
-        <div class="proj-chips">${chips || '<span class="proj-chip">All quiet</span>'}</div>
-        <div class="proj-sub" style="font-family:var(--mono)">Code ${esc(p.code)}</div>
-        <div class="proj-actions">
-          <button class="btn-task-comments" onclick="event.stopPropagation();copyInvite('${esc(p.id)}', this)">Copy invite</button>
-          <button class="btn-task-comments has-comments">Open →</button>
-        </div>
+        ${attention ? `<span class="dash-flag">${attention} to review</span>` : ''}
+        <button class="btn-task-comments" onclick="event.stopPropagation();copyInvite('${esc(p.id)}', this)">Copy invite</button>
       </div>`;
     }).join('') || '<div class="empty-state">No projects yet.</div>';
     window._allProjects = projects;
@@ -723,21 +677,17 @@
     const text = i => {
       try { const d = JSON.parse(i.body); return d.text || i.body; } catch { return i.body; }
     };
-    const groups = [
-      ['Needs your approval', items.filter(i => i.urgency === 'pending'), i => i.kind === 'idea' ? 'idea' : 'plan item'],
-      ['Open edits & notes', items.filter(i => i.kind === 'sitenote'), i => { try { return JSON.parse(i.body).path ? 'on ' + JSON.parse(i.body).path : 'edit'; } catch { return 'edit'; } }],
-      ['Recent client messages', items.filter(i => i.kind === 'message'), i => i.task_id ? 'reply' : 'chat'],
-    ];
-    const total = groups.reduce((a, g) => a + g[1].length, 0);
-    if (!total) { el.innerHTML = '<div class="empty-state" style="padding:12px 0">Nothing waiting. All caught up.</div>'; return; }
-    const dot = { 'Needs your approval': '#f59e0b', 'Open edits & notes': '#c084fc', 'Recent client messages': '#58a6ff' };
-    el.innerHTML = groups.filter(g => g[1].length).map(([title, list, tag]) => `
-      <div class="inbox-group"><i style="background:${dot[title]}"></i>${esc(title)} · ${list.length}</div>
-      ${list.map(i => `<div class="inbox-item" onclick="openProject('${esc(i.plan_id)}')">
-        <span class="who">${esc(i.author_name)} <span class="tc-time">· ${esc(tag(i))} · ${fmt(i.created_at)}</span></span>
-        <span class="proj-pill">${esc(i.project)}</span>
-        <div class="what">${esc(String(text(i)).slice(0, 240))}</div>
-      </div>`).join('')}`).join('');
+    const kindLabel = i => i.urgency === 'pending' ? (i.kind === 'idea' ? 'Approve idea' : 'Approve request')
+      : i.kind === 'sitenote' ? 'Open edit' : 'New message';
+    const dot = i => i.urgency === 'pending' ? '#f59e0b' : i.kind === 'sitenote' ? '#c084fc' : '#58a6ff';
+    if (!items.length) { el.innerHTML = '<div class="empty-state" style="padding:16px">All caught up.</div>'; return; }
+    el.innerHTML = items.slice(0, 12).map(i => `<div class="dash-row" onclick="openProject('${esc(i.plan_id)}')">
+      <span class="dash-dot" style="background:${dot(i)}"></span>
+      <div class="dash-main">
+        <div class="dash-title">${esc(String(text(i)).slice(0, 140))}</div>
+        <div class="dash-sub">${esc(kindLabel(i))} · ${esc(i.author_name)} · ${esc(i.project)}</div>
+      </div>
+    </div>`).join('') + (items.length > 12 ? `<div class="dash-sub" style="padding:10px 16px">+ ${items.length - 12} more inside the projects</div>` : '');
   }
 
   async function copyInvite(id, btn) {

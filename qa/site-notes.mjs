@@ -140,8 +140,8 @@ try {
     const page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
-    await page.goto(`${PORTAL}/portal/?code=OTS-GK6B9`);
-    check('invite link pre-fills the project code', (await page.inputValue('#input-code')) === 'OTS-GK6B9');
+    await page.goto(`${PORTAL}/portal/?code=OAHU2026`);
+    check('invite link pre-fills the project code', (await page.inputValue('#input-code')) === 'OAHU2026');
     await page.fill('#input-name', 'QA Bot');
     await page.click('.btn-primary');
     await page.waitForTimeout(3000);
