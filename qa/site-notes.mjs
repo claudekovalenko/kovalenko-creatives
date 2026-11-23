@@ -132,6 +132,24 @@ try {
     await ctx.close();
   }
 
+  // 3c. Invite link pre-fills the code and opens a non-JPN project cleanly.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto(`${PORTAL}/portal/?code=OTS-GK6B9`);
+    check('invite link pre-fills the project code', (await page.inputValue('#input-code')) === 'OTS-GK6B9');
+    await page.fill('#input-name', 'QA Bot');
+    await page.click('.btn-primary');
+    await page.waitForTimeout(3000);
+    check('other project opens with its own name', (await page.locator('#project-name').innerText()).includes('Oahu'));
+    check('other project hides Jesus People plan sections', !(await page.locator('#tab-plan').innerText()).includes('Foundation + live journey pages'));
+    check('other project shows its website link', (await page.locator('#links-list').innerText()).includes('Oahu Theological Seminary website'));
+    check('no script errors on other project', errors.length === 0, errors.join('; '));
+    await ctx.close();
+  }
+
   // 4. Portal Site notes tab lists the note and links to the site in note mode.
   {
     const ctx = await browser.newContext();

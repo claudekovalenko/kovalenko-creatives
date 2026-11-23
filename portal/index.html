@@ -343,7 +343,7 @@
 
   <!-- Plan -->
   <div id="tab-plan" class="tab-panel active">
-    <div class="plan-logo">
+    <div class="plan-logo jpn-only">
       <img src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
            onerror="this.style.display='none'">
     </div>
@@ -392,7 +392,7 @@
       </div>
     </div>
 
-    <div style="margin-bottom:32px">
+    <div style="margin-bottom:32px" class="jpn-only">
       <div class="plan-sub">Timeline</div>
       <div class="top-card highlight" style="margin-bottom:10px;font-size:14px;line-height:1.55">Ivan is aiming to have a first version ready by the end of 2026. That's a goal, not a guarantee; the plan below is the agreed timeline.</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
@@ -408,7 +408,7 @@
       </div>
     </div>
 
-    <div style="margin-bottom:32px">
+    <div style="margin-bottom:32px" class="jpn-only">
       <div class="plan-sub">MVP acceptance statement</div>
       <div class="plan-mvp">
         <p>A new creator can register, receive a unique URL, configure three journey sections, publish, receive trackable responses, see their own data and analytics, and the network can see aggregated responses across all creators and trigger a follow-up email.</p>
@@ -562,8 +562,12 @@
   ];
 
   // ── Auth ──────────────────────────────────────────────────────────────────
+  const _codeParam = new URLSearchParams(location.search).get('code');
+  if (_codeParam) document.addEventListener('DOMContentLoaded', () => { const i = document.getElementById('input-code'); if (i) i.value = _codeParam; });
+
   function restoreSession() {
     const saved = JSON.parse(localStorage.getItem('kc-portal-session') || 'null');
+    if (_codeParam && saved?.project && saved.project.code !== _codeParam && !saved.adminToken) return;
     if (saved?.name && (saved?.project || saved?.adminToken)) {
       if (saved.name.trim().toLowerCase() === 'ivan' && !(saved.adminToken && Number(saved.adminToken.split('.')[0]) > Date.now())) {
         localStorage.removeItem('kc-portal-session');
@@ -642,7 +646,7 @@
       return `<div class="top-card project-card" onclick="openProject('${esc(p.id)}')">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
           <div><div style="font-size:18px;font-weight:700">${esc(p.name)}</div><div class="tc-time">${esc(p.client)} · code ${esc(p.code)}${p.lastActivity ? ' · last activity ' + fmt(p.lastActivity) : ''}</div></div>
-          <span class="btn-task-comments">Open →</span>
+          <span style="display:flex;gap:6px"><button class="btn-task-comments" onclick="event.stopPropagation();copyInvite('${esc(p.id)}', this)">Copy invite</button><span class="btn-task-comments">Open →</span></span>
         </div>
         <div class="progress-bar"><span style="width:${pct}%"></span></div>
         <div class="tc-time" style="margin-bottom:10px">${p.tasksDone} of ${p.tasksTotal} plan items done (${pct}%)</div>
@@ -677,6 +681,16 @@
       </div>`).join('')}`).join('');
   }
 
+  async function copyInvite(id, btn) {
+    const p = (window._allProjects || []).find(x => x.id === id);
+    if (!p) return;
+    const link = `${location.origin}/portal/?code=${encodeURIComponent(p.code)}`;
+    const msg = `Hi! Here's your project portal for ${p.name}:\n${link}\n\nJust enter your name to sign in (the project code ${p.code} is already filled in). You'll see the plan and progress, can leave notes and ideas, and can message me there.\n\nIvan`;
+    try { await navigator.clipboard.writeText(msg); btn.textContent = 'Copied!'; }
+    catch { prompt('Copy this invite:', msg); }
+    setTimeout(() => btn.textContent = 'Copy invite', 2000);
+  }
+
   function openProject(id) {
     const p = (window._allProjects || []).find(x => x.id === id);
     if (!p) return;
@@ -703,6 +717,8 @@
     document.getElementById('display-name').textContent = currentUser;
     document.getElementById('project-name').textContent = currentProject.name;
     clearInterval(pollTimer);
+    SITE_URL = PROJECT_SITES[currentProject.id] || null;
+    document.querySelectorAll('.jpn-only').forEach(e => e.style.display = isJPN() ? '' : 'none');
     document.getElementById('all-projects-btn').style.display = isAdmin() ? '' : 'none';
     if (isAdmin()) {
       document.getElementById('admin-tools').style.display = 'block';
@@ -949,7 +965,7 @@
   // ── Plan: tasks ───────────────────────────────────────────────────────────
   function renderStagesSkeleton() {
     const container = document.getElementById('stages-container');
-    container.innerHTML = STAGES.map(s => `
+    container.innerHTML = stagesFor().map(s => `
       <div class="plan-stage" id="stage-${s.id}">
         <div class="plan-stage-header-block">
           <div class="plan-stage-number">${s.num}</div>
@@ -960,7 +976,7 @@
         </div>
         <ul class="scope-list">${s.scope.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
         ${s.accepted ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;line-height:1.5"><span style="font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:4px">Accepted when</span>${esc(s.accepted)}</div>` : ''}
-        <div class="plan-sub">Progress · in the original plan</div>
+        ${isJPN() ? '<div class="plan-sub">Progress · in the original plan</div>' : ''}
         <div class="task-list" id="tasks-${s.id}"><div class="empty-state" style="padding:16px 0">Loading…</div></div>
         <div class="add-task-row" id="add-row-${s.id}">
           <button class="btn-add-task-open" onclick="openAddTask('${s.id}')">${isAdmin() ? '+ Add item' : '+ Request an item'}</button>
@@ -991,8 +1007,8 @@
     const allTasks = await res.json();
 
     // Seed default items that don't exist yet
-    const groups = STAGES.map(s => ({ id: s.id, defaults: s.defaults, assignee: null }))
-      .concat([{ id: 'client', defaults: CLIENT_TODOS, assignee: 'client' }]);
+    const groups = stagesFor().map(s => ({ id: s.id, defaults: s.defaults, assignee: null }))
+      .concat([{ id: 'client', defaults: isJPN() ? CLIENT_TODOS : [], assignee: 'client' }]);
     for (const g of isAdmin() ? groups : []) {
       for (const def of g.defaults) {
         if (allTasks.find(t => t.id === def.id)) continue;
@@ -1020,7 +1036,7 @@
     }
 
     // Render each stage
-    for (const stage of STAGES) {
+    for (const stage of stagesFor()) {
       const tasks = allTasks.filter(t => t.task_id === stage.id);
       renderTasks(stage.id, tasks);
     }
@@ -1029,6 +1045,7 @@
   function isAdmin() { return !!adminToken; }
 
   function getDefaultSection(taskId) {
+    if (!isJPN()) return 'agreed';
     if (CLIENT_TODOS.some(d => d.id === taskId)) return 'agreed';
     for (const stage of STAGES) {
       const def = stage.defaults.find(d => d.id === taskId);
@@ -1148,7 +1165,7 @@
   async function loadHighlights() {
     const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=update`);
     let posts = await res.json();
-    for (const u of isAdmin() ? BUILTIN_UPDATES : []) {
+    for (const u of isAdmin() && isJPN() ? BUILTIN_UPDATES : []) {
       if (posts.find(p => p.id === u.id)) continue;
       const body = JSON.stringify({ label: u.label, items: u.items });
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1158,6 +1175,8 @@
     posts.sort((a, b) => a.created_at.localeCompare(b.created_at));
     renderUpdates(posts.slice());
     const groups = groupUpdates(posts);
+    document.getElementById('highlights-card').style.display = groups.length ? '' : 'none';
+    if (!groups.length) return;
     const latest = groups[groups.length - 1];
     document.getElementById('highlights-week').textContent = latest.label;
     document.getElementById('highlights-list').innerHTML = latest.items.map(i => `<li>${esc(i)}</li>`).join('');
@@ -1166,17 +1185,19 @@
   async function loadLinks() {
     const res = await fetch(`/api/posts?plan_id=${currentProject.id}&kind=link`);
     let links = await res.json();
-    if (isAdmin() && links.find(x => x.id === 'link-site')) {
+    if (isJPN() && isAdmin() && links.find(x => x.id === 'link-site')) {
       await fetch('/api/posts?id=link-site', { method: 'DELETE' });
       links = links.filter(x => x.id !== 'link-site');
     }
-    for (const l of isAdmin() ? DEFAULT_LINKS : []) {
+    for (const l of isAdmin() ? (isJPN() ? DEFAULT_LINKS : PROJECT_LINKS[currentProject.id] || []) : []) {
       if (links.find(x => x.id === l.id)) continue;
       const body = JSON.stringify({ label: l.label, url: l.url, version: l.version });
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: l.id, plan_id: currentProject.id, kind: 'link', author_name: 'Ivan', body }) });
       links.push({ id: l.id, body });
     }
+    const defaults = isJPN() ? DEFAULT_LINKS : (PROJECT_LINKS[currentProject.id] || []);
+    for (const l of defaults) if (!links.find(x => x.id === l.id)) links.push({ id: l.id, body: JSON.stringify(l) });
     const parsed = links.map(l => { let d = {}; try { d = JSON.parse(l.body); } catch {} return { id: l.id, ...d }; })
       .filter(d => /^https?:\/\//.test(d.url || ''));
     const pill = d => `<a class="link-pill" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label || d.url)} ↗${isAdmin() ? `<button onclick="event.preventDefault();deleteLink('${d.id}')" title="Remove">✕</button>` : ''}</a>`;
@@ -1205,7 +1226,23 @@
     loadLinks();
   }
 
-  const SITE_URL = 'https://faith-journey-funnel.faith-journey-funnel.workers.dev/';
+  const PROJECT_SITES = {
+    'jpn-mvp': 'https://faith-journey-funnel.faith-journey-funnel.workers.dev/',
+    'oahu-seminary': 'https://claudekovalenko.github.io/oahu-theological-seminary/',
+    'nn-website': 'https://claudekovalenko.github.io/neighbors-and-nations/',
+    'nn-reading': 'https://claudekovalenko.github.io/neighbors-and-nations-reading/',
+    'redeemer-kona': null,
+  };
+  const PROJECT_LINKS = {
+    'oahu-seminary': [{ id: 'link-site', label: 'Oahu Theological Seminary website', url: 'https://claudekovalenko.github.io/oahu-theological-seminary/', version: 'current' }],
+    'nn-website': [{ id: 'link-site', label: 'Neighbors & Nations website', url: 'https://claudekovalenko.github.io/neighbors-and-nations/', version: 'current' }],
+    'nn-reading': [{ id: 'link-site', label: 'N&N reading plan', url: 'https://claudekovalenko.github.io/neighbors-and-nations-reading/', version: 'current' }],
+    'redeemer-kona': [{ id: 'link-repo', label: 'Redeemer Church site files (not published yet)', url: 'https://github.com/claudekovalenko/redeemer-church-kona', version: 'current' }],
+  };
+  const isJPN = () => currentProject?.id === 'jpn-mvp';
+  const GENERAL_STAGE = { id: 'general', num: '', title: 'Plan', meta: '', scope: [], defaults: [] };
+  const stagesFor = () => isJPN() ? STAGES : [GENERAL_STAGE];
+  let SITE_URL = PROJECT_SITES['jpn-mvp'];
   function noteModeUrl(url, id) {
     const u = new URL(url || SITE_URL);
     if (currentProject.code) u.searchParams.set('kcnotes', currentProject.code);
@@ -1220,7 +1257,9 @@
       if (r.ok) notesTok = (await r.json()).token;
     }
     const withTok = (u, id) => notesTok && !id ? u + '#kcadmin=' + notesTok : u;
-    document.getElementById('sitenotes-open').href = withTok(noteModeUrl(SITE_URL));
+    const openEl = document.getElementById('sitenotes-open');
+    openEl.style.display = SITE_URL ? '' : 'none';
+    if (SITE_URL) openEl.href = withTok(noteModeUrl(SITE_URL));
     const [notes, msgs] = await Promise.all([
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=sitenote`).then(r => r.json()),
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`).then(r => r.json()),
@@ -1270,7 +1309,7 @@
 
   async function loadIdeas() {
     let ideas = await (await fetch(`/api/posts?plan_id=${currentProject.id}&kind=idea`)).json();
-    for (const s of isAdmin() ? SEED_IDEAS : []) {
+    for (const s of isAdmin() && isJPN() ? SEED_IDEAS : []) {
       if (ideas.find(i => i.id === s.id)) continue;
       await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: s.id, plan_id: currentProject.id, kind: 'idea', author_name: 'Ivan', body: s.text, urgency: 'open' }) });

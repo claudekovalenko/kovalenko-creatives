@@ -14,6 +14,10 @@ const PROJECTS = {
     client: 'Craig',
     code: 'JPN2026',
   },
+  'oahu-seminary': { id: 'oahu-seminary', name: 'Oahu Theological Seminary website', client: 'Oahu Theological Seminary', code: 'OTS-GK6B9' },
+  'nn-website': { id: 'nn-website', name: 'Neighbors & Nations website', client: 'Neighbors & Nations', code: 'NN-MS62F' },
+  'nn-reading': { id: 'nn-reading', name: 'Neighbors & Nations reading plan', client: 'Neighbors & Nations', code: 'NNR-78ZS3' },
+  'redeemer-kona': { id: 'redeemer-kona', name: 'Redeemer Church website', client: 'Redeemer Church, Kailua-Kona', code: 'RCK-4NJX8' },
 };
 
 export async function onRequest(context) {
