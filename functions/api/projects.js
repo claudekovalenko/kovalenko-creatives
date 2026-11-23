@@ -1,4 +1,4 @@
-import { isAdminRequest } from './_auth.js';
+import { isAdminRequest, makeProjectPass } from './_auth.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -61,7 +61,7 @@ export async function onRequest(context) {
   const project = Object.values(PROJECTS).find(p => p.code === code?.toUpperCase());
   if (!project) return json({ error: 'Invalid project code' }, 404);
 
-  return json({ id: project.id, name: project.name, client: project.client, code: project.code });
+  return json({ id: project.id, name: project.name, client: project.client, code: project.code, access: await makeProjectPass(context.env, project.id) });
 }
 
 function json(obj, status = 200) {

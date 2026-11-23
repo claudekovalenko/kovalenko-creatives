@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "node tools/check.mjs",
-    "test": "node tools/check.mjs && node tools/browser-test.mjs"
+    "test": "node tools/check.mjs && node tools/security-test.mjs && node tools/browser-test.mjs"
   },
   "devDependencies": {
     "axe-core": "4.14.0",

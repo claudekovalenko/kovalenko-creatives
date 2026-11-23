@@ -1,9 +1,9 @@
-import { isAdminRequest, isNotesRequest } from './_auth.js';
+import { isAdminRequest, isNotesRequest, projectFromRequest } from './_auth.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Portal-Name',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Portal-Name, X-Project-Access',
 };
 
 let ready = null;
@@ -27,6 +27,10 @@ export async function onRequest(context) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
   let admin = await isAdminRequest(request, env);
+  // Everyone except the admin needs a pass for the project they are reading or changing.
+  const allowedPlan = admin ? null : await projectFromRequest(request, env);
+  const noAccess = () => json({ error: 'Open this project with its code first.' }, 401);
+  const mayUse = planId => admin || (!!allowedPlan && planId === allowedPlan);
   const notesAdmin = !admin && await isNotesRequest(request, env);
   if (notesAdmin && request.method === 'DELETE') {
     const r = await env.DB.prepare('SELECT kind FROM portal_posts WHERE id = ?').bind(new URL(request.url).searchParams.get('id')).first();
@@ -34,7 +38,7 @@ export async function onRequest(context) {
   }
   const caller = (request.headers.get('x-portal-name') || '').trim().toLowerCase();
   const isIvan = n => String(n || '').trim().toLowerCase() === 'ivan';
-  const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind FROM portal_posts WHERE id = ?').bind(id).first();
+  const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind, plan_id FROM portal_posts WHERE id = ?').bind(id).first();
   const forbidden = () => json({ error: 'Only Ivan can do that. Sign in as Ivan with the admin password.' }, 403);
 
   if (request.method === 'GET') {
@@ -44,6 +48,7 @@ export async function onRequest(context) {
     const task_id = url.searchParams.get('task_id');
 
     if (!plan_id) return json({ error: 'Missing plan_id' }, 400);
+    if (!mayUse(plan_id)) return noAccess();
 
     let sql = 'SELECT id, task_id, kind, author_name, body, urgency, created_at FROM portal_posts WHERE plan_id = ?';
     const params = [plan_id];
@@ -63,6 +68,8 @@ export async function onRequest(context) {
 
     const { plan_id, author_name, body, kind, task_id, urgency, id: clientId } = data;
     if (!plan_id || !author_name || !body || !kind) return json({ error: 'Missing fields' }, 400);
+    if (!mayUse(plan_id)) return noAccess();
+    if (String(body).length > 20000 || String(author_name).length > 80) return json({ error: 'Too long' }, 413);
     if (!['message', 'update', 'idea', 'task', 'link', 'sitenote'].includes(kind)) return json({ error: 'Invalid kind' }, 400);
 
     const siteReply = kind === 'message' && task_id && (await rowById(task_id))?.kind === 'sitenote';
@@ -75,7 +82,8 @@ export async function onRequest(context) {
     const created_at = (typeof data.created_at === 'string' && !isNaN(Date.parse(data.created_at)))
       ? new Date(data.created_at).toISOString() : new Date().toISOString();
 
-    if (await rowById(id)) return json({ id, existed: true }, 200);
+    const existing = await env.DB.prepare('SELECT plan_id FROM portal_posts WHERE id = ?').bind(id).first();
+    if (existing) return mayUse(existing.plan_id) ? json({ id, existed: true }, 200) : noAccess();
     await env.DB.prepare(
       'INSERT INTO portal_posts (id, plan_id, task_id, kind, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(id, plan_id, task_id || null, kind, author_name, body, safeUrgency || 'open', created_at).run();
@@ -93,6 +101,7 @@ export async function onRequest(context) {
     if (!urgency && !body) return json({ error: 'Missing urgency or body' }, 400);
     const row = await rowById(id);
     if (!row) return json({ error: 'Not found' }, 404);
+    if (!mayUse(row.plan_id)) return noAccess();
     if (!admin) {
       if (row.urgency === 'pending' || urgency === 'pending') return forbidden();
       const own = caller && caller === String(row.author_name).toLowerCase() && !isIvan(row.author_name);
@@ -109,8 +118,10 @@ export async function onRequest(context) {
     const url = new URL(request.url);
     const id = url.searchParams.get('id');
     if (!id) return json({ error: 'Missing id' }, 400);
+    const target = await rowById(id);
+    if (target && !mayUse(target.plan_id)) return noAccess();
     if (!admin) {
-      const row = await rowById(id);
+      const row = target;
       if (!row) return json({ deleted: id });
       const own = caller && caller === String(row.author_name).toLowerCase() && (!isIvan(row.author_name) || row.kind === 'sitenote');
       if (!own) return forbidden();

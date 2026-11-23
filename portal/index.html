@@ -425,7 +425,8 @@
   window.fetch = (url, opts = {}) => {
     if (typeof url === 'string' && url.startsWith('/api/')) {
       opts.headers = Object.assign({}, opts.headers, { 'X-Portal-Name': currentUser || '' },
-        adminToken ? { Authorization: 'Bearer ' + adminToken } : {});
+        adminToken ? { Authorization: 'Bearer ' + adminToken } : {},
+        currentProject && currentProject.access ? { 'X-Project-Access': currentProject.access } : {});
     }
     return _fetch(url, opts);
   };
@@ -571,6 +572,16 @@
       adminToken = saved.adminToken || null;
       currentUser = saved.name;
       currentProject = saved.project || null;
+      // Sessions from before project passes existed: get a pass once with the saved code, then carry on.
+      const expired = p => !p.access || Number(String(p.access).split('.')[0]) < Date.now();
+      if (currentProject && currentProject.code && expired(currentProject)) {
+        _fetch(`/api/projects?code=${encodeURIComponent(currentProject.code)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(p => { if (p) { currentProject = p; saveSession(); } })
+          .catch(() => {})
+          .finally(() => showPortal());
+        return;
+      }
       if (currentProject) showPortal(); else showProjects();
     }
   }
