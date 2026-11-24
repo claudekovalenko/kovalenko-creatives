@@ -12,6 +12,14 @@ const BODY_OF_WORK = [
 
 const PROJECTS = [
   {
+    title: 'No Place Left SoCal',
+    comment: '// ministry network app',
+    status: 'In development',
+    description: 'One home for a network of disciple-makers across Los Angeles and Orange County: a live map of the network, events you can add to your calendar, a 100-day prayer map for every neighborhood in English and Spanish, and a hub for a city-wide outreach week where teams log follow-ups from the street. Installs on a phone and works offline.',
+    tags: ['Web app', 'Maps', 'Offline'],
+    slides: ['images/npl-1.webp', 'images/npl-2.webp', 'images/npl-3.webp', 'images/npl-4.webp'],
+  },
+  {
     title: 'Koine Quest',
     comment: '// 3d learning game',
     status: 'In development',
