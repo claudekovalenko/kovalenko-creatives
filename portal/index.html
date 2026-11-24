@@ -130,6 +130,12 @@
     .scope-list li { font-size: 14px; line-height: 1.55; padding: 3px 0 3px 20px; position: relative; }
     .scope-list li::before { content: '○'; position: absolute; left: 2px; color: var(--accent); font-size: 11px; top: 5px; }
     .task-date { font-size: 11px; font-family: var(--mono); color: var(--muted); flex-shrink: 0; }
+    .top-card.edits-cta { border-color: var(--accent); }
+    .edits-cta-text { font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
+    .btn-cta { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 16px; border-radius: 8px; background: var(--accent); color: #0b0f14; font-weight: 600; font-size: 14px; text-decoration: none; }
+    .btn-cta:hover { opacity: .9; }
+    .edits-cta-compose { margin-top: 12px; }
+    .edits-cta-count { margin-top: 10px; background: none; border: 0; padding: 4px 0; color: var(--accent); font: inherit; font-size: 13px; cursor: pointer; }
     .btn-finish { flex-shrink: 0; border: 1px solid var(--accent); background: var(--accent); color: #0b0f14; border-radius: 6px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 30px; }
     .btn-finish.is-done { background: transparent; color: var(--muted); border-color: var(--border); font-weight: 500; }
     .history-summary { font-size: 14px; color: var(--muted); margin: 4px 0 14px; }
@@ -319,9 +325,9 @@
 
   <div class="tabs">
     <button class="tab active" onclick="showTab('plan')">Plan</button>
+    <button class="tab" onclick="showTab('sitenotes')">Edits &amp; notes</button>
     <button class="tab" onclick="showTab('comments')">Comments</button>
     <button class="tab" onclick="showTab('updates')">Updates</button>
-    <button class="tab" onclick="showTab('sitenotes')">Edits &amp; notes</button>
     <button class="tab" onclick="showTab('history')">History</button>
   </div>
 
@@ -376,6 +382,18 @@
   </div>
 
   <div id="tab-plan" class="tab-panel active">
+    <!-- First thing people see: how to ask for changes to their website -->
+    <div class="top-card edits-cta" id="edits-cta">
+      <div class="top-card-label">Want something changed on your website?</div>
+      <p class="edits-cta-text">Open your website and pin a note right where the change goes, or just type it here.</p>
+      <a class="btn-cta" id="edits-cta-open" target="_blank" rel="noopener">Open my website to add notes ↗</a>
+      <div class="idea-compose edits-cta-compose">
+        <textarea id="quick-edit-input" rows="2" placeholder="e.g. Change the phone number in the footer" oninput="autoGrow(this)"></textarea>
+        <button class="btn-save-task" id="quick-edit-btn" onclick="addEdit('quick-edit-input', 'quick-edit-btn')">Add edit</button>
+      </div>
+      <button class="edits-cta-count" id="edits-cta-count" onclick="showTab('sitenotes')" style="display:none"></button>
+    </div>
+
     <div class="plan-logo jpn-only">
       <img src="https://development-plan.pages.dev/logo.png" alt="Jesus People Network"
            onerror="this.style.display='none'">
@@ -451,7 +469,7 @@
 </div>
 
 <script>
-  const TABS = ['plan','comments','updates','sitenotes','history'];
+  const TABS = ['plan','sitenotes','comments','updates','history'];
   let currentUser = null;
   let adminToken = null;
   const _fetch = window.fetch.bind(window);
@@ -1345,12 +1363,22 @@
     }
     const withTok = (u, id) => notesTok && !id ? u + '#kcadmin=' + notesTok : u;
     const openEl = document.getElementById('sitenotes-open');
-    openEl.style.display = SITE_URL ? '' : 'none';
-    if (SITE_URL) openEl.href = withTok(noteModeUrl(SITE_URL));
+    const ctaOpen = document.getElementById('edits-cta-open');
+    for (const a of [openEl, ctaOpen]) {
+      a.style.display = SITE_URL ? '' : 'none';
+      if (SITE_URL) a.href = withTok(noteModeUrl(SITE_URL));
+    }
+    document.querySelector('#edits-cta .edits-cta-text').textContent = SITE_URL
+      ? 'Open your website and pin a note right where the change goes, or just type it here.'
+      : 'Type the change you want below. Everyone on the project sees the list.';
     const [notes, msgs] = await Promise.all([
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=sitenote`).then(r => r.json()),
       fetch(`/api/posts?plan_id=${currentProject.id}&kind=message`).then(r => r.json()),
     ]);
+    const openCount = notes.filter(n => n.urgency !== 'done').length;
+    const countEl = document.getElementById('edits-cta-count');
+    countEl.style.display = notes.length ? '' : 'none';
+    countEl.textContent = openCount ? `${openCount} edit${openCount === 1 ? '' : 's'} waiting · see all →` : 'All edits done · see the list →';
     const el = document.getElementById('sitenotes-list');
     if (!notes.length) { el.innerHTML = '<div class="empty-state">No notes on the website yet.</div>'; return; }
     el.innerHTML = notes.slice().reverse().map(n => {
@@ -1368,11 +1396,11 @@
     }).join('');
   }
 
-  async function addEdit() {
-    const input = document.getElementById('edit-input');
+  async function addEdit(inputId = 'edit-input', btnId = 'edit-btn') {
+    const input = document.getElementById(inputId);
     const text = input.value.trim();
     if (!text) return;
-    const btn = document.getElementById('edit-btn');
+    const btn = document.getElementById(btnId);
     btn.disabled = true;
     try {
       const r = await fetch('/api/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1380,6 +1408,11 @@
       if (!r.ok) throw new Error();
       input.value = ''; autoGrow(input);
       await loadSiteNotes();
+      if (inputId !== 'edit-input') {
+        const c = document.getElementById('edits-cta-count');
+        c.dataset.added = '1';
+        c.textContent = 'Added. See all edits →';
+      }
     } catch { alert('Could not add the edit. Try again.'); }
     finally { btn.disabled = false; }
   }
