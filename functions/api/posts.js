@@ -38,7 +38,13 @@ export async function onRequest(context) {
   }
   const caller = (request.headers.get('x-portal-name') || '').trim().toLowerCase();
   const isIvan = n => String(n || '').trim().toLowerCase() === 'ivan';
-  const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind, plan_id FROM portal_posts WHERE id = ?').bind(id).first();
+  const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind, plan_id, body FROM portal_posts WHERE id = ?').bind(id).first();
+  // Project history: the server records task changes itself, so the timeline can't be edited from a browser.
+  const actor = () => (admin ? 'Ivan' : (request.headers.get('x-portal-name') || '').trim().slice(0, 80) || 'Someone');
+  const taskText = body => { try { return String(JSON.parse(body).text || '').slice(0, 300); } catch { return String(body || '').slice(0, 300); } };
+  const logHistory = (planId, taskId, action, text) => env.DB.prepare(
+    'INSERT INTO portal_posts (id, plan_id, task_id, kind, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(`hist-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, planId, taskId, 'history', actor(), JSON.stringify({ action, text }), 'open', new Date().toISOString()).run();
   const forbidden = () => json({ error: 'Only Ivan can do that. Sign in as Ivan with the admin password.' }, 403);
 
   if (request.method === 'GET') {
@@ -87,6 +93,7 @@ export async function onRequest(context) {
     await env.DB.prepare(
       'INSERT INTO portal_posts (id, plan_id, task_id, kind, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(id, plan_id, task_id || null, kind, author_name, body, safeUrgency || 'open', created_at).run();
+    if (kind === 'task' && !clientId) await logHistory(plan_id, id, (safeUrgency || 'open') === 'pending' ? 'requested' : 'added', taskText(body));
 
     return json({ id, created_at }, 201);
   }
@@ -102,6 +109,7 @@ export async function onRequest(context) {
     const row = await rowById(id);
     if (!row) return json({ error: 'Not found' }, 404);
     if (!mayUse(row.plan_id)) return noAccess();
+    if (row.kind === 'history') return json({ error: 'History cannot be changed' }, 403);
     if (!admin) {
       if (row.urgency === 'pending' || urgency === 'pending') return forbidden();
       const own = caller && caller === String(row.author_name).toLowerCase() && !isIvan(row.author_name);
@@ -110,6 +118,10 @@ export async function onRequest(context) {
       if (body && row.kind !== 'task' && !own) return forbidden();
     }
     if (urgency) await env.DB.prepare('UPDATE portal_posts SET urgency = ? WHERE id = ?').bind(urgency, id).run();
+    if (row.kind === 'task' && urgency && urgency !== row.urgency) {
+      const action = urgency === 'done' ? 'finished' : row.urgency === 'pending' ? 'approved' : row.urgency === 'done' ? 'reopened' : null;
+      if (action) await logHistory(row.plan_id, id, action, taskText(body || row.body));
+    }
     if (body) await env.DB.prepare('UPDATE portal_posts SET body = ? WHERE id = ?').bind(body, id).run();
     return json({ updated: id });
   }
@@ -120,6 +132,7 @@ export async function onRequest(context) {
     if (!id) return json({ error: 'Missing id' }, 400);
     const target = await rowById(id);
     if (target && !mayUse(target.plan_id)) return noAccess();
+    if (target && target.kind === 'history' && !admin) return json({ error: 'History cannot be changed' }, 403);
     if (!admin) {
       const row = target;
       if (!row) return json({ deleted: id });
@@ -127,8 +140,9 @@ export async function onRequest(context) {
       if (!own) return forbidden();
     }
     await env.DB.prepare('DELETE FROM portal_posts WHERE id = ?').bind(id).run();
+    if (target && target.kind === 'task') await logHistory(target.plan_id, id, target.urgency === 'pending' ? 'declined' : 'removed', taskText(target.body));
     // Also delete comments on this task
-    await env.DB.prepare('DELETE FROM portal_posts WHERE task_id = ?').bind(id).run();
+    await env.DB.prepare("DELETE FROM portal_posts WHERE task_id = ? AND kind != 'history'").bind(id).run();
     return json({ deleted: id });
   }
 

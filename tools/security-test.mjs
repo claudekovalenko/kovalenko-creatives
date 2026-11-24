@@ -65,6 +65,23 @@ check((await call(posts, '/api/posts?plan_id=jpn-mvp', { headers: A })).data.len
 check((await call(projects, '/api/projects?all=1')).status === 401 && (await call(projects, '/api/projects?all=1', { headers: A })).status === 200, 'the all-projects view needs the admin sign-in');
 check((await call(login, '/api/admin-login', { method: 'POST', body: { password: 'wrong' } })).status === 401, 'a wrong admin password is refused');
 
+// Finishing tasks and project history
+const newTask = await call(posts, '/api/posts', { method: 'POST', headers: A, body: { plan_id: 'jpn-mvp', task_id: 'sp1', author_name: 'Ivan', kind: 'task', body: JSON.stringify({ text: 'Contact page' }), urgency: 'open' } });
+const taskId = newTask.data.id;
+check((await call(posts, `/api/posts?id=${taskId}`, { method: 'PATCH', headers: P, body: { urgency: 'done' } })).status === 200, 'a client can mark a task done');
+await call(posts, `/api/posts?id=${taskId}`, { method: 'PATCH', headers: A, body: { urgency: 'open' } });
+let hist = (await call(posts, '/api/posts?plan_id=jpn-mvp&kind=history', { headers: P })).data.map(h => ({ ...h, d: JSON.parse(h.body) }));
+check(hist.some(h => h.d.action === 'added' && h.d.text === 'Contact page' && h.author_name === 'Ivan'), 'history records who added a task');
+check(hist.some(h => h.d.action === 'finished' && h.author_name === 'Craig'), 'history records who finished a task');
+check(hist.some(h => h.d.action === 'reopened' && h.author_name === 'Ivan'), 'history records reopening');
+check((await call(posts, '/api/posts?plan_id=jpn-mvp&kind=history')).status === 401, 'history needs the project pass too');
+check((await call(posts, '/api/posts', { method: 'POST', headers: P, body: { plan_id: 'jpn-mvp', author_name: 'Craig', kind: 'history', body: '{"action":"finished","text":"fake"}' } })).status === 400, 'nobody can write fake history');
+check((await call(posts, `/api/posts?id=${hist[0].id}`, { method: 'PATCH', headers: { ...P, 'X-Portal-Name': hist[0].author_name }, body: { body: 'changed' } })).status === 403, 'history cannot be edited');
+check((await call(posts, `/api/posts?id=${hist[0].id}`, { method: 'DELETE', headers: { ...P, 'X-Portal-Name': hist[0].author_name } })).status === 403, 'a client cannot delete history');
+await call(posts, `/api/posts?id=${taskId}`, { method: 'DELETE', headers: A });
+hist = (await call(posts, '/api/posts?plan_id=jpn-mvp&kind=history', { headers: A })).data.map(h => JSON.parse(h.body));
+check(hist.some(h => h.action === 'removed' && h.text === 'Contact page') && hist.some(h => h.action === 'finished'), 'removing a task keeps its history and records the removal');
+
 for (const p of passes) console.log(`  ok    ${p}`);
 for (const f of failures) console.log(`  FAIL  ${f}`);
 console.log(`\nSecurity: ${passes.length} passed, ${failures.length} failed`);
