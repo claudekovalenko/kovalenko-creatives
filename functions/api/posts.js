@@ -1,4 +1,5 @@
 import { isAdminRequest, isNotesRequest, projectFromRequest } from './_auth.js';
+import { memberFromRequest, sameOrigin } from './_members.js';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -29,18 +30,23 @@ export async function onRequest(context) {
   let admin = await isAdminRequest(request, env);
   // Everyone except the admin needs a pass for the project they are reading or changing.
   const allowedPlan = admin ? null : await projectFromRequest(request, env);
+  // People signed in with Google can use every project they have added to their account.
+  const member = admin ? null : await memberFromRequest(request, env);
   const noAccess = () => json({ error: 'Open this project with its code first.' }, 401);
-  const mayUse = planId => admin || (!!allowedPlan && planId === allowedPlan);
+  const mayUse = planId => admin || (!!allowedPlan && planId === allowedPlan) || !!(member && member.projects.has(planId));
+  // A change relying only on the sign-in cookie must come from this site.
+  if (member && !allowedPlan && request.method !== 'GET' && !sameOrigin(request)) return json({ error: 'Refused' }, 403);
   const notesAdmin = !admin && await isNotesRequest(request, env);
   if (notesAdmin && request.method === 'DELETE') {
     const r = await env.DB.prepare('SELECT kind FROM portal_posts WHERE id = ?').bind(new URL(request.url).searchParams.get('id')).first();
     if (r && r.kind === 'sitenote') admin = true;
   }
-  const caller = (request.headers.get('x-portal-name') || '').trim().toLowerCase();
+  // A Google-signed-in person always acts under their own account name.
+  const caller = (member ? member.name : (request.headers.get('x-portal-name') || '')).trim().toLowerCase();
   const isIvan = n => String(n || '').trim().toLowerCase() === 'ivan';
   const rowById = id => env.DB.prepare('SELECT author_name, urgency, kind, plan_id, body FROM portal_posts WHERE id = ?').bind(id).first();
   // Project history: the server records task changes itself, so the timeline can't be edited from a browser.
-  const actor = () => (admin ? 'Ivan' : (request.headers.get('x-portal-name') || '').trim().slice(0, 80) || 'Someone');
+  const actor = () => (admin ? 'Ivan' : member ? member.name : (request.headers.get('x-portal-name') || '').trim().slice(0, 80) || 'Someone');
   const taskText = body => { try { return String(JSON.parse(body).text || '').slice(0, 300); } catch { return String(body || '').slice(0, 300); } };
   const logHistory = (planId, taskId, action, text) => env.DB.prepare(
     'INSERT INTO portal_posts (id, plan_id, task_id, kind, author_name, body, urgency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
@@ -72,7 +78,8 @@ export async function onRequest(context) {
     let data;
     try { data = await request.json(); } catch { return json({ error: 'Invalid JSON' }, 400); }
 
-    const { plan_id, author_name, body, kind, task_id, urgency, id: clientId } = data;
+    const { plan_id, body, kind, task_id, urgency, id: clientId } = data;
+    const author_name = member ? member.name : data.author_name;
     if (!plan_id || !author_name || !body || !kind) return json({ error: 'Missing fields' }, 400);
     if (!mayUse(plan_id)) return noAccess();
     if (String(body).length > 20000 || String(author_name).length > 80) return json({ error: 'Too long' }, 413);

@@ -130,3 +130,16 @@ Cloudflare Pages settings:
 The workflow in `.github/workflows/pages.yml` runs the site check and browser tests on every push and pull request. Run `npm test` before pushing to the production branch, since Cloudflare publishes whatever is pushed there.
 
 To use a custom domain, add it in the Cloudflare Pages project under **Custom domains**.
+
+## Client portal: sign in with Google
+
+People can sign in to `/portal/` with their Google account. The first time, they enter the project code you sent them; it is saved to their account, so next time they go straight to their project. They can add more projects with more codes (My projects > Add a project). Their messages always carry their Google name. The name-and-code sign-in still works alongside it.
+
+Setup (once):
+
+1. Google Cloud Console > APIs & Services > OAuth consent screen: External, app name "Kovalenko Creatives", scopes `openid`, `email`, `profile`.
+2. Credentials > Create OAuth client ID > Web application. Authorized redirect URI: `https://kovalenko-creatives.pages.dev/api/auth/callback` (add one for any custom domain too).
+3. Cloudflare Pages project > Settings > Variables and secrets: `GOOGLE_CLIENT_ID` (text), `GOOGLE_CLIENT_SECRET` (secret), `OWNER_EMAILS` (text, your Google address; that account gets the admin view without the password).
+4. Redeploy. Until these are set, the portal shows only the name-and-code sign-in.
+
+Accounts, the projects they added, and sign-in sessions are stored in D1 (`portal_members`, `portal_member_projects`, `portal_sessions`; only a hash of each session is kept). Sessions last 60 days; signing out ends them.

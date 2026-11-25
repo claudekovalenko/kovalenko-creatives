@@ -32,11 +32,23 @@
     #login-screen { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 57px); padding: 24px; }
     .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; }
     .login-box h1 { font-size: 20px; margin-bottom: 6px; }
+    .btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 46px; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none; font-family: var(--sans); }
+    .btn-google:hover { background: #f6f8fb; }
+    .login-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 22px 0 18px; }
+    .login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .member-project { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 18px; background: none; border: 0; border-bottom: 1px solid var(--border); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    .member-project:last-child { border-bottom: 0; }
+    .member-project:hover { background: var(--bg); }
+    .member-project b { display: block; font-size: 15px; }
+    .member-project small { color: var(--muted); font-size: 12px; }
+    .member-project .go { margin-left: auto; color: var(--accent); font-size: 13px; white-space: nowrap; }
     .login-box p { color: var(--muted); font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 12px; font-family: var(--mono); color: var(--muted); margin-bottom: 6px; letter-spacing: .05em; }
     .field input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; font-family: var(--sans); outline: none; }
     .field input:focus { border-color: var(--accent); }
+    #member-code { min-width: 0; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 14px; outline: none; }
+    #member-code:focus { border-color: var(--accent); }
     .btn-primary { width: 100%; background: var(--accent); color: var(--bg); border: none; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--sans); }
     .btn-primary:hover { opacity: .9; }
     .error-msg { color: var(--danger); font-size: 13px; margin-top: 12px; display: none; }
@@ -281,6 +293,7 @@
   <div class="header-right" id="header-user" style="display:none">
     <span>Signed in as <strong id="display-name"></strong></span>
     <button class="btn-sm" id="all-projects-btn" style="display:none" onclick="showProjects()">All projects</button>
+    <button class="btn-sm" id="my-projects-btn" style="display:none" onclick="showMemberHome()">My projects</button>
     <button class="btn-sm" onclick="signOut()">Sign out</button>
   </div>
 </header>
@@ -288,7 +301,16 @@
 <div id="login-screen">
   <div class="login-box">
     <h1>Client Portal</h1>
-    <p>Sign in with your name and the project code Ivan sent you. Ivan: your password is enough, no code needed.</p>
+    <div id="google-signin" style="display:none">
+      <p>Sign in with your Google account. The first time, enter the project code Ivan sent you, and next time you go straight to your project.</p>
+      <a class="btn-google" href="/api/auth/google">
+        <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.83.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.05l3.01-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z"/></svg>
+        Continue with Google
+      </a>
+      <div class="error-msg" id="google-error"></div>
+      <div class="login-or"><span>or use your name and code</span></div>
+    </div>
+    <p id="classic-intro">Sign in with your name and the project code Ivan sent you. Ivan: your password is enough, no code needed.</p>
     <div class="field">
       <label>YOUR NAME</label>
       <input id="input-name" type="text" placeholder="Your name" autocomplete="off" oninput="document.getElementById('pw-field').style.display = this.value.trim().toLowerCase() === 'ivan' ? 'block' : 'none'">
@@ -303,6 +325,23 @@
     </div>
     <button class="btn-primary" onclick="signIn()">Access My Project</button>
     <div class="error-msg" id="login-error">That code doesn't match a project. Double-check with Ivan.</div>
+  </div>
+</div>
+
+<div id="member-screen" style="display:none" class="dash">
+  <div class="project-header">
+    <div class="project-label">Welcome</div>
+    <div class="project-title">Your projects</div>
+  </div>
+  <div id="member-projects" class="dash-list"></div>
+  <div class="dash-section">Add a project</div>
+  <div class="top-card">
+    <p style="font-size:14px;line-height:1.6;margin:0 0 10px">Enter the project code Ivan sent you. It's saved to your account, so you only do this once.</p>
+    <div class="idea-compose" style="margin-top:0">
+      <input id="member-code" type="text" placeholder="Project code" autocomplete="off" style="flex:1;font-family:var(--mono);letter-spacing:.05em" onkeydown="if(event.key==='Enter')addMemberProject()">
+      <button class="btn-save-task" id="member-code-btn" onclick="addMemberProject()">Add project</button>
+    </div>
+    <div class="error-msg" id="member-error"></div>
   </div>
 </div>
 
@@ -676,6 +715,7 @@
   });
 
   function saveSession() {
+    if (member) return;
     localStorage.setItem('kc-portal-session', JSON.stringify({ name: currentUser, project: currentProject, adminToken }));
   }
 
@@ -751,6 +791,8 @@
   }
 
   function signOut() {
+    if (member) { _fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}); member = null; }
+    document.getElementById('member-screen').style.display = 'none';
     localStorage.removeItem('kc-portal-session');
     currentUser = null; currentProject = null; adminToken = null;
     clearInterval(pollTimer);
@@ -770,6 +812,8 @@
     SITE_URL = PROJECT_SITES[currentProject.id] || null;
     document.querySelectorAll('.jpn-only').forEach(e => e.style.display = isJPN() ? '' : 'none');
     document.getElementById('all-projects-btn').style.display = isAdmin() ? '' : 'none';
+    document.getElementById('my-projects-btn').style.display = member && !isAdmin() ? '' : 'none';
+    document.getElementById('member-screen').style.display = 'none';
     if (isAdmin()) {
       document.getElementById('admin-tools').style.display = 'block';
       document.getElementById('links-admin').style.display = 'flex';
@@ -1578,7 +1622,86 @@
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function fmt(iso) { return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
 
-  restoreSession();
+  // ── Google accounts ──────────────────────────────────────────────────────
+  let member = null;
+
+  async function startPortal() {
+    const q = new URLSearchParams(location.search).get('signin');
+    if (q) {
+      history.replaceState(null, '', location.pathname + location.hash);
+      const msg = { failed: 'Google sign-in did not work. Please try again.', cancelled: 'Sign-in was cancelled.', unavailable: 'Google sign-in is not set up yet. Use your name and code for now.' }[q];
+      if (msg) { const e = document.getElementById('google-error'); e.textContent = msg; e.style.display = 'block'; }
+    }
+    let me = null;
+    try { const r = await _fetch('/api/me'); if (r.ok) me = await r.json(); } catch { /* offline */ }
+    if (me && me.google) {
+      document.getElementById('google-signin').style.display = '';
+      document.getElementById('classic-intro').style.display = 'none';
+    }
+    if (me && me.signedIn) return startMember(me);
+    restoreSession();
+  }
+
+  function startMember(me) {
+    member = me;
+    currentUser = me.name;
+    adminToken = me.adminToken || null;
+    localStorage.removeItem('kc-portal-session');
+    if (me.isOwner && adminToken) return showProjects();
+    if (me.projects.length === 1 && !_codeParam) {
+      currentProject = me.projects[0];
+      return showPortal();
+    }
+    showMemberHome();
+  }
+
+  function hideScreens() {
+    clearInterval(pollTimer);
+    for (const id of ['login-screen', 'portal-screen', 'projects-screen', 'member-screen']) document.getElementById(id).style.display = 'none';
+  }
+
+  function showMemberHome() {
+    hideScreens();
+    document.getElementById('member-screen').style.display = 'block';
+    document.getElementById('header-user').style.display = 'flex';
+    document.getElementById('display-name').textContent = currentUser;
+    document.getElementById('my-projects-btn').style.display = 'none';
+    const list = document.getElementById('member-projects');
+    list.innerHTML = member.projects.length
+      ? member.projects.map(p => `<button class="member-project" onclick="openMemberProject('${esc(p.id)}')"><span><b>${esc(p.name)}</b><small>${esc(p.client || '')}</small></span><span class="go">Open →</span></button>`).join('')
+      : '<div class="empty-state" style="padding:16px">No projects yet. Add one with the code below.</div>';
+    if (_codeParam && !member.projects.some(p => p.code === _codeParam.toUpperCase())) {
+      document.getElementById('member-code').value = _codeParam;
+    }
+  }
+
+  function openMemberProject(id) {
+    const p = member.projects.find(x => x.id === id);
+    if (!p) return;
+    currentProject = p;
+    hideScreens();
+    showPortal();
+  }
+
+  async function addMemberProject() {
+    const input = document.getElementById('member-code');
+    const err = document.getElementById('member-error');
+    const btn = document.getElementById('member-code-btn');
+    err.style.display = 'none';
+    if (!input.value.trim()) return;
+    btn.disabled = true;
+    try {
+      const r = await _fetch('/api/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: input.value.trim() }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { err.textContent = d.error || 'Could not add that project.'; err.style.display = 'block'; return; }
+      if (!member.projects.some(p => p.id === d.project.id)) member.projects.push(d.project);
+      input.value = '';
+      openMemberProject(d.project.id);
+    } catch { err.textContent = 'Connection error. Try again.'; err.style.display = 'block'; }
+    finally { btn.disabled = false; }
+  }
+
+  startPortal();
 </script>
 </body>
 </html>

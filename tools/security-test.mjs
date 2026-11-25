@@ -5,6 +5,10 @@ import { DatabaseSync } from 'node:sqlite';
 import * as posts from '../functions/api/posts.js';
 import * as projects from '../functions/api/projects.js';
 import * as login from '../functions/api/admin-login.js';
+import * as me from '../functions/api/me.js';
+import * as googleStart from '../functions/api/auth/google.js';
+import * as googleBack from '../functions/api/auth/callback.js';
+import * as logout from '../functions/api/auth/logout.js';
 
 process.removeAllListeners('warning');
 const sqlite = new DatabaseSync(':memory:');
@@ -19,7 +23,7 @@ const env = { DB: { prepare: sql => new Stmt(sql) }, ADMIN_PASSWORD: 'test-admin
 const ORIGIN = 'https://portal.test';
 const call = async (mod, path, { method = 'GET', body, headers = {} } = {}) => {
   const request = new Request(ORIGIN + path, { method, headers: { 'content-type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined });
-  const fn = mod.onRequest || (method === 'POST' ? mod.onRequestPost : null);
+  const fn = mod.onRequest || (method === 'POST' ? mod.onRequestPost : mod.onRequestGet);
   const res = await fn({ request, env });
   let data = null;
   try { data = await res.json(); } catch { /* not json */ }
@@ -81,6 +85,59 @@ check((await call(posts, `/api/posts?id=${hist[0].id}`, { method: 'DELETE', head
 await call(posts, `/api/posts?id=${taskId}`, { method: 'DELETE', headers: A });
 hist = (await call(posts, '/api/posts?plan_id=jpn-mvp&kind=history', { headers: A })).data.map(h => JSON.parse(h.body));
 check(hist.some(h => h.action === 'removed' && h.text === 'Contact page') && hist.some(h => h.action === 'finished'), 'removing a task keeps its history and records the removal');
+
+// Google sign-in: accounts remember their projects
+env.GOOGLE_CLIENT_ID = 'client-123.apps.googleusercontent.com';
+env.GOOGLE_CLIENT_SECRET = 'secret';
+env.OWNER_EMAILS = 'owner@example.com';
+const raw = async (mod, path, { method = 'GET', headers = {}, body } = {}) => {
+  const request = new Request(ORIGIN + path, { method, headers: { 'content-type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined, redirect: 'manual' });
+  const fn = mod.onRequest || (method === 'POST' ? mod.onRequestPost : mod.onRequestGet);
+  return fn({ request, env });
+};
+const cookieFrom = res => res.headers.getSetCookie().map(c => c.split(';')[0]).filter(c => !c.endsWith('=')).join('; ');
+// Stand-in for Google's token endpoint: returns an ID token for whoever we choose.
+const realFetch = globalThis.fetch;
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+async function googleSignIn(email, name, { aud = env.GOOGLE_CLIENT_ID, verified = true } = {}) {
+  const start = await raw(googleStart, '/api/auth/google');
+  const loc = new URL(start.headers.get('location'));
+  const stateCookie = cookieFrom(start);
+  globalThis.fetch = async () => new Response(JSON.stringify({ id_token: `${b64({ alg: 'RS256' })}.${b64({ aud, iss: 'https://accounts.google.com', exp: Math.floor(Date.now() / 1000) + 600, email, email_verified: verified, name, sub: 'sub-' + email })}.sig` }), { status: 200 });
+  try {
+    const back = await raw(googleBack, `/api/auth/callback?code=abc&state=${loc.searchParams.get('state')}`, { headers: { cookie: stateCookie } });
+    return { location: back.headers.get('location'), cookie: cookieFrom(back), startLocation: loc };
+  } finally { globalThis.fetch = realFetch; }
+}
+const g = await googleSignIn('pat@example.com', 'Pat Rivera');
+check(g.startLocation.hostname === 'accounts.google.com' && g.startLocation.searchParams.get('code_challenge_method') === 'S256', 'Google sign-in starts with a state and PKCE check');
+check(g.location === `${ORIGIN}/portal/` && g.cookie.startsWith('__Host-kc_member='), 'Google sign-in creates a session and returns to the portal');
+const forged = await raw(googleBack, '/api/auth/callback?code=abc&state=guess');
+check(forged.headers.get('location').includes('signin=failed') && !cookieFrom(forged), 'a callback without the matching state is refused');
+check((await googleSignIn('x@example.com', 'X', { aud: 'someone-else' })).location.includes('signin=failed'), 'an ID token meant for another app is refused');
+check((await googleSignIn('y@example.com', 'Y', { verified: false })).location.includes('signin=failed'), 'an unverified Google email is refused');
+const G = { cookie: g.cookie, origin: ORIGIN };
+let mine = (await call(me, '/api/me', { headers: G })).data;
+check(mine.signedIn && mine.name === 'Pat Rivera' && mine.projects.length === 0 && !mine.adminToken, 'a new Google account starts with no projects and no admin rights');
+check((await call(posts, '/api/posts?plan_id=jpn-mvp', { headers: G })).status === 401, 'a Google account cannot read a project it has not added');
+check((await call(me, '/api/me', { method: 'POST', headers: G, body: { code: 'WRONG' } })).status === 404, 'a wrong project code is refused');
+check((await call(me, '/api/me', { method: 'POST', headers: { cookie: g.cookie, origin: 'https://evil.example' }, body: { code: 'JPN2026' } })).status === 403, 'adding a project from another site is refused');
+check((await call(me, '/api/me', { method: 'POST', headers: G, body: { code: 'jpn2026' } })).status === 201, 'adding a project by its code works (any letter case)');
+mine = (await call(me, '/api/me', { headers: G })).data;
+check(mine.projects.length === 1 && mine.projects[0].id === 'jpn-mvp' && !!mine.projects[0].access, 'the account remembers the project for next time');
+check((await call(posts, '/api/posts?plan_id=jpn-mvp', { headers: G })).status === 200, 'a Google account reads the projects it added');
+check((await call(posts, '/api/posts?plan_id=oahu-seminary', { headers: G })).status === 401, 'but not other projects');
+const asPat = await call(posts, '/api/posts', { method: 'POST', headers: G, body: { plan_id: 'jpn-mvp', author_name: 'Ivan', body: 'pretending', kind: 'message' } });
+const patPost = (await call(posts, '/api/posts?plan_id=jpn-mvp&kind=message', { headers: G })).data.find(p => p.id === asPat.data?.id);
+check(asPat.status === 201 && patPost?.author_name === 'Pat Rivera', 'posts from a Google account always carry its real name');
+check((await call(posts, '/api/posts', { method: 'POST', headers: { cookie: g.cookie, origin: 'https://evil.example' }, body: { plan_id: 'jpn-mvp', author_name: 'x', body: 'x', kind: 'message' } })).status === 403, 'posting with the sign-in cookie from another site is refused');
+await call(me, '/api/me', { method: 'POST', headers: G, body: { code: 'OAHU2026' } });
+check((await call(me, '/api/me', { headers: G })).data.projects.length === 2, 'another project can be added with another code');
+const owner = await googleSignIn('owner@example.com', 'Ivan Kovalenko');
+const ownerMe = (await call(me, '/api/me', { headers: { cookie: owner.cookie } })).data;
+check(ownerMe.isOwner && !!ownerMe.adminToken, 'the owner’s Google account gets the admin view');
+await raw(logout, '/api/auth/logout', { method: 'POST', headers: G });
+check((await call(me, '/api/me', { headers: G })).data.signedIn === false, 'signing out ends the session');
 
 for (const p of passes) console.log(`  ok    ${p}`);
 for (const f of failures) console.log(`  FAIL  ${f}`);
